@@ -296,4 +296,106 @@ class OrchestratorTest < Minitest::Test
     assert mcp_path.end_with?("lead.mcp.json")
     assert_path_exists mcp_path
   end
+
+  def test_build_main_command_with_prompt
+    config = create_test_config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Execute test task")
+
+    expected_command = nil
+    orchestrator.stub :exec, ->(cmd) { expected_command = cmd } do
+      Dir.chdir(@tmpdir) do
+        capture_io { orchestrator.start }
+      end
+    end
+
+    # Verify prompt is included in command
+    assert_includes expected_command, "-p Execute\\ test\\ task"
+  end
+
+  def test_build_main_command_with_prompt_requiring_escaping
+    config = create_test_config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Fix the 'bug' in module X")
+
+    expected_command = nil
+    orchestrator.stub :exec, ->(cmd) { expected_command = cmd } do
+      Dir.chdir(@tmpdir) do
+        capture_io { orchestrator.start }
+      end
+    end
+
+    # Verify prompt with quotes is properly escaped
+    assert_includes expected_command, "-p Fix\\ the\\ \\'bug\\'\\ in\\ module\\ X"
+  end
+
+  def test_output_suppression_with_prompt
+    config = create_test_config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Test prompt")
+
+    output = nil
+    orchestrator.stub :exec, nil do
+      output = capture_io { orchestrator.start }[0]
+    end
+
+    # All startup messages should be suppressed
+    refute_match(/🐝 Starting Claude Swarm/, output)
+    refute_match(/📝 Session logs will be saved/, output)
+    refute_match(/✓ Generated MCP configurations/, output)
+    refute_match(/🚀 Launching main instance/, output)
+    refute_match(/Model:/, output)
+    refute_match(/Directory:/, output)
+    refute_match(/Tools:/, output)
+    refute_match(/Connections:/, output)
+  end
+
+  def test_output_shown_without_prompt
+    config = create_test_config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
+
+    output = nil
+    orchestrator.stub :exec, nil do
+      output = capture_io { orchestrator.start }[0]
+    end
+
+    # All startup messages should be shown
+    assert_match(/🐝 Starting Claude Swarm/, output)
+    assert_match(/📝 Session logs will be saved/, output)
+    assert_match(/✓ Generated MCP configurations/, output)
+    assert_match(/🚀 Launching main instance/, output)
+  end
+
+  def test_debug_mode_suppressed_with_prompt
+    ENV["DEBUG"] = "true"
+    config = create_test_config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Debug test")
+
+    output = nil
+    orchestrator.stub :exec, nil do
+      output = capture_io { orchestrator.start }[0]
+    end
+
+    # Debug output should also be suppressed with prompt
+    refute_match(/Running:/, output)
+  end
+
+  def test_vibe_mode_with_prompt
+    config = create_test_config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, vibe: true, prompt: "Vibe test")
+
+    expected_command = nil
+    orchestrator.stub :exec, ->(cmd) { expected_command = cmd } do
+      Dir.chdir(@tmpdir) do
+        capture_io { orchestrator.start }
+      end
+    end
+
+    # Should include both vibe flag and prompt
+    assert_includes expected_command, "--dangerously-skip-permissions"
+    assert_includes expected_command, "-p Vibe\\ test"
+  end
 end

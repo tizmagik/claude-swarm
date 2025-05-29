@@ -4,39 +4,48 @@ require "shellwords"
 
 module ClaudeSwarm
   class Orchestrator
-    def initialize(configuration, mcp_generator, vibe: false)
+    def initialize(configuration, mcp_generator, vibe: false, prompt: nil)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
+      @prompt = prompt
     end
 
     def start
-      puts "🐝 Starting Claude Swarm: #{@config.swarm_name}"
-      puts "😎 Vibe mode ON" if @vibe
-      puts
+      unless @prompt
+        puts "🐝 Starting Claude Swarm: #{@config.swarm_name}"
+        puts "😎 Vibe mode ON" if @vibe
+        puts
+      end
 
       # Set session timestamp for all instances to share the same log file
       session_timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
       ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = session_timestamp
-      puts "📝 Session logs will be saved to: .claude-swarm/logs/session_#{session_timestamp}.log"
-      puts
+      unless @prompt
+        puts "📝 Session logs will be saved to: .claude-swarm/logs/session_#{session_timestamp}.log"
+        puts
+      end
 
       # Generate all MCP configuration files
       @generator.generate_all
-      puts "✓ Generated MCP configurations in .claude-swarm/"
-      puts
+      unless @prompt
+        puts "✓ Generated MCP configurations in .claude-swarm/"
+        puts
+      end
 
       # Launch the main instance
       main_instance = @config.main_instance_config
-      puts "🚀 Launching main instance: #{@config.main_instance}"
-      puts "   Model: #{main_instance[:model]}"
-      puts "   Directory: #{main_instance[:directory]}"
-      puts "   Tools: #{main_instance[:tools].join(", ")}" if main_instance[:tools].any?
-      puts "   Connections: #{main_instance[:connections].join(", ")}" if main_instance[:connections].any?
-      puts
+      unless @prompt
+        puts "🚀 Launching main instance: #{@config.main_instance}"
+        puts "   Model: #{main_instance[:model]}"
+        puts "   Directory: #{main_instance[:directory]}"
+        puts "   Tools: #{main_instance[:tools].join(", ")}" if main_instance[:tools].any?
+        puts "   Connections: #{main_instance[:connections].join(", ")}" if main_instance[:connections].any?
+        puts
+      end
 
       command = build_main_command(main_instance)
-      if ENV["DEBUG"]
+      if ENV["DEBUG"] && !@prompt
         puts "Running: #{command}"
         puts
       end
@@ -64,6 +73,8 @@ module ClaudeSwarm
 
       mcp_config_path = @generator.mcp_config_path(@config.main_instance)
       parts << "--mcp-config #{mcp_config_path}"
+
+      parts << "-p #{Shellwords.escape(@prompt)}" if @prompt
 
       parts.join(" ")
     end

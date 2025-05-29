@@ -17,6 +17,8 @@ module ClaudeSwarm
                            desc: "Path to configuration file"
     method_option :vibe, type: :boolean, default: false,
                          desc: "Run with --dangerously-skip-permissions for all instances"
+    method_option :prompt, aliases: "-p", type: :string,
+                           desc: "Prompt to pass to the main Claude instance (non-interactive mode)"
     def start(config_file = nil)
       config_path = config_file || options[:config]
       unless File.exist?(config_path)
@@ -24,11 +26,11 @@ module ClaudeSwarm
         exit 1
       end
 
-      say "Starting Claude Swarm from #{config_path}..."
+      say "Starting Claude Swarm from #{config_path}..." unless options[:prompt]
       begin
         config = Configuration.new(config_path)
         generator = McpGenerator.new(config, vibe: options[:vibe])
-        orchestrator = Orchestrator.new(config, generator, vibe: options[:vibe])
+        orchestrator = Orchestrator.new(config, generator, vibe: options[:vibe], prompt: options[:prompt])
         orchestrator.start
       rescue Error => e
         error e.message

@@ -117,6 +117,65 @@ class CLITest < Minitest::Test
     orchestrator_mock.verify
   end
 
+  def test_start_with_prompt_option
+    write_config("valid.yml", <<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+
+    YAML
+
+    @cli.options = { prompt: "Test prompt for non-interactive mode" }
+
+    orchestrator_mock = Minitest::Mock.new
+    orchestrator_mock.expect :start, nil
+
+    generator_mock = Minitest::Mock.new
+
+    # Verify that prompt is passed to orchestrator
+    ClaudeSwarm::McpGenerator.stub :new, generator_mock do
+      ClaudeSwarm::Orchestrator.stub :new, lambda { |_config, _generator, **options|
+        assert_equal "Test prompt for non-interactive mode", options[:prompt]
+        assert_nil options[:vibe]
+        orchestrator_mock
+      } do
+        output, = capture_cli_output { @cli.start("valid.yml") }
+        # Verify that startup message is suppressed when prompt is provided
+        refute_match(/Starting Claude Swarm/, output)
+      end
+    end
+
+    orchestrator_mock.verify
+  end
+
+  def test_start_without_prompt_shows_message
+    write_config("valid.yml", <<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+      #{"      "}
+    YAML
+
+    @cli.options = {}
+
+    orchestrator_mock = Minitest::Mock.new
+    orchestrator_mock.expect :start, nil
+
+    ClaudeSwarm::Orchestrator.stub :new, orchestrator_mock do
+      output, = capture_cli_output { @cli.start("valid.yml") }
+      # Verify that startup message is shown when prompt is not provided
+      assert_match(/Starting Claude Swarm from valid\.yml\.\.\./, output)
+    end
+
+    orchestrator_mock.verify
+  end
+
   def test_mcp_serve_with_all_options
     @cli.options = {
       name: "test_instance",

@@ -374,6 +374,10 @@ claude-swarm -c team-config.yml
 # Run with --dangerously-skip-permissions for all instances
 claude-swarm --vibe
 
+# Run in non-interactive mode with a prompt
+claude-swarm -p "Implement the new user authentication feature"
+claude-swarm --prompt "Fix the bug in the payment module"
+
 # Show version
 claude-swarm version
 
