@@ -51,32 +51,43 @@ module ClaudeSwarm
       end
 
       # Execute the main instance - this will cascade to other instances via MCP
-      exec(command)
+      Dir.chdir(main_instance[:directory]) do
+        system(*command)
+      end
     end
 
     private
 
     def build_main_command(instance)
-      parts = []
-      parts << "cd #{Shellwords.escape(instance[:directory])} &&"
-      parts << "claude"
-      parts << "--model #{instance[:model]}"
+      parts = [
+        "claude",
+        "--model",
+        instance[:model]
+      ]
 
       if @vibe
         parts << "--dangerously-skip-permissions"
       elsif instance[:tools].any?
         tools_str = instance[:tools].join(",")
-        parts << "--allowedTools '#{tools_str}'"
+        parts << "--allowedTools"
+        parts << tools_str
       end
 
-      parts << "--append-system-prompt #{Shellwords.escape(instance[:prompt])}" if instance[:prompt]
+      if instance[:prompt]
+        parts << "--append-system-prompt"
+        parts << instance[:prompt]
+      end
 
       mcp_config_path = @generator.mcp_config_path(@config.main_instance)
-      parts << "--mcp-config #{mcp_config_path}"
+      parts << "--mcp-config"
+      parts << mcp_config_path
 
-      parts << "-p #{Shellwords.escape(@prompt)}" if @prompt
-
-      parts.join(" ")
+      if @prompt
+        parts << "-p"
+        parts << @prompt
+      else
+        parts << "#{instance[:prompt]}\n\nNow just say 'I am ready to start'"
+      end
     end
   end
 end

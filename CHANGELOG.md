@@ -1,3 +1,14 @@
+## [0.1.5]
+
+### Changed
+- **Improved command execution**: Switched from `exec` to `Dir.chdir` + `system` for better process handling and proper directory context
+- Command arguments are now passed as an array instead of a shell string, eliminating the need for manual shell escaping
+- Added default prompt behavior: when no `-p` flag is provided, a default prompt is added to help Claude understand it should start working
+
+### Internal
+- Updated test suite to match new command execution implementation
+- Removed shellwords escaping tests as they're no longer needed with array-based command execution
+
 ## [0.1.4]
 
 ### Added
