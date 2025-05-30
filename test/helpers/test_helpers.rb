@@ -200,8 +200,38 @@ module TestHelpers
       end
     end
 
-    def find_log_files(pattern = "session_*.log")
-      Dir.glob(File.join(".claude-swarm", "logs", pattern))
+    def find_log_files(pattern = "session.log")
+      Dir.glob(File.join(".claude-swarm", "sessions", "*", pattern))
+    end
+  end
+
+  module McpHelpers
+    def find_mcp_file(instance_name)
+      # Find the most recent timestamp directory
+      sessions_base = File.join(".claude-swarm", "sessions")
+      return nil unless Dir.exist?(sessions_base)
+
+      timestamp_dirs = Dir.glob(File.join(sessions_base, "*")).select { |f| File.directory?(f) }
+      latest_dir = timestamp_dirs.max_by { |d| File.basename(d) }
+      return nil unless latest_dir
+
+      file_path = File.join(latest_dir, "#{instance_name}.mcp.json")
+      File.exist?(file_path) ? file_path : nil
+    end
+
+    def read_mcp_config(instance_name)
+      mcp_file = find_mcp_file(instance_name)
+      raise "MCP file not found for instance: #{instance_name}" unless mcp_file
+
+      JSON.parse(File.read(mcp_file))
+    end
+
+    def find_latest_session_dir
+      sessions_base = File.join(".claude-swarm", "sessions")
+      return nil unless Dir.exist?(sessions_base)
+
+      timestamp_dirs = Dir.glob(File.join(sessions_base, "*")).select { |f| File.directory?(f) }
+      timestamp_dirs.max_by { |d| File.basename(d) }
     end
   end
 end
@@ -215,5 +245,6 @@ module Minitest
     include TestHelpers::CLIHelpers
     include TestHelpers::SwarmHelpers
     include TestHelpers::LogHelpers
+    include TestHelpers::McpHelpers
   end
 end

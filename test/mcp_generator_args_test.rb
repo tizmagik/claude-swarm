@@ -45,7 +45,7 @@ class McpGeneratorArgsTest < Minitest::Test
         generator.generate_all
 
         # Read the lead instance MCP config
-        lead_config = JSON.parse(File.read(".claude-swarm/lead.mcp.json"))
+        lead_config = read_mcp_config("lead")
 
         # Check that backend connection uses correct args format
         backend_mcp = lead_config["mcpServers"]["backend"]

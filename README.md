@@ -77,7 +77,7 @@ claude-swarm --vibe # That will allow ALL tools for all instances! Be Careful!
 This will:
 - Launch the main instance (lead) with connections to other instances
 - The lead instance can communicate with the other instances via MCP
-- All instances log to `.claude-swarm/logs/session-{timestamp}/`
+- All session files are stored in `.claude-swarm/sessions/{timestamp}/`
 
 #### Multi-Level Swarm Example
 
@@ -400,7 +400,9 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
    - **task**: Execute tasks using Claude Code with configurable tools and return results
    - **session_info**: Get current Claude session information including ID and working directory
    - **reset_session**: Reset the Claude session for a fresh start
-6. **Centralized Logging**: All instances log to `.claude-swarm/logs/session-{timestamp}/` with detailed request/response tracking
+6. **Session Management**: All session files are organized in `.claude-swarm/sessions/{timestamp}/`:
+   - MCP configuration files: `{instance_name}.mcp.json`
+   - Session log: `session.log` with detailed request/response tracking
 
 ## Troubleshooting
 
@@ -423,16 +425,16 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
 ### Debug Output
 
 The swarm will display:
-- Generated MCP configuration location
+- Session directory location (`.claude-swarm/sessions/{timestamp}/`)
 - Main instance details (model, directory, tools, connections)
 - The exact command being run
 
-### Logs
+### Session Files
 
-Check the centralized logs in `.claude-swarm/logs/session-{timestamp}/` for:
-- Individual instance logs
-- MCP server communication
-- Error messages and debugging information
+Check the session directory `.claude-swarm/sessions/{timestamp}/` for:
+- `session.log`: Detailed logs with request/response tracking
+- `{instance}.mcp.json`: MCP configuration for each instance
+- All files for a session are kept together for easy review
 
 ## Architecture
 

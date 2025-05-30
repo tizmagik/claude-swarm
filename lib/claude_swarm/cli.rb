@@ -29,8 +29,12 @@ module ClaudeSwarm
       say "Starting Claude Swarm from #{config_path}..." unless options[:prompt]
       begin
         config = Configuration.new(config_path)
-        generator = McpGenerator.new(config, vibe: options[:vibe])
-        orchestrator = Orchestrator.new(config, generator, vibe: options[:vibe], prompt: options[:prompt])
+        session_timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
+        generator = McpGenerator.new(config, vibe: options[:vibe], timestamp: session_timestamp)
+        orchestrator = Orchestrator.new(config, generator,
+                                        vibe: options[:vibe],
+                                        prompt: options[:prompt],
+                                        session_timestamp: session_timestamp)
         orchestrator.start
       rescue Error => e
         error e.message
@@ -59,6 +63,8 @@ module ClaudeSwarm
                           desc: "Enable debug output"
     method_option :vibe, type: :boolean, default: false,
                          desc: "Run with --dangerously-skip-permissions"
+    method_option :calling_instance, type: :string, required: true,
+                                     desc: "Name of the instance that launched this MCP server"
     def mcp_serve
       instance_config = {
         name: options[:name],
@@ -71,7 +77,7 @@ module ClaudeSwarm
       }
 
       begin
-        server = ClaudeMcpServer.new(instance_config)
+        server = ClaudeMcpServer.new(instance_config, calling_instance: options[:calling_instance])
         server.start
       rescue StandardError => e
         error "Error starting MCP server: #{e.message}"

@@ -184,7 +184,8 @@ class CLITest < Minitest::Test
       prompt: "Test prompt",
       tools: %w[Read Edit],
       mcp_config_path: "/path/to/mcp.json",
-      debug: false
+      debug: false,
+      calling_instance: "parent_instance"
     }
 
     server_mock = Minitest::Mock.new
@@ -200,8 +201,9 @@ class CLITest < Minitest::Test
       vibe: nil
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:|
       assert_equal expected_config, config
+      assert_equal "parent_instance", calling_instance
       server_mock
     } do
       @cli.mcp_serve
@@ -214,7 +216,8 @@ class CLITest < Minitest::Test
     @cli.options = {
       name: "minimal",
       directory: ".",
-      model: "sonnet"
+      model: "sonnet",
+      calling_instance: "test_caller"
     }
 
     server_mock = Minitest::Mock.new
@@ -230,8 +233,9 @@ class CLITest < Minitest::Test
       vibe: nil
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:|
       assert_equal expected_config, config
+      assert_equal "test_caller", calling_instance
       server_mock
     } do
       @cli.mcp_serve
@@ -245,10 +249,11 @@ class CLITest < Minitest::Test
       name: "error",
       directory: ".",
       model: "sonnet",
-      debug: false
+      debug: false,
+      calling_instance: "test_caller"
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:|
       raise StandardError, "Test error"
     } do
       out, = capture_cli_output do
@@ -265,10 +270,11 @@ class CLITest < Minitest::Test
       name: "error",
       directory: ".",
       model: "sonnet",
-      debug: true
+      debug: true,
+      calling_instance: "test_caller"
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:|
       raise StandardError, "Test error"
     } do
       out, = capture_cli_output do

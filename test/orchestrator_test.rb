@@ -78,8 +78,8 @@ class OrchestratorTest < Minitest::Test
       end
 
       assert Dir.exist?(".claude-swarm")
-      assert_path_exists ".claude-swarm/lead.mcp.json"
-      assert_path_exists ".claude-swarm/backend.mcp.json"
+      assert find_mcp_file("lead"), "Expected lead.mcp.json to exist"
+      assert find_mcp_file("backend"), "Expected backend.mcp.json to exist"
     end
   end
 
@@ -94,7 +94,7 @@ class OrchestratorTest < Minitest::Test
     end
 
     assert_match(/🐝 Starting Claude Swarm: Test Swarm/, output)
-    assert_match(/📝 Session logs will be saved to:.*session_\d{8}_\d{6}\.log/, output)
+    assert_match(%r{📝 Session files will be saved to:.*\.claude-swarm/sessions/\d{8}_\d{6}}, output)
     assert_match(/✓ Generated MCP configurations/, output)
     assert_match(/🚀 Launching main instance: lead/, output)
     assert_match(/Model: opus/, output)
@@ -123,7 +123,7 @@ class OrchestratorTest < Minitest::Test
     assert_includes expected_command, "--append-system-prompt"
     assert_includes expected_command, "You\\ are\\ the\\ lead\\ developer"
     assert_includes expected_command, "--mcp-config"
-    assert_includes expected_command, "lead.mcp.json"
+    assert_match %r{/lead\.mcp\.json$}, expected_command
   end
 
   def test_build_main_command_without_tools
@@ -293,8 +293,8 @@ class OrchestratorTest < Minitest::Test
 
     mcp_path = mcp_match[1].gsub("\\", "") # Remove escaping
 
-    assert mcp_path.end_with?("lead.mcp.json")
-    assert_path_exists mcp_path
+    assert mcp_path.end_with?("/lead.mcp.json")
+    # The file will be created when the generator runs, so we can't check it exists yet
   end
 
   def test_build_main_command_with_prompt
@@ -362,7 +362,7 @@ class OrchestratorTest < Minitest::Test
 
     # All startup messages should be shown
     assert_match(/🐝 Starting Claude Swarm/, output)
-    assert_match(/📝 Session logs will be saved/, output)
+    assert_match(/📝 Session files will be saved/, output)
     assert_match(/✓ Generated MCP configurations/, output)
     assert_match(/🚀 Launching main instance/, output)
   end

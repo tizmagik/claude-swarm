@@ -39,7 +39,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_initialization
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     # Check class variables are set
     assert ClaudeSwarm::ClaudeMcpServer.executor
@@ -48,7 +48,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_logging_setup_creates_directory
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     sessions_dir = File.join(@tmpdir, ".claude-swarm", "sessions")
 
@@ -57,7 +57,7 @@ class ClaudeMcpServerTest < Minitest::Test
 
   def test_logging_with_environment_timestamp
     ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = "20240101_120000"
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     assert_equal "20240101_120000", ClaudeSwarm::ClaudeMcpServer.session_timestamp
 
@@ -71,7 +71,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_logging_without_environment_timestamp
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     timestamp = ClaudeSwarm::ClaudeMcpServer.session_timestamp
 
@@ -83,7 +83,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_start_method
-    server = ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    server = ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     # Mock FastMcp::Server
     mock_server = Minitest::Mock.new
@@ -100,7 +100,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_basic
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     # Mock executor
     mock_executor = Minitest::Mock.new
@@ -124,7 +124,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_with_new_session
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"
@@ -147,7 +147,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_with_custom_system_prompt
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"
@@ -170,7 +170,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_execution_error
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"
@@ -189,7 +189,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_parse_error
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"
@@ -208,7 +208,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_unexpected_error
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"
@@ -227,7 +227,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_task_tool_logging
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"
@@ -259,7 +259,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_session_info_tool
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :has_session?, true
@@ -281,7 +281,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_reset_session_tool
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :reset_session, nil
@@ -303,7 +303,7 @@ class ClaudeMcpServerTest < Minitest::Test
     config = @instance_config.dup
     config[:tools] = nil
 
-    ClaudeSwarm::ClaudeMcpServer.new(config, calling_instance: "test_caller")
+    ClaudeSwarm::ClaudeMcpServer.new(config)
 
     mock_executor = Minitest::Mock.new
     mock_executor.expect :session_id, "test-session-1"

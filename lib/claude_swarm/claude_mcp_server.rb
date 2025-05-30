@@ -9,15 +9,16 @@ require_relative "claude_code_executor"
 module ClaudeSwarm
   class ClaudeMcpServer
     SWARM_DIR = ".claude-swarm"
-    LOGS_DIR = "logs"
+    SESSIONS_DIR = "sessions"
 
     # Class variables to share state with tool classes
     class << self
-      attr_accessor :executor, :instance_config, :logger, :session_timestamp
+      attr_accessor :executor, :instance_config, :logger, :session_timestamp, :calling_instance
     end
 
-    def initialize(instance_config)
+    def initialize(instance_config, calling_instance:)
       @instance_config = instance_config
+      @calling_instance = calling_instance
       @executor = ClaudeCodeExecutor.new(
         working_directory: instance_config[:directory],
         model: instance_config[:model],
@@ -32,6 +33,7 @@ module ClaudeSwarm
       self.class.executor = @executor
       self.class.instance_config = @instance_config
       self.class.logger = @logger
+      self.class.calling_instance = @calling_instance
     end
 
     private
@@ -41,13 +43,13 @@ module ClaudeSwarm
       # Otherwise create a new timestamp
       self.class.session_timestamp ||= ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] || Time.now.strftime("%Y%m%d_%H%M%S")
 
-      # Ensure the logs directory exists
-      logs_dir = File.join(Dir.pwd, SWARM_DIR, LOGS_DIR)
-      FileUtils.mkdir_p(logs_dir)
+      # Ensure the session directory exists
+      session_dir = File.join(Dir.pwd, SWARM_DIR, SESSIONS_DIR, self.class.session_timestamp)
+      FileUtils.mkdir_p(session_dir)
 
-      # Create logger with timestamped filename
-      log_filename = "session_#{self.class.session_timestamp}.log"
-      log_path = File.join(logs_dir, log_filename)
+      # Create logger with session.log filename
+      log_filename = "session.log"
+      log_path = File.join(session_dir, log_filename)
       @logger = Logger.new(log_path)
       @logger.level = Logger::INFO
 
@@ -103,7 +105,8 @@ module ClaudeSwarm
           # Log the request
           log_entry = {
             timestamp: Time.now.utc.iso8601,
-            instance_name: instance_config[:name],
+            from_instance: ClaudeMcpServer.calling_instance, # The instance making the request
+            to_instance: instance_config[:name], # This instance is receiving the request
             model: instance_config[:model],
             working_directory: instance_config[:directory],
             session_id: executor.session_id,
@@ -120,7 +123,10 @@ module ClaudeSwarm
           response = executor.execute(prompt, options)
 
           # Log the response
-          response_entry = log_entry.merge(
+          response_entry = {
+            timestamp: Time.now.utc.iso8601,
+            from_instance: instance_config[:name], # This instance is sending the response
+            to_instance: ClaudeMcpServer.calling_instance, # The instance that made the request receives the response
             session_id: executor.session_id, # Update with new session ID if changed
             response: {
               result: response["result"],
@@ -129,7 +135,7 @@ module ClaudeSwarm
               is_error: response["is_error"],
               total_cost: response["total_cost"]
             }
-          )
+          }
 
           logger.info("RESPONSE: #{JSON.pretty_generate(response_entry)}")
 

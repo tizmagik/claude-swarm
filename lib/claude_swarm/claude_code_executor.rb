@@ -67,8 +67,8 @@ module ClaudeSwarm
       # Always use JSON output format for structured responses
       cmd_array += ["--output-format", "json"]
 
-      # Add non-interactive mode
-      cmd_array << "--print"
+      # Add non-interactive mode with prompt
+      cmd_array += ["--print", "-p", prompt]
 
       # Add any custom system prompt
       cmd_array += ["--system-prompt", options[:system_prompt]] if options[:system_prompt]
@@ -80,9 +80,6 @@ module ClaudeSwarm
         tools = Array(options[:allowed_tools]).join(",")
         cmd_array += ["--allowedTools", tools]
       end
-
-      # Add the prompt as the last argument (no escaping needed with array syntax)
-      cmd_array << prompt
 
       cmd_array
     end

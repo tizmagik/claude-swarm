@@ -7,10 +7,12 @@ require "shellwords"
 module ClaudeSwarm
   class McpGenerator
     SWARM_DIR = ".claude-swarm"
+    SESSIONS_SUBDIR = "sessions"
 
-    def initialize(configuration, vibe: false)
+    def initialize(configuration, vibe: false, timestamp: nil)
       @config = configuration
       @vibe = vibe
+      @timestamp = timestamp || Time.now.strftime("%Y%m%d_%H%M%S")
     end
 
     def generate_all
@@ -22,7 +24,7 @@ module ClaudeSwarm
     end
 
     def mcp_config_path(instance_name)
-      File.join(Dir.pwd, SWARM_DIR, "#{instance_name}.mcp.json")
+      File.join(Dir.pwd, SWARM_DIR, SESSIONS_SUBDIR, @timestamp, "#{instance_name}.mcp.json")
     end
 
     private
@@ -34,9 +36,9 @@ module ClaudeSwarm
     def ensure_swarm_directory
       FileUtils.mkdir_p(swarm_dir)
 
-      # Create logs directory as well
-      logs_dir = File.join(swarm_dir, "logs")
-      FileUtils.mkdir_p(logs_dir)
+      # Create session directory with timestamp
+      session_dir = File.join(swarm_dir, SESSIONS_SUBDIR, @timestamp)
+      FileUtils.mkdir_p(session_dir)
 
       gitignore_path = File.join(swarm_dir, ".gitignore")
       File.write(gitignore_path, "*\n") unless File.exist?(gitignore_path)
@@ -53,7 +55,7 @@ module ClaudeSwarm
       # Add connection MCPs for other instances
       instance[:connections].each do |connection_name|
         connected_instance = @config.instances[connection_name]
-        mcp_servers[connection_name] = build_instance_mcp_config(connection_name, connected_instance)
+        mcp_servers[connection_name] = build_instance_mcp_config(connection_name, connected_instance, calling_instance: name)
       end
 
       config = {
@@ -81,7 +83,7 @@ module ClaudeSwarm
       end
     end
 
-    def build_instance_mcp_config(name, instance)
+    def build_instance_mcp_config(name, instance, calling_instance:)
       # Get the path to the claude-swarm executable
       exe_path = "claude-swarm"
 
@@ -99,6 +101,8 @@ module ClaudeSwarm
       args.push("--tools", instance[:tools].join(",")) if instance[:tools] && !instance[:tools].empty?
 
       args.push("--mcp-config-path", mcp_config_path(name))
+
+      args.push("--calling-instance", calling_instance) if calling_instance
 
       args.push("--vibe") if @vibe
 

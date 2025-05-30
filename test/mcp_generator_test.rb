@@ -74,11 +74,7 @@ class McpGeneratorTest < Minitest::Test
       generator.generate_all
 
       # Read generated config
-      config_file = File.join(".claude-swarm", "lead.mcp.json")
-
-      assert_path_exists config_file
-
-      mcp_config = JSON.parse(File.read(config_file))
+      mcp_config = read_mcp_config("lead")
 
       # Check mcpServers section
       assert mcp_config.key?("mcpServers")
@@ -146,8 +142,7 @@ class McpGeneratorTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      config_file = File.join(".claude-swarm", "lead.mcp.json")
-      mcp_config = JSON.parse(File.read(config_file))
+      mcp_config = read_mcp_config("lead")
 
       api_server = mcp_config["mcpServers"]["api_server"]
 
@@ -174,8 +169,7 @@ class McpGeneratorTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      config_file = File.join(".claude-swarm", "lead.mcp.json")
-      mcp_config = JSON.parse(File.read(config_file))
+      mcp_config = read_mcp_config("lead")
 
       assert_empty(mcp_config["mcpServers"])
       assert_empty(mcp_config["mcpServers"])
@@ -207,12 +201,12 @@ class McpGeneratorTest < Minitest::Test
       generator.generate_all
 
       # Check backend config has database connection
-      backend_config = JSON.parse(File.read(".claude-swarm/backend.mcp.json"))
+      backend_config = read_mcp_config("backend")
 
       assert backend_config["mcpServers"].key?("database")
 
       # Check database config has no connections
-      database_config = JSON.parse(File.read(".claude-swarm/database.mcp.json"))
+      database_config = read_mcp_config("database")
 
       assert_empty(database_config["mcpServers"])
     end
@@ -238,7 +232,7 @@ class McpGeneratorTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      lead_config = JSON.parse(File.read(".claude-swarm/lead.mcp.json"))
+      lead_config = read_mcp_config("lead")
       worker_args = lead_config["mcpServers"]["worker"]["args"]
 
       mcp_path_index = worker_args.index("--mcp-config-path")
@@ -273,8 +267,7 @@ class McpGeneratorTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      config_file = File.join(".claude-swarm", "lead.mcp.json")
-      mcp_config = JSON.parse(File.read(config_file))
+      mcp_config = read_mcp_config("lead")
 
       server = mcp_config["mcpServers"]["complex_server"]
       expected_args = ["--port", "3000", "--verbose", "--config", "/path/to/config.json"]

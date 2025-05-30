@@ -4,11 +4,12 @@ require "shellwords"
 
 module ClaudeSwarm
   class Orchestrator
-    def initialize(configuration, mcp_generator, vibe: false, prompt: nil)
+    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, session_timestamp: nil)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
       @prompt = prompt
+      @session_timestamp = session_timestamp || Time.now.strftime("%Y%m%d_%H%M%S")
     end
 
     def start
@@ -18,18 +19,17 @@ module ClaudeSwarm
         puts
       end
 
-      # Set session timestamp for all instances to share the same log file
-      session_timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
-      ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = session_timestamp
+      # Set session timestamp for all instances to share the same session directory
+      ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = @session_timestamp
       unless @prompt
-        puts "📝 Session logs will be saved to: .claude-swarm/logs/session_#{session_timestamp}.log"
+        puts "📝 Session files will be saved to: .claude-swarm/sessions/#{@session_timestamp}/"
         puts
       end
 
       # Generate all MCP configuration files
       @generator.generate_all
       unless @prompt
-        puts "✓ Generated MCP configurations in .claude-swarm/"
+        puts "✓ Generated MCP configurations in session directory"
         puts
       end
 
