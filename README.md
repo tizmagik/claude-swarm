@@ -52,7 +52,7 @@ swarm:
     frontend:
       description: "Frontend specialist handling UI and user experience"
       directory: ./frontend
-      model: sonnet
+      model: opus
       tools:
         - Edit
         - Write
@@ -60,7 +60,7 @@ swarm:
     backend:
       description: "Backend developer managing APIs and data layer"
       directory: ./backend  
-      model: sonnet
+      model: opus
       tools:
         - Edit
         - Write
@@ -111,14 +111,14 @@ swarm:
     react_dev:
       description: "React developer specializing in components and state management"
       directory: ./web-frontend/src
-      model: sonnet
+      model: opus
       prompt: "You specialize in React components and state management"
       tools: [Edit, Write, "Bash(npm:*)"]
     
     css_expert:
       description: "CSS specialist handling styling and responsive design"
       directory: ./web-frontend/styles
-      model: sonnet
+      model: opus
       prompt: "You handle all CSS and styling concerns"
       tools: [Edit, Write, Read]
     
@@ -133,21 +133,21 @@ swarm:
     api_dev:
       description: "API developer building REST endpoints"
       directory: ./api-server/src
-      model: sonnet
+      model: opus
       prompt: "You develop REST API endpoints"
       tools: [Edit, Write, Bash]
     
     database_expert:
       description: "Database specialist managing schemas and migrations"
       directory: ./api-server/db
-      model: sonnet
+      model: opus
       prompt: "You handle database schema and migrations"
       tools: [Edit, Write, "Bash(psql:*, migrate:*)"]
     
     mobile_lead:
       description: "Mobile team lead coordinating cross-platform development"
       directory: ./mobile-app
-      model: sonnet
+      model: opus
       connections: [ios_dev, android_dev]
       prompt: "You coordinate mobile development across platforms"
       tools: [Read, Edit]
@@ -155,21 +155,21 @@ swarm:
     ios_dev:
       description: "iOS developer building native Apple applications"
       directory: ./mobile-app/ios
-      model: sonnet
+      model: opus
       prompt: "You develop the iOS application"
       tools: [Edit, Write, "Bash(xcodebuild:*, pod:*)"]
     
     android_dev:
       description: "Android developer creating native Android apps"
       directory: ./mobile-app/android
-      model: sonnet
+      model: opus
       prompt: "You develop the Android application"
       tools: [Edit, Write, "Bash(gradle:*, adb:*)"]
     
     devops:
       description: "DevOps engineer managing CI/CD and infrastructure"
       directory: ./infrastructure
-      model: sonnet
+      model: opus
       prompt: "You handle CI/CD and infrastructure"
       tools: [Read, Edit, "Bash(docker:*, kubectl:*)"]
 ```
@@ -305,7 +305,7 @@ swarm:
     frontend:
       description: "Frontend developer specializing in React and TypeScript"
       directory: ./frontend
-      model: sonnet
+      model: opus
       connections: [architect]
       prompt: "You specialize in React, TypeScript, and modern frontend development"
       tools:
@@ -316,7 +316,7 @@ swarm:
     backend:
       description: "Backend developer building APIs and services"
       directory: ./backend
-      model: sonnet
+      model: opus
       connections: [architect, database]
       tools:
         - Edit
@@ -334,7 +334,7 @@ swarm:
     devops:
       description: "DevOps engineer handling deployment and infrastructure"
       directory: .
-      model: sonnet
+      model: opus
       connections: [architect]
       tools:
         - Read
@@ -367,7 +367,7 @@ swarm:
     data_analyst:
       description: "Data analyst processing research data and statistics"
       directory: ~/research/data
-      model: sonnet
+      model: opus
       tools:
         - Read
         - Write
@@ -381,7 +381,7 @@ swarm:
     writer:
       description: "Technical writer preparing research documentation"
       directory: ~/research/papers
-      model: sonnet
+      model: opus
       tools:
         - Edit
         - Write
