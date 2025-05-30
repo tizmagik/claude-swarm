@@ -1,3 +1,14 @@
+## [0.1.4]
+
+### Added
+- **Required `description` field for instances**: Each instance must now have a description that clearly explains its role and specialization
+- Dynamic task tool descriptions that include both the instance name and description (e.g., "Execute a task using Agent frontend_dev. Frontend developer specializing in React and modern web technologies")
+- Description validation during configuration parsing - configurations without descriptions will fail with a clear error message
+
+### Changed
+- Updated all documentation examples to include meaningful instance descriptions
+- The `claude-swarm init` command now generates a template with description fields
+
 ## [0.1.3]
 
 ### Fixed

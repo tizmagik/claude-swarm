@@ -15,12 +15,14 @@ class McpGeneratorArgsTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead developer instance"
             directory: .
             model: opus
             connections: [backend]
             tools: [Read, Edit]
             prompt: "You are the lead"
           backend:
+            description: "Backend developer instance"
             directory: ./backend
             model: sonnet
             tools: [Bash, Grep]

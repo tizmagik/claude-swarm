@@ -33,12 +33,14 @@ class OrchestratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead developer instance"
             directory: ./src
             model: opus
             connections: [backend]
             tools: [Read, Edit, Bash]
             prompt: "You are the lead developer"
           backend:
+            description: "Backend service instance"
             directory: ./backend
     YAML
 
@@ -134,6 +136,7 @@ class OrchestratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
     YAML
 
     config = ClaudeSwarm::Configuration.new(@config_path)
@@ -160,6 +163,7 @@ class OrchestratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
             tools: [Read]
     YAML
 
@@ -185,6 +189,7 @@ class OrchestratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
             directory: "./path with spaces"
             prompt: "You're the 'lead' developer!"
             tools: ["Bash(rm -rf *)"]
@@ -231,6 +236,7 @@ class OrchestratorTest < Minitest::Test
         main: solo
         instances:
           solo:
+            description: "Solo instance"
     YAML
 
     config = ClaudeSwarm::Configuration.new(@config_path)
@@ -255,6 +261,7 @@ class OrchestratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
             directory: #{@tmpdir}/absolute/path
     YAML
 

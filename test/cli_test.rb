@@ -62,6 +62,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -80,6 +81,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -102,6 +104,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -125,6 +128,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
 
     YAML
 
@@ -159,6 +163,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -196,6 +201,7 @@ class CLITest < Minitest::Test
       directory: "/test/dir",
       model: "opus",
       prompt: "Test prompt",
+      description: nil,
       tools: %w[Read Edit],
       mcp_config_path: "/path/to/mcp.json",
       vibe: nil
@@ -228,6 +234,7 @@ class CLITest < Minitest::Test
       directory: ".",
       model: "sonnet",
       prompt: nil,
+      description: nil,
       tools: [],
       mcp_config_path: nil,
       vibe: nil
@@ -253,7 +260,7 @@ class CLITest < Minitest::Test
       calling_instance: "test_caller"
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:| # rubocop:disable Lint/UnusedBlockArgument
       raise StandardError, "Test error"
     } do
       out, = capture_cli_output do
@@ -274,7 +281,7 @@ class CLITest < Minitest::Test
       calling_instance: "test_caller"
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:| # rubocop:disable Lint/UnusedBlockArgument
       raise StandardError, "Test error"
     } do
       out, = capture_cli_output do
@@ -294,6 +301,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -319,6 +327,7 @@ class CLITest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 

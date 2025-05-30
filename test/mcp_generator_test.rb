@@ -29,6 +29,7 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
     YAML
 
     config = ClaudeSwarm::Configuration.new(@config_path)
@@ -49,6 +50,7 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead instance"
             connections: [backend, frontend]
             tools: [Read, Edit]
             mcps:
@@ -57,11 +59,13 @@ class McpGeneratorTest < Minitest::Test
                 command: "test-cmd"
                 args: ["--flag"]
           backend:
+            description: "Backend instance"
             directory: ./backend
             model: haiku
             tools: [Bash, Grep]
             prompt: "Backend developer"
           frontend:
+            description: "Frontend instance"
     YAML
 
     # Create required directories
@@ -130,6 +134,7 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
             mcps:
               - name: "api_server"
                 type: "sse"
@@ -161,6 +166,7 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
     YAML
 
     config = ClaudeSwarm::Configuration.new(@config_path)
@@ -184,10 +190,13 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead instance"
             connections: [backend]
           backend:
+            description: "Backend instance"
             connections: [database]
           database:
+            description: "Database instance"
     YAML
 
     # Create required directories
@@ -220,8 +229,10 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead instance"
             connections: [worker]
           worker:
+            description: "Worker instance"
     YAML
 
     Dir.mkdir(File.join(@tmpdir, "worker"))
@@ -254,6 +265,7 @@ class McpGeneratorTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
             mcps:
               - name: "complex_server"
                 type: "stdio"

@@ -69,6 +69,13 @@ module ClaudeSwarm
         version: "1.0.0"
       )
 
+      # Set dynamic description for TaskTool based on instance config
+      if @instance_config[:description]
+        TaskTool.description "Execute a task using Agent #{@instance_config[:name]}. #{@instance_config[:description]}"
+      else
+        TaskTool.description "Execute a task using Agent #{@instance_config[:name]}"
+      end
+
       # Register tool classes (not instances)
       server.register_tool(TaskTool)
       server.register_tool(SessionInfoTool)
@@ -83,7 +90,7 @@ module ClaudeSwarm
       description "Execute a task using Claude Code"
 
       arguments do
-        required(:prompt).filled(:string).description("The task or question for Claude")
+        required(:prompt).filled(:string).description("The task or question for the agent")
         optional(:new_session).filled(:bool).description("Start a new session (default: false)")
         optional(:system_prompt).filled(:string).description("Override the system prompt for this request")
       end
@@ -157,7 +164,7 @@ module ClaudeSwarm
 
     class SessionInfoTool < FastMcp::Tool
       tool_name "session_info"
-      description "Get information about the current Claude session"
+      description "Get information about the current Claude session for this agent"
 
       arguments do
         # No arguments needed
@@ -176,7 +183,7 @@ module ClaudeSwarm
 
     class ResetSessionTool < FastMcp::Tool
       tool_name "reset_session"
-      description "Reset the Claude session, starting fresh on the next task"
+      description "Reset the Claude session for this agent, starting fresh on the next task"
 
       arguments do
         # No arguments needed

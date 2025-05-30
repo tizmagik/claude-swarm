@@ -55,6 +55,8 @@ module ClaudeSwarm
                           desc: "Claude model to use (e.g., opus, sonnet)"
     method_option :prompt, aliases: "-p", type: :string,
                            desc: "System prompt for the instance"
+    method_option :description, type: :string,
+                                desc: "Description of the instance's role"
     method_option :tools, aliases: "-t", type: :array,
                           desc: "Allowed tools for the instance"
     method_option :mcp_config_path, type: :string,
@@ -71,6 +73,7 @@ module ClaudeSwarm
         directory: options[:directory],
         model: options[:model],
         prompt: options[:prompt],
+        description: options[:description],
         tools: options[:tools] || [],
         mcp_config_path: options[:mcp_config_path],
         vibe: options[:vibe]
@@ -105,6 +108,7 @@ module ClaudeSwarm
           main: lead_developer
           instances:
             lead_developer:
+              description: "Lead developer who coordinates the team and makes architectural decisions"
               directory: .
               model: sonnet
               prompt: "You are the lead developer coordinating the team"
@@ -114,24 +118,28 @@ module ClaudeSwarm
             # Example instances (uncomment and modify as needed):
 
             # frontend_dev:
+            #   description: "Frontend developer specializing in React and modern web technologies"
             #   directory: ./frontend
             #   model: sonnet
             #   prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
             #   tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
 
             # backend_dev:
+            #   description: "Backend developer focusing on APIs, databases, and server architecture"
             #   directory: ../other-app/backend
             #   model: sonnet
             #   prompt: "You specialize in backend development, APIs, databases, and server architecture"
             #   tools: [Read, Edit, Write, Bash]
 
             # devops_engineer:
+            #   description: "DevOps engineer managing infrastructure, CI/CD, and deployments"
             #   directory: .
             #   model: sonnet
             #   prompt: "You specialize in infrastructure, CI/CD, containerization, and deployment"
             #   tools: [Read, Edit, Write, "Bash(docker:*)", "Bash(kubectl:*)", "Bash(terraform:*)"]
 
             # qa_engineer:
+            #   description: "QA engineer ensuring quality through comprehensive testing"
             #   directory: ./tests
             #   model: sonnet
             #   prompt: "You specialize in testing, quality assurance, and test automation"

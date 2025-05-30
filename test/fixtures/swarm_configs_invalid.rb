@@ -10,6 +10,7 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Lead instance"
       YAML
     end
 
@@ -20,6 +21,7 @@ module Fixtures
           name: "No Main"
           instances:
             lead:
+              description: "Lead instance"
       YAML
     end
 
@@ -31,7 +33,20 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Lead instance"
               connections: [nonexistent]
+      YAML
+    end
+
+    def self.missing_description
+      <<~YAML
+        version: 1
+        swarm:
+          name: "Missing Description"
+          main: lead
+          instances:
+            lead:
+              directory: .
       YAML
     end
   end

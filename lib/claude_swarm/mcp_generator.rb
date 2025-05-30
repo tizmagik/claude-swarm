@@ -98,6 +98,8 @@ module ClaudeSwarm
       # Add optional arguments
       args.push("--prompt", instance[:prompt]) if instance[:prompt]
 
+      args.push("--description", instance[:description]) if instance[:description]
+
       args.push("--tools", instance[:tools].join(",")) if instance[:tools] && !instance[:tools].empty?
 
       args.push("--mcp-config-path", mcp_config_path(name))

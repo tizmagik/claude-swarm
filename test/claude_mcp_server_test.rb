@@ -30,12 +30,18 @@ class ClaudeMcpServerTest < Minitest::Test
     # Clear environment
     @original_env = ENV.fetch("CLAUDE_SWARM_SESSION_TIMESTAMP", nil)
     ENV.delete("CLAUDE_SWARM_SESSION_TIMESTAMP")
+
+    # Store original tool descriptions
+    @original_task_description = ClaudeSwarm::ClaudeMcpServer::TaskTool.description
   end
 
   def teardown
     Dir.chdir(@original_dir)
     FileUtils.rm_rf(@tmpdir)
     ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = @original_env if @original_env
+
+    # Reset TaskTool description to original
+    ClaudeSwarm::ClaudeMcpServer::TaskTool.description @original_task_description
   end
 
   def test_initialization
@@ -327,8 +333,9 @@ class ClaudeMcpServerTest < Minitest::Test
 
   def test_tool_descriptions
     assert_equal "Execute a task using Claude Code", ClaudeSwarm::ClaudeMcpServer::TaskTool.description
-    assert_equal "Get information about the current Claude session", ClaudeSwarm::ClaudeMcpServer::SessionInfoTool.description
-    assert_equal "Reset the Claude session, starting fresh on the next task", ClaudeSwarm::ClaudeMcpServer::ResetSessionTool.description
+    assert_equal "Get information about the current Claude session for this agent", ClaudeSwarm::ClaudeMcpServer::SessionInfoTool.description
+    assert_equal "Reset the Claude session for this agent, starting fresh on the next task",
+                 ClaudeSwarm::ClaudeMcpServer::ResetSessionTool.description
   end
 
   def test_tool_names

@@ -72,6 +72,10 @@ module ClaudeSwarm
 
     def parse_instance(name, config)
       config ||= {}
+
+      # Validate required fields
+      raise Error, "Instance '#{name}' missing required 'description' field" unless config["description"]
+
       {
         name: name,
         directory: expand_path(config["directory"] || "."),
@@ -79,7 +83,8 @@ module ClaudeSwarm
         connections: Array(config["connections"]),
         tools: Array(config["tools"]),
         mcps: parse_mcps(config["mcps"] || []),
-        prompt: config["prompt"]
+        prompt: config["prompt"],
+        description: config["description"]
       }
     end
 

@@ -27,6 +27,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead instance"
     YAML
 
     config = ClaudeSwarm::Configuration.new(@config_path)
@@ -48,6 +49,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Lead developer instance"
             directory: ./src
             model: opus
             connections: [backend, frontend]
@@ -62,11 +64,13 @@ class ConfigurationTest < Minitest::Test
                 type: "sse"
                 url: "http://localhost:3000"
           backend:
+            description: "Backend developer instance"
             directory: ./backend
             model: haiku
             tools: ["Bash(npm:*)", Grep]
             prompt: "You handle backend tasks"
           frontend:
+            description: "Frontend developer instance"
             directory: ./frontend
     YAML
 
@@ -134,6 +138,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -151,6 +156,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -178,6 +184,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -223,6 +230,7 @@ class ConfigurationTest < Minitest::Test
         name: "Test"
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -240,6 +248,7 @@ class ConfigurationTest < Minitest::Test
         main: nonexistent
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
     YAML
 
@@ -257,6 +266,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             connections: [nonexistent]
     YAML
@@ -275,6 +285,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             directory: ./nonexistent
     YAML
@@ -293,6 +304,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             mcps:
               - type: "stdio"
@@ -313,6 +325,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             mcps:
               - name: "test"
@@ -333,6 +346,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             mcps:
               - name: "test"
@@ -353,6 +367,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             mcps:
               - name: "test"
@@ -373,6 +388,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
       #{"      "}
             directory: ./src/../lib
     YAML
@@ -394,6 +410,7 @@ class ConfigurationTest < Minitest::Test
         main: lead
         instances:
           lead:
+            description: "Test instance"
     YAML
 
     config = ClaudeSwarm::Configuration.new(@config_path)
@@ -406,5 +423,22 @@ class ConfigurationTest < Minitest::Test
     assert_empty lead[:tools]
     assert_empty lead[:mcps]
     assert_nil lead[:prompt]
+  end
+
+  def test_missing_description
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            directory: .
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Instance 'lead' missing required 'description' field", error.message
   end
 end

@@ -41,6 +41,7 @@ swarm:
   main: lead
   instances:
     lead:
+      description: "Team lead coordinating development efforts"
       directory: .
       model: opus
       connections: [frontend, backend]
@@ -49,6 +50,7 @@ swarm:
         - Edit
         - Bash
     frontend:
+      description: "Frontend specialist handling UI and user experience"
       directory: ./frontend
       model: sonnet
       tools:
@@ -56,6 +58,7 @@ swarm:
         - Write
         - Bash
     backend:
+      description: "Backend developer managing APIs and data layer"
       directory: ./backend  
       model: sonnet
       tools:
@@ -90,6 +93,7 @@ swarm:
   main: architect
   instances:
     architect:
+      description: "System architect coordinating between service teams"
       directory: .
       model: opus
       connections: [frontend_lead, backend_lead, mobile_lead, devops]
@@ -97,6 +101,7 @@ swarm:
       tools: [Read, Edit, WebSearch]
     
     frontend_lead:
+      description: "Frontend team lead overseeing React development"
       directory: ./web-frontend
       model: opus
       connections: [react_dev, css_expert]
@@ -104,18 +109,21 @@ swarm:
       tools: [Read, Edit, Bash]
     
     react_dev:
+      description: "React developer specializing in components and state management"
       directory: ./web-frontend/src
       model: sonnet
       prompt: "You specialize in React components and state management"
       tools: [Edit, Write, "Bash(npm:*)"]
     
     css_expert:
+      description: "CSS specialist handling styling and responsive design"
       directory: ./web-frontend/styles
       model: sonnet
       prompt: "You handle all CSS and styling concerns"
       tools: [Edit, Write, Read]
     
     backend_lead:
+      description: "Backend team lead managing API development"
       directory: ./api-server
       model: opus
       connections: [api_dev, database_expert]
@@ -123,18 +131,21 @@ swarm:
       tools: [Read, Edit, Bash]
     
     api_dev:
+      description: "API developer building REST endpoints"
       directory: ./api-server/src
       model: sonnet
       prompt: "You develop REST API endpoints"
       tools: [Edit, Write, Bash]
     
     database_expert:
+      description: "Database specialist managing schemas and migrations"
       directory: ./api-server/db
       model: sonnet
       prompt: "You handle database schema and migrations"
       tools: [Edit, Write, "Bash(psql:*, migrate:*)"]
     
     mobile_lead:
+      description: "Mobile team lead coordinating cross-platform development"
       directory: ./mobile-app
       model: sonnet
       connections: [ios_dev, android_dev]
@@ -142,18 +153,21 @@ swarm:
       tools: [Read, Edit]
     
     ios_dev:
+      description: "iOS developer building native Apple applications"
       directory: ./mobile-app/ios
       model: sonnet
       prompt: "You develop the iOS application"
       tools: [Edit, Write, "Bash(xcodebuild:*, pod:*)"]
     
     android_dev:
+      description: "Android developer creating native Android apps"
       directory: ./mobile-app/android
       model: sonnet
       prompt: "You develop the Android application"
       tools: [Edit, Write, "Bash(gradle:*, adb:*)"]
     
     devops:
+      description: "DevOps engineer managing CI/CD and infrastructure"
       directory: ./infrastructure
       model: sonnet
       prompt: "You handle CI/CD and infrastructure"
@@ -182,6 +196,10 @@ swarm:
 
 #### Instance Configuration
 
+Each instance must have:
+
+- **description** (required): Brief description of the agent's role (used in task tool descriptions)
+
 Each instance can have:
 
 - **directory**: Working directory for this instance (can use ~ for home)
@@ -193,6 +211,7 @@ Each instance can have:
 
 ```yaml
 instance_name:
+  description: "Specialized agent focused on specific tasks"
   directory: ~/project/path
   model: opus
   connections: [other_instance1, other_instance2]
@@ -273,6 +292,7 @@ swarm:
   main: architect
   instances:
     architect:
+      description: "Lead architect responsible for system design and code quality"
       directory: .
       model: opus
       connections: [frontend, backend, devops]
@@ -283,6 +303,7 @@ swarm:
         - WebSearch
         
     frontend:
+      description: "Frontend developer specializing in React and TypeScript"
       directory: ./frontend
       model: sonnet
       connections: [architect]
@@ -293,6 +314,7 @@ swarm:
         - Bash
         
     backend:
+      description: "Backend developer building APIs and services"
       directory: ./backend
       model: sonnet
       connections: [architect, database]
@@ -302,6 +324,7 @@ swarm:
         - Bash
         
     database:
+      description: "Database administrator managing data persistence"
       directory: ./db
       model: haiku
       tools:
@@ -309,6 +332,7 @@ swarm:
         - Bash
         
     devops:
+      description: "DevOps engineer handling deployment and infrastructure"
       directory: .
       model: sonnet
       connections: [architect]
@@ -327,6 +351,7 @@ swarm:
   main: lead_researcher
   instances:
     lead_researcher:
+      description: "Lead researcher coordinating analysis and documentation"
       directory: ~/research
       model: opus
       connections: [data_analyst, writer]
@@ -340,6 +365,7 @@ swarm:
           url: "https://arxiv-mcp.example.com"
           
     data_analyst:
+      description: "Data analyst processing research data and statistics"
       directory: ~/research/data
       model: sonnet
       tools:
@@ -353,6 +379,7 @@ swarm:
           args: ["--notebook-dir", "."]
           
     writer:
+      description: "Technical writer preparing research documentation"
       directory: ~/research/papers
       model: sonnet
       tools:
@@ -397,7 +424,7 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
    - Sessions can be reset via the MCP server interface
 4. **Main Instance Launch**: The main instance is launched with its MCP configuration, giving it access to all connected instances
 5. **Inter-Instance Communication**: Connected instances expose themselves as MCP servers with these tools:
-   - **task**: Execute tasks using Claude Code with configurable tools and return results
+   - **task**: Execute tasks using Claude Code with configurable tools and return results. The tool description includes the instance name and description (e.g., "Execute a task using Agent frontend_dev. Frontend developer specializing in React and TypeScript")
    - **session_info**: Get current Claude session information including ID and working directory
    - **reset_session**: Reset the Claude session for a fresh start
 6. **Session Management**: All session files are organized in `.claude-swarm/sessions/{timestamp}/`:

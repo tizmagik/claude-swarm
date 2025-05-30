@@ -10,6 +10,7 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Lead instance for minimal configuration"
       YAML
     end
 
@@ -21,10 +22,13 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Lead instance connecting to backend and frontend"
               connections: [backend, frontend]
             backend:
+              description: "Backend service instance"
               directory: ./backend
             frontend:
+              description: "Frontend service instance"
               directory: ./frontend
       YAML
     end
@@ -37,6 +41,7 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Instance with various tool access"
               tools: [Read, Edit, Bash, Grep]
       YAML
     end
@@ -49,6 +54,7 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Instance with pattern-based tool restrictions"
               tools:
                 - Read
                 - "Edit(*.js)"
@@ -65,6 +71,7 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Instance with multiple MCP server configurations"
               mcps:
                 - name: "stdio_server"
                   type: "stdio"
@@ -84,6 +91,7 @@ module Fixtures
           main: lead
           instances:
             lead:
+              description: "Lead developer coordinating the entire team"
               directory: ./lead
               model: opus
               connections: [backend, frontend, tester]
@@ -94,20 +102,24 @@ module Fixtures
                   type: "stdio"
                   command: "monitor-server"
             backend:
+              description: "Backend developer handling API and server logic"
               directory: ./backend
               model: sonnet
               connections: [database]
               tools: ["Bash(python:*)", Edit, Read]
               prompt: "You handle API and backend logic"
             frontend:
+              description: "Frontend developer building user interfaces"
               directory: ./frontend
               model: haiku
               tools: ["Edit(*.{js,jsx,ts,tsx})", "Bash(npm:*)", Read]
               prompt: "You build user interfaces"
             database:
+              description: "Database specialist managing data operations"
               directory: ./db
               tools: ["Bash(psql:*,mysql:*)"]
             tester:
+              description: "Test engineer ensuring code quality"
               directory: ./tests
               model: sonnet
               tools: ["Bash(jest:*,pytest:*)", Read, Edit]
@@ -126,10 +138,13 @@ module Fixtures
           main: a
           instances:
             a:
+              description: "Instance A in circular connection"
               connections: [b]
             b:
+              description: "Instance B in circular connection"
               connections: [c]
             c:
+              description: "Instance C in circular connection"
               connections: [a]
       YAML
     end

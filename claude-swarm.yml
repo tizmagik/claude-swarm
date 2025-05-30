@@ -4,6 +4,7 @@ swarm:
   main: lead_developer
   instances:
     lead_developer:
+      description: "Lead developer coordinating the team and making architectural decisions"
       directory: .
       model: sonnet
       prompt: "You are the lead developer coordinating the team"
@@ -13,6 +14,7 @@ swarm:
     # Example instances (uncomment and modify as needed):
 
     frontend_dev:
+      description: "Frontend developer specializing in React and modern web technologies"
       directory: .
       model: sonnet
       prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
