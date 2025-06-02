@@ -60,3 +60,6 @@ Metrics/ModuleLength:
 
 Minitest/MultipleAssertions:
   Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false

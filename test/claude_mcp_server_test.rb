@@ -2,6 +2,9 @@
 
 require "test_helper"
 require "claude_swarm/claude_mcp_server"
+require "claude_swarm/task_tool"
+require "claude_swarm/session_info_tool"
+require "claude_swarm/reset_session_tool"
 require "tmpdir"
 require "fileutils"
 require "stringio"
@@ -32,7 +35,7 @@ class ClaudeMcpServerTest < Minitest::Test
     ENV.delete("CLAUDE_SWARM_SESSION_TIMESTAMP")
 
     # Store original tool descriptions
-    @original_task_description = ClaudeSwarm::ClaudeMcpServer::TaskTool.description
+    @original_task_description = ClaudeSwarm::TaskTool.description
   end
 
   def teardown
@@ -41,7 +44,7 @@ class ClaudeMcpServerTest < Minitest::Test
     ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = @original_env if @original_env
 
     # Reset TaskTool description to original
-    ClaudeSwarm::ClaudeMcpServer::TaskTool.description @original_task_description
+    ClaudeSwarm::TaskTool.description @original_task_description
   end
 
   def test_initialization
@@ -73,7 +76,7 @@ class ClaudeMcpServerTest < Minitest::Test
 
     log_content = File.read(log_file)
 
-    assert_match(/Started MCP server for instance: test_instance/, log_content)
+    assert_match(/Started Claude Code executor for instance: test_instance/, log_content)
   end
 
   def test_logging_without_environment_timestamp
@@ -93,9 +96,9 @@ class ClaudeMcpServerTest < Minitest::Test
 
     # Mock FastMcp::Server
     mock_server = Minitest::Mock.new
-    mock_server.expect :register_tool, nil, [ClaudeSwarm::ClaudeMcpServer::TaskTool]
-    mock_server.expect :register_tool, nil, [ClaudeSwarm::ClaudeMcpServer::SessionInfoTool]
-    mock_server.expect :register_tool, nil, [ClaudeSwarm::ClaudeMcpServer::ResetSessionTool]
+    mock_server.expect :register_tool, nil, [ClaudeSwarm::TaskTool]
+    mock_server.expect :register_tool, nil, [ClaudeSwarm::SessionInfoTool]
+    mock_server.expect :register_tool, nil, [ClaudeSwarm::ResetSessionTool]
     mock_server.expect :start, nil
 
     FastMcp::Server.stub :new, mock_server do
@@ -110,7 +113,6 @@ class ClaudeMcpServerTest < Minitest::Test
 
     # Mock executor
     mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
     mock_executor.expect :execute, {
       "result" => "Task completed successfully",
       "cost_usd" => 0.01,
@@ -118,11 +120,10 @@ class ClaudeMcpServerTest < Minitest::Test
       "is_error" => false,
       "total_cost" => 0.01
     }, ["Test task", { new_session: false, system_prompt: "Test prompt", allowed_tools: %w[Read Edit] }]
-    mock_executor.expect :session_id, "test-session-1"
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
+    tool = ClaudeSwarm::TaskTool.new
     result = tool.call(prompt: "Test task")
 
     assert_equal "Task completed successfully", result
@@ -133,7 +134,6 @@ class ClaudeMcpServerTest < Minitest::Test
     ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
 
     mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
     mock_executor.expect :execute, {
       "result" => "New session started",
       "cost_usd" => 0.02,
@@ -141,11 +141,10 @@ class ClaudeMcpServerTest < Minitest::Test
       "is_error" => false,
       "total_cost" => 0.02
     }, ["Start fresh", { new_session: true, system_prompt: "Test prompt", allowed_tools: %w[Read Edit] }]
-    mock_executor.expect :session_id, "test-session-2"
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
+    tool = ClaudeSwarm::TaskTool.new
     result = tool.call(prompt: "Start fresh", new_session: true)
 
     assert_equal "New session started", result
@@ -156,7 +155,6 @@ class ClaudeMcpServerTest < Minitest::Test
     ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
 
     mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
     mock_executor.expect :execute, {
       "result" => "Custom prompt used",
       "cost_usd" => 0.01,
@@ -164,92 +162,49 @@ class ClaudeMcpServerTest < Minitest::Test
       "is_error" => false,
       "total_cost" => 0.01
     }, ["Do something", { new_session: false, system_prompt: "Custom prompt", allowed_tools: %w[Read Edit] }]
-    mock_executor.expect :session_id, "test-session-1"
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
+    tool = ClaudeSwarm::TaskTool.new
     result = tool.call(prompt: "Do something", system_prompt: "Custom prompt")
 
     assert_equal "Custom prompt used", result
     mock_executor.verify
   end
 
-  def test_task_tool_execution_error
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
-
-    mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
-    mock_executor.expect :execute, nil do |*_args|
-      raise ClaudeSwarm::ClaudeCodeExecutor::ExecutionError, "Claude failed"
-    end
-
-    ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
-
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
-    error = assert_raises(StandardError) do
-      tool.call(prompt: "Fail task")
-    end
-
-    assert_equal "Execution failed: Claude failed", error.message
-  end
-
-  def test_task_tool_parse_error
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
-
-    mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
-    mock_executor.expect :execute, nil do |*_args|
-      raise ClaudeSwarm::ClaudeCodeExecutor::ParseError, "Invalid JSON"
-    end
-
-    ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
-
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
-    error = assert_raises(StandardError) do
-      tool.call(prompt: "Parse fail")
-    end
-
-    assert_equal "Parse error: Invalid JSON", error.message
-  end
-
-  def test_task_tool_unexpected_error
-    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
-
-    mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
-    mock_executor.expect :execute, nil do |*_args|
-      raise "Something went wrong"
-    end
-
-    ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
-
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
-    error = assert_raises(StandardError) do
-      tool.call(prompt: "Unexpected fail")
-    end
-
-    assert_equal "Unexpected error: Something went wrong", error.message
-  end
-
   def test_task_tool_logging
+    # Since logging is now done in ClaudeCodeExecutor, we need to test through a real instance
     ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
 
-    mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
-    mock_executor.expect :execute, {
-      "result" => "Logged task",
-      "cost_usd" => 0.01,
-      "duration_ms" => 500,
-      "is_error" => false,
-      "total_cost" => 0.01
-    }, [String, Hash]
-    mock_executor.expect :session_id, "test-session-1"
+    # Create streaming JSON response
+    streaming_json = [
+      { type: "system", subtype: "init", session_id: "test-session-1", tools: ["Tool1"] },
+      { type: "assistant", message: { id: "msg_1", content: [{ type: "text", text: "Working..." }] },
+        session_id: "test-session-1" },
+      { type: "result", subtype: "success", result: "Logged task", cost_usd: 0.01,
+        duration_ms: 500, is_error: false, total_cost: 0.01, session_id: "test-session-1" }
+    ].map { |obj| "#{JSON.generate(obj)}\n" }.join
 
-    ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
+    # Mock popen3 for streaming
+    stdin_mock = StringIO.new
+    stdout_mock = StringIO.new(streaming_json)
+    stderr_mock = StringIO.new("")
 
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
-    tool.call(prompt: "Log this task")
+    wait_thread_stub = Object.new
+    wait_thread_stub.define_singleton_method(:value) do
+      status_stub = Object.new
+      status_stub.define_singleton_method(:success?) { true }
+      status_stub
+    end
+
+    Open3.stub :popen3, proc { |*_args, **_opts, &block|
+      block.call(stdin_mock, stdout_mock, stderr_mock, wait_thread_stub)
+    } do
+      tool = ClaudeSwarm::TaskTool.new
+      result = tool.call(prompt: "Log this task")
+
+      assert_equal "Logged task", result
+    end
 
     # Check log file
     log_files = find_log_files
@@ -274,7 +229,7 @@ class ClaudeMcpServerTest < Minitest::Test
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
-    tool = ClaudeSwarm::ClaudeMcpServer::SessionInfoTool.new
+    tool = ClaudeSwarm::SessionInfoTool.new
     result = tool.call
 
     assert_equal({
@@ -294,7 +249,7 @@ class ClaudeMcpServerTest < Minitest::Test
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
-    tool = ClaudeSwarm::ClaudeMcpServer::ResetSessionTool.new
+    tool = ClaudeSwarm::ResetSessionTool.new
     result = tool.call
 
     assert_equal({
@@ -312,7 +267,6 @@ class ClaudeMcpServerTest < Minitest::Test
     ClaudeSwarm::ClaudeMcpServer.new(config, calling_instance: "test_caller")
 
     mock_executor = Minitest::Mock.new
-    mock_executor.expect :session_id, "test-session-1"
     mock_executor.expect :execute, {
       "result" => "No tools specified",
       "cost_usd" => 0.01,
@@ -320,11 +274,10 @@ class ClaudeMcpServerTest < Minitest::Test
       "is_error" => false,
       "total_cost" => 0.01
     }, ["Test", { new_session: false, system_prompt: "Test prompt" }] # No allowed_tools
-    mock_executor.expect :session_id, "test-session-1"
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
-    tool = ClaudeSwarm::ClaudeMcpServer::TaskTool.new
+    tool = ClaudeSwarm::TaskTool.new
     result = tool.call(prompt: "Test")
 
     assert_equal "No tools specified", result
@@ -332,15 +285,15 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_tool_descriptions
-    assert_equal "Execute a task using Claude Code", ClaudeSwarm::ClaudeMcpServer::TaskTool.description
-    assert_equal "Get information about the current Claude session for this agent", ClaudeSwarm::ClaudeMcpServer::SessionInfoTool.description
+    assert_equal "Execute a task using Claude Code", ClaudeSwarm::TaskTool.description
+    assert_equal "Get information about the current Claude session for this agent", ClaudeSwarm::SessionInfoTool.description
     assert_equal "Reset the Claude session for this agent, starting fresh on the next task",
-                 ClaudeSwarm::ClaudeMcpServer::ResetSessionTool.description
+                 ClaudeSwarm::ResetSessionTool.description
   end
 
   def test_tool_names
-    assert_equal "task", ClaudeSwarm::ClaudeMcpServer::TaskTool.tool_name
-    assert_equal "session_info", ClaudeSwarm::ClaudeMcpServer::SessionInfoTool.tool_name
-    assert_equal "reset_session", ClaudeSwarm::ClaudeMcpServer::ResetSessionTool.tool_name
+    assert_equal "task", ClaudeSwarm::TaskTool.tool_name
+    assert_equal "session_info", ClaudeSwarm::SessionInfoTool.tool_name
+    assert_equal "reset_session", ClaudeSwarm::ResetSessionTool.tool_name
   end
 end

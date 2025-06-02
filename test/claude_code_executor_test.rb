@@ -2,10 +2,56 @@
 
 require "test_helper"
 require "claude_swarm/claude_code_executor"
+require "tmpdir"
+require "fileutils"
+require "stringio"
 
 class ClaudeCodeExecutorTest < Minitest::Test
   def setup
-    @executor = ClaudeSwarm::ClaudeCodeExecutor.new
+    @tmpdir = Dir.mktmpdir
+    @original_dir = Dir.pwd
+    Dir.chdir(@tmpdir)
+
+    @executor = ClaudeSwarm::ClaudeCodeExecutor.new(
+      instance_name: "test_instance",
+      calling_instance: "test_caller"
+    )
+  end
+
+  def teardown
+    Dir.chdir(@original_dir)
+    FileUtils.rm_rf(@tmpdir)
+  end
+
+  # Helper method to create streaming JSON output
+  def create_streaming_json(session_id: "test-session-123", result: "Test result", cost: 0.01, duration: 500)
+    [
+      { type: "system", subtype: "init", session_id: session_id, tools: %w[Tool1 Tool2] },
+      { type: "assistant", message: { id: "msg_123", type: "message", role: "assistant",
+                                      model: "claude-3", content: [{ type: "text", text: "Processing..." }] },
+        session_id: session_id },
+      { type: "result", subtype: "success", cost_usd: cost, is_error: false,
+        duration_ms: duration, result: result, total_cost: cost, session_id: session_id }
+    ].map { |obj| "#{JSON.generate(obj)}\n" }.join
+  end
+
+  # Helper to mock popen3
+  def mock_popen3(stdout_content, stderr_content = "", success: true, &test_block)
+    Open3.stub :popen3, proc { |*_args, **_opts, &block|
+      stdin_mock = StringIO.new
+      stdout_mock = StringIO.new(stdout_content)
+      stderr_mock = StringIO.new(stderr_content)
+
+      wait_thread_stub = Object.new
+      wait_thread_stub.define_singleton_method(:value) do
+        status_stub = Object.new
+        status_stub.define_singleton_method(:success?) { success }
+        status_stub
+      end
+
+      # Call the block that popen3 would call
+      block.call(stdin_mock, stdout_mock, stderr_mock, wait_thread_stub)
+    }, &test_block
   end
 
   def test_initialization
@@ -64,7 +110,7 @@ class ClaudeCodeExecutorTest < Minitest::Test
     assert_includes command_array, "--resume"
     assert_includes command_array, "test-session-123"
     assert_includes command_array, "--output-format"
-    assert_includes command_array, "json"
+    assert_includes command_array, "stream-json"
     assert_includes command_array, "--print"
     assert_includes command_array, "test prompt" # No escaping in array
   end
@@ -91,13 +137,7 @@ class ClaudeCodeExecutorTest < Minitest::Test
   end
 
   def test_execute_error_handling
-    # Mock a failed execution with a stub status object
-    status_stub = Object.new
-    def status_stub.success?
-      false
-    end
-
-    Open3.stub :capture3, ["", "Error message", status_stub] do
+    mock_popen3("", "Error message", success: false) do
       assert_raises(ClaudeSwarm::ClaudeCodeExecutor::ExecutionError) do
         @executor.execute("test prompt")
       end
@@ -105,16 +145,75 @@ class ClaudeCodeExecutorTest < Minitest::Test
   end
 
   def test_execute_parse_error
-    # Mock execution returning invalid JSON with a stub status object
-    status_stub = Object.new
-    def status_stub.success?
-      true
-    end
+    # Test when no result is found in stream
+    incomplete_json = [
+      { type: "system", subtype: "init", session_id: "test-123" },
+      { type: "assistant", message: { content: [{ type: "text", text: "Hi" }] }, session_id: "test-123" }
+    ].map { |obj| "#{JSON.generate(obj)}\n" }.join
 
-    Open3.stub :capture3, ["invalid json", "", status_stub] do
+    mock_popen3(incomplete_json) do
       assert_raises(ClaudeSwarm::ClaudeCodeExecutor::ParseError) do
         @executor.execute("test prompt")
       end
     end
+  end
+
+  def test_logging_on_successful_execution
+    mock_response = create_streaming_json(
+      session_id: "test-session-123",
+      result: "Test result",
+      cost: 0.01,
+      duration: 500
+    )
+
+    mock_popen3(mock_response) do
+      response = @executor.execute("test prompt", { system_prompt: "Be helpful" })
+
+      assert_equal "Test result", response["result"]
+      assert_equal "test-session-123", @executor.session_id
+    end
+
+    # Check log file
+    log_files = Dir.glob(".claude-swarm/sessions/*/session.log")
+
+    assert_predicate log_files, :any?, "Expected to find log files"
+
+    log_content = File.read(log_files.first)
+
+    # Check request logging
+    assert_match(/REQUEST:/, log_content)
+    assert_match(/"prompt": "test prompt"/, log_content)
+    assert_match(/"from_instance": "test_caller"/, log_content)
+    assert_match(/"to_instance": "test_instance"/, log_content)
+    assert_match(/"system_prompt": "Be helpful"/, log_content)
+
+    # Check response logging
+    assert_match(/RESPONSE:/, log_content)
+    assert_match(/"result": "Test result"/, log_content)
+    assert_match(/"from_instance": "test_instance"/, log_content)
+    assert_match(/"to_instance": "test_caller"/, log_content)
+    assert_match(/"cost_usd": 0.01/, log_content)
+
+    # Check streaming events
+    assert_match(/STREAM_EVENT:.*"type":"system"/, log_content)
+    assert_match(/STREAM_EVENT:.*"type":"assistant"/, log_content)
+    assert_match(/STREAM_EVENT:.*"type":"result"/, log_content)
+  end
+
+  def test_logging_on_execution_error
+    mock_popen3("", "Command failed", success: false) do
+      assert_raises(ClaudeSwarm::ClaudeCodeExecutor::ExecutionError) do
+        @executor.execute("test prompt")
+      end
+    end
+
+    # Check log file for error
+    log_files = Dir.glob(".claude-swarm/sessions/*/session.log")
+
+    assert_predicate log_files, :any?, "Expected to find log files"
+
+    log_content = File.read(log_files.first)
+
+    assert_match(/ERROR.*Execution error for test_instance: Command failed/, log_content)
   end
 end
