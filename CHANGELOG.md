@@ -1,3 +1,6 @@
+## [unreleased]
+- Refactor: move tools out of the ClaudeMcpServer class
+
 ## [0.1.5]
 
 ### Changed
