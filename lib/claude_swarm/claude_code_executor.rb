@@ -28,7 +28,7 @@ module ClaudeSwarm
 
     def execute(prompt, options = {})
       # Log the request
-      log_request(prompt, options)
+      log_request(prompt)
 
       cmd_array = build_command_array(prompt, options)
 
@@ -76,21 +76,11 @@ module ClaudeSwarm
       # Ensure we got a result
       raise ParseError, "No result found in stream output" unless result_response
 
-      @last_response = result_response
-
-      # Log the final response
-      log_response(result_response)
-
       result_response
     rescue StandardError => e
       @logger.error("Unexpected error for #{@instance_name}: #{e.class} - #{e.message}")
       @logger.error("Backtrace: #{e.backtrace.join("\n")}")
       raise
-    end
-
-    def execute_text(prompt, options = {})
-      response = execute(prompt, options)
-      response["result"] || ""
     end
 
     def reset_session
@@ -127,110 +117,57 @@ module ClaudeSwarm
       @logger.info("Started Claude Code executor for instance: #{@instance_name}") if @instance_name
     end
 
-    def log_request(prompt, options)
-      log_entry = {
-        timestamp: Time.now.utc.iso8601,
-        from_instance: @calling_instance,
-        to_instance: @instance_name,
-        model: @model,
-        working_directory: @working_directory,
-        session_id: @session_id,
-        request: {
-          prompt: prompt,
-          new_session: options[:new_session] || false,
-          system_prompt: options[:system_prompt],
-          allowed_tools: options[:allowed_tools]
-        }
-      }
-
-      @logger.info("REQUEST: #{JSON.pretty_generate(log_entry)}")
+    def log_request(prompt)
+      @logger.info("#{@calling_instance} -> #{@instance_name}: \n---\n#{prompt}\n---")
     end
 
     def log_response(response)
-      response_entry = {
-        timestamp: Time.now.utc.iso8601,
-        from_instance: @instance_name,
-        to_instance: @calling_instance,
-        session_id: @session_id,
-        response: {
-          result: response["result"],
-          cost_usd: response["cost_usd"],
-          duration_ms: response["duration_ms"],
-          is_error: response["is_error"],
-          total_cost: response["total_cost"]
-        }
-      }
-
-      @logger.info("RESPONSE: #{JSON.pretty_generate(response_entry)}")
+      @logger.info(
+        "($#{response["total_cost"]} - #{response["duration_ms"]}ms) #{@instance_name} -> #{@calling_instance}: \n---\n#{response["result"]}\n---"
+      )
     end
 
     def log_streaming_event(event)
-      # Create a compact log entry for streaming events
-      log_entry = {
-        timestamp: Time.now.utc.iso8601,
-        type: event["type"],
-        session_id: event["session_id"]
-      }
+      return log_system_message(event) if event["type"] == "system"
 
       # Add specific details based on event type
       case event["type"]
-      when "system"
-        log_entry[:subtype] = event["subtype"]
-        log_entry[:tools] = event["tools"] if event["tools"]
-        log_entry[:mcp_servers] = event["mcp_servers"] if event["mcp_servers"]
       when "assistant"
-        if event["message"]
-          msg = event["message"]
-          log_entry[:message_id] = msg["id"]
-          log_entry[:model] = msg["model"]
-
-          # Extract content summary
-          log_entry[:content] = extract_content_summary(msg["content"]) if msg["content"]
-
-          log_entry[:stop_reason] = msg["stop_reason"] if msg["stop_reason"]
-          log_entry[:usage] = msg["usage"] if msg["usage"]
-        end
+        log_assistant_message(event["message"])
       when "user"
-        extract_user_event_data(event, log_entry)
+        log_user_message(event["message"]["content"])
       when "result"
-        log_entry[:subtype] = event["subtype"]
-        log_entry[:cost_usd] = event["cost_usd"]
-        log_entry[:duration_ms] = event["duration_ms"]
-        log_entry[:is_error] = event["is_error"]
-        log_entry[:num_turns] = event["num_turns"]
-      end
-
-      @logger.info("STREAM_EVENT: #{JSON.generate(log_entry)}")
-    end
-
-    def extract_content_summary(content)
-      content.map do |c|
-        case c["type"]
-        when "text"
-          text = c["text"] || ""
-          { type: "text", preview: text[0..100] + (text.length > 100 ? "..." : "") }
-        when "tool_use"
-          { type: "tool_use", tool: c["name"], id: c["id"] }
-        else
-          { type: c["type"] }
-        end
+        log_response(event)
       end
     end
 
-    def extract_user_event_data(event, log_entry)
-      return unless event["message"] && event["message"]["content"]
+    def log_system_message(event)
+      @logger.debug("SYSTEM: #{JSON.pretty_generate(event)}")
+    end
 
-      content = event["message"]["content"]
-      return unless content.is_a?(Array) && !content.empty?
+    def log_assistant_message(msg)
+      return if msg["stop_reason"] == "end_turn" # that means it is not a thought but the final answer
 
-      first_item = content.first
-      return unless first_item["type"] == "tool_result"
+      content = msg["content"]
+      @logger.debug("ASSISTANT: #{JSON.pretty_generate(content)}")
+      tool_calls = content.select { |c| c["type"] == "tool_use" }
+      tool_calls.each do |tool_call|
+        arguments = tool_call["input"].to_json
+        arguments = "#{arguments[0..300]} ...}" if arguments.length > 300
 
-      content_text = first_item["content"] || ""
-      log_entry[:tool_result] = {
-        tool_use_id: first_item["tool_use_id"],
-        preview: content_text[0..100] + (content_text.length > 100 ? "..." : "")
-      }
+        @logger.info(
+          "Tool call from #{@instance_name} -> Tool: #{tool_call["name"]}, ID: #{tool_call["id"]}, Arguments: #{arguments}"
+        )
+      end
+
+      text = content.select { |c| c["type"] == "text" }
+      text.each do |t|
+        @logger.info("#{@instance_name} is thinking:\n---\n#{t["text"]}\n---")
+      end
+    end
+
+    def log_user_message(content)
+      @logger.debug("USER: #{JSON.pretty_generate(content)}")
     end
 
     def build_command_array(prompt, options)

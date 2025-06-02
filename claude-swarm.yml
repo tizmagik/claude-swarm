@@ -6,7 +6,7 @@ swarm:
     lead_developer:
       description: "Lead developer coordinating the team and making architectural decisions"
       directory: .
-      model: sonnet
+      model: opus
       prompt: "You are the lead developer coordinating the team"
       tools: [Read, Edit, Bash, Write]
       connections: [frontend_dev]
@@ -16,6 +16,6 @@ swarm:
     frontend_dev:
       description: "Frontend developer specializing in React and modern web technologies"
       directory: .
-      model: sonnet
+      model: opus
       prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
       tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]

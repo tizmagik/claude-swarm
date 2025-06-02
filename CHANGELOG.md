@@ -1,5 +1,6 @@
 ## [unreleased]
 - Refactor: move tools out of the ClaudeMcpServer class
+- Move logging into code executor and save instance interaction streams to session.log
 
 ## [0.1.5]
 

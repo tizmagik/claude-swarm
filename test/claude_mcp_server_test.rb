@@ -212,11 +212,12 @@ class ClaudeMcpServerTest < Minitest::Test
     assert_predicate log_files, :any?, "Expected to find log files"
     log_content = File.read(log_files.first)
 
-    assert_match(/REQUEST:/, log_content)
-    assert_match(/"prompt": "Log this task"/, log_content)
-    assert_match(/RESPONSE:/, log_content)
-    assert_match(/"result": "Logged task"/, log_content)
-    assert_match(/"cost_usd": 0.01/, log_content)
+    # Check for the new logging format
+    assert_match(/test_caller -> test_instance:/, log_content)
+    assert_match(/Log this task/, log_content)
+    assert_match(/test_instance -> test_caller:/, log_content)
+    assert_match(/Logged task/, log_content)
+    assert_match(/\$0\.01 - 500ms/, log_content)
   end
 
   def test_session_info_tool

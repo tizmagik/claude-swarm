@@ -24,15 +24,34 @@ class ClaudeCodeExecutorTest < Minitest::Test
   end
 
   # Helper method to create streaming JSON output
-  def create_streaming_json(session_id: "test-session-123", result: "Test result", cost: 0.01, duration: 500)
-    [
+  def create_streaming_json(session_id: "test-session-123", result: "Test result", cost: 0.01, duration: 500, include_tool_call: false)
+    events = [
       { type: "system", subtype: "init", session_id: session_id, tools: %w[Tool1 Tool2] },
       { type: "assistant", message: { id: "msg_123", type: "message", role: "assistant",
                                       model: "claude-3", content: [{ type: "text", text: "Processing..." }] },
-        session_id: session_id },
-      { type: "result", subtype: "success", cost_usd: cost, is_error: false,
-        duration_ms: duration, result: result, total_cost: cost, session_id: session_id }
-    ].map { |obj| "#{JSON.generate(obj)}\n" }.join
+        session_id: session_id }
+    ]
+
+    if include_tool_call
+      events << {
+        type: "assistant",
+        message: {
+          id: "msg_124",
+          type: "message",
+          role: "assistant",
+          model: "claude-3",
+          content: [
+            { type: "tool_use", id: "tool_123", name: "Bash", input: { command: "ls -la" } }
+          ]
+        },
+        session_id: session_id
+      }
+    end
+
+    events << { type: "result", subtype: "success", cost_usd: cost, is_error: false,
+                duration_ms: duration, result: result, total_cost: cost, session_id: session_id }
+
+    events.map { |obj| "#{JSON.generate(obj)}\n" }.join
   end
 
   # Helper to mock popen3
@@ -58,6 +77,28 @@ class ClaudeCodeExecutorTest < Minitest::Test
     assert_nil @executor.session_id
     assert_nil @executor.last_response
     assert_equal Dir.pwd, @executor.working_directory
+    assert_kind_of Logger, @executor.logger
+    assert_match(/\d{8}_\d{6}/, @executor.session_timestamp)
+  end
+
+  def test_initialization_with_environment_timestamp
+    # Set environment variable
+    ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = "20240102_123456"
+
+    executor = ClaudeSwarm::ClaudeCodeExecutor.new(
+      instance_name: "env_test",
+      calling_instance: "env_caller"
+    )
+
+    assert_equal "20240102_123456", executor.session_timestamp
+
+    # Check that the log file is created in the correct directory
+    log_path = File.join(Dir.pwd, ".claude-swarm/sessions/20240102_123456/session.log")
+
+    assert_path_exists log_path, "Expected log file to exist at #{log_path}"
+  ensure
+    # Clean up environment variable
+    ENV.delete("CLAUDE_SWARM_SESSION_TIMESTAMP")
   end
 
   def test_has_session
@@ -93,6 +134,7 @@ class ClaudeCodeExecutorTest < Minitest::Test
 
     assert_includes command_array, "--model"
     assert_includes command_array, "opus"
+    assert_includes command_array, "--verbose"
   end
 
   def test_mcp_config
@@ -112,6 +154,7 @@ class ClaudeCodeExecutorTest < Minitest::Test
     assert_includes command_array, "--output-format"
     assert_includes command_array, "stream-json"
     assert_includes command_array, "--print"
+    assert_includes command_array, "--verbose"
     assert_includes command_array, "test prompt" # No escaping in array
   end
 
@@ -180,24 +223,20 @@ class ClaudeCodeExecutorTest < Minitest::Test
 
     log_content = File.read(log_files.first)
 
-    # Check request logging
-    assert_match(/REQUEST:/, log_content)
-    assert_match(/"prompt": "test prompt"/, log_content)
-    assert_match(/"from_instance": "test_caller"/, log_content)
-    assert_match(/"to_instance": "test_instance"/, log_content)
-    assert_match(/"system_prompt": "Be helpful"/, log_content)
+    # Check request logging - new format: "calling_instance -> instance_name:"
+    assert_match(/test_caller -> test_instance:/, log_content)
+    assert_match(/test prompt/, log_content)
 
-    # Check response logging
-    assert_match(/RESPONSE:/, log_content)
-    assert_match(/"result": "Test result"/, log_content)
-    assert_match(/"from_instance": "test_instance"/, log_content)
-    assert_match(/"to_instance": "test_caller"/, log_content)
-    assert_match(/"cost_usd": 0.01/, log_content)
+    # Check response logging - new format: "($cost - timems) instance_name -> calling_instance:"
+    assert_match(/\(\$0.01 - 500ms\) test_instance -> test_caller:/, log_content)
+    assert_match(/Test result/, log_content)
 
-    # Check streaming events
-    assert_match(/STREAM_EVENT:.*"type":"system"/, log_content)
-    assert_match(/STREAM_EVENT:.*"type":"assistant"/, log_content)
-    assert_match(/STREAM_EVENT:.*"type":"result"/, log_content)
+    # Check assistant thinking log
+    assert_match(/test_instance is thinking:/, log_content)
+    assert_match(/Processing.../, log_content)
+
+    # Check that the logger was started with instance name
+    assert_match(/Started Claude Code executor for instance: test_instance/, log_content)
   end
 
   def test_logging_on_execution_error
@@ -215,5 +254,42 @@ class ClaudeCodeExecutorTest < Minitest::Test
     log_content = File.read(log_files.first)
 
     assert_match(/ERROR.*Execution error for test_instance: Command failed/, log_content)
+  end
+
+  def test_logging_with_tool_calls
+    mock_response = create_streaming_json(
+      session_id: "test-session-123",
+      result: "Command executed",
+      include_tool_call: true
+    )
+
+    mock_popen3(mock_response) do
+      response = @executor.execute("run ls command")
+
+      assert_equal "Command executed", response["result"]
+    end
+
+    # Check log file for tool call
+    log_files = Dir.glob(".claude-swarm/sessions/*/session.log")
+    log_content = File.read(log_files.first)
+
+    # Check tool call logging
+    assert_match(/Tool call from test_instance -> Tool: Bash, ID: tool_123, Arguments: {"command":"ls -la"}/, log_content)
+  end
+
+  def test_vibe_mode
+    executor = ClaudeSwarm::ClaudeCodeExecutor.new(vibe: true)
+    command_array = executor.send(:build_command_array, "test prompt", {})
+
+    assert_includes command_array, "--dangerously-skip-permissions"
+    refute_includes command_array, "--allowedTools"
+  end
+
+  def test_vibe_mode_overrides_allowed_tools
+    executor = ClaudeSwarm::ClaudeCodeExecutor.new(vibe: true)
+    command_array = executor.send(:build_command_array, "test prompt", { allowed_tools: %w[Read Write] })
+
+    assert_includes command_array, "--dangerously-skip-permissions"
+    refute_includes command_array, "--allowedTools"
   end
 end
