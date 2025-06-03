@@ -4,12 +4,13 @@ require "shellwords"
 
 module ClaudeSwarm
   class Orchestrator
-    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, session_timestamp: nil)
+    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, session_timestamp: nil, stream_logs: false)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
       @prompt = prompt
       @session_timestamp = session_timestamp || Time.now.strftime("%Y%m%d_%H%M%S")
+      @stream_logs = stream_logs
     end
 
     def start
@@ -52,13 +53,51 @@ module ClaudeSwarm
         puts
       end
 
+      # Start log streaming thread if in non-interactive mode with --stream-logs
+      log_thread = nil
+      log_thread = start_log_streaming if @prompt && @stream_logs
+
       # Execute the main instance - this will cascade to other instances via MCP
       Dir.chdir(main_instance[:directory]) do
         system(*command)
       end
+
+      # Clean up log streaming thread
+      return unless log_thread
+
+      log_thread.terminate
+      log_thread.join
     end
 
     private
+
+    def start_log_streaming
+      Thread.new do
+        session_log_path = File.join(Dir.pwd, ClaudeSwarm::ClaudeCodeExecutor::SWARM_DIR,
+                                     ClaudeSwarm::ClaudeCodeExecutor::SESSIONS_DIR,
+                                     @session_timestamp, "session.log")
+
+        # Wait for log file to be created
+        sleep 0.1 until File.exist?(session_log_path)
+
+        # Open file and seek to end
+        File.open(session_log_path, "r") do |file|
+          file.seek(0, IO::SEEK_END)
+
+          loop do
+            changes = file.read
+            if changes
+              print changes
+              $stdout.flush
+            else
+              sleep 0.1
+            end
+          end
+        end
+      rescue StandardError
+        # Silently handle errors (file might be deleted, process might end, etc.)
+      end
+    end
 
     def build_main_command(instance)
       parts = [

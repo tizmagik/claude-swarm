@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.1.8]
 
 ### Added
 - **Disallowed tools support**: New `disallowed_tools` YAML key for explicitly denying specific tools (takes precedence over allowed tools)
@@ -7,6 +7,7 @@
 - **Renamed YAML key**: `tools` renamed to `allowed_tools` while maintaining backward compatibility
 - Tool permissions now support both allow and deny patterns, with deny taking precedence
 - Both `--allowedTools` and `--disallowedTools` are passed as comma-separated lists to Claude
+- New CLI option `--stream-logs` - can only be used with `-p`
 
 ## [0.1.7]
 

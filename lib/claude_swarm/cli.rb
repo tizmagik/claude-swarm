@@ -20,6 +20,8 @@ module ClaudeSwarm
                          desc: "Run with --dangerously-skip-permissions for all instances"
     method_option :prompt, aliases: "-p", type: :string,
                            desc: "Prompt to pass to the main Claude instance (non-interactive mode)"
+    method_option :stream_logs, type: :boolean, default: false,
+                                desc: "Stream session logs to stdout (only works with -p)"
     def start(config_file = nil)
       config_path = config_file || options[:config]
       unless File.exist?(config_path)
@@ -28,6 +30,13 @@ module ClaudeSwarm
       end
 
       say "Starting Claude Swarm from #{config_path}..." unless options[:prompt]
+
+      # Validate stream_logs option
+      if options[:stream_logs] && !options[:prompt]
+        error "--stream-logs can only be used with -p/--prompt"
+        exit 1
+      end
+
       begin
         config = Configuration.new(config_path)
         session_timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
@@ -35,7 +44,8 @@ module ClaudeSwarm
         orchestrator = Orchestrator.new(config, generator,
                                         vibe: options[:vibe],
                                         prompt: options[:prompt],
-                                        session_timestamp: session_timestamp)
+                                        session_timestamp: session_timestamp,
+                                        stream_logs: options[:stream_logs])
         orchestrator.start
       rescue Error => e
         error e.message
