@@ -1,5 +1,8 @@
 # Claude Swarm
 
+[![Gem Version](https://badge.fury.io/rb/claude_swarm.svg)](https://badge.fury.io/rb/claude_swarm)
+[![CI](https://github.com/parruda/claude-swarm/actions/workflows/ci.yml/badge.svg)](https://github.com/parruda/claude-swarm/actions/workflows/ci.yml)
+
 Claude Swarm orchestrates multiple Claude Code instances as a collaborative AI development team. It enables running AI agents with specialized roles, tools, and directory contexts, communicating via MCP (Model Context Protocol) in a tree-like hierarchy. Define your swarm topology in simple YAML and let Claude instances delegate tasks through connected instances. Perfect for complex projects requiring specialized AI agents for frontend, backend, testing, DevOps, or research tasks.
 
 ## Installation
@@ -546,6 +549,20 @@ bundle exec rake install    # Install gem locally
 bundle exec rake release    # Release gem to RubyGems.org
 rake                  # Default: runs both tests and RuboCop
 ```
+
+### Release Process
+
+The gem is automatically published to RubyGems when a new release is created on GitHub:
+
+1. Update the version number in `lib/claude_swarm/version.rb`
+2. Update `CHANGELOG.md` with the new version's changes
+3. Commit the changes: `git commit -am "Bump version to x.y.z"`
+4. Create a version tag: `git tag -a vx.y.z -m "Release version x.y.z"`
+5. Push the changes and tag: `git push && git push --tags`
+6. The GitHub workflow will create a draft release - review and publish it
+7. Once published, the gem will be automatically built and pushed to RubyGems
+
+**Note**: You need to set up the `RUBYGEMS_AUTH_TOKEN` secret in your GitHub repository settings with your RubyGems API key.
 
 ## Contributing
 
