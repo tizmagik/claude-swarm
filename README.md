@@ -27,7 +27,7 @@ bundle install
 
 ## Prerequisites
 
-- Ruby 3.1.0 or higher
+- Ruby 3.2.0 or higher
 - Claude CLI installed and configured
 - Any MCP servers you plan to use (optional)
 
