@@ -1,3 +1,26 @@
+## [0.1.9]
+
+### Added
+- **Parameter-based tool patterns**: Custom tools now support explicit parameter patterns (e.g., `WebFetch(url:https://example.com/*)`)
+- **Enhanced pattern matching**: File tools support brace expansion and complex glob patterns (e.g., `Read(~/docs/**/*.{txt,md})`)
+- **Comprehensive test coverage**: Added extensive unit and integration tests for permission system
+
+### Changed
+- **Breaking change**: Custom tools with patterns now require explicit parameter syntax - `Tool(param:pattern)` instead of `Tool(pattern)`
+- **Improved pattern parsing**: Tool patterns are now parsed into structured hashes with `tool_name`, `pattern`, and `type` fields
+- **Better pattern enforcement**: Custom tool patterns are now strictly enforced - requests with non-matching parameters are denied
+- Tools without patterns (e.g., `WebFetch`) continue to accept any input parameters
+
+### Fixed
+- Fixed brace expansion in file glob patterns by adding `File::FNM_EXTGLOB` flag
+- Improved parameter pattern parsing to avoid conflicts with URL patterns containing colons
+
+### Internal
+- Major refactoring of `PermissionMcpServer` and `PermissionTool` for better maintainability and readability
+- Extracted pattern matching logic into focused, single-purpose methods
+- Added constants for tool categories and pattern types
+- Improved logging with structured helper methods
+
 ## [0.1.8]
 
 ### Added

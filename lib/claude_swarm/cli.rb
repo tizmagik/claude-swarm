@@ -171,9 +171,9 @@ module ClaudeSwarm
     end
 
     desc "tools-mcp", "Start a permission management MCP server for tool access control"
-    method_option :allowed_tools, aliases: "-t", type: :array,
+    method_option :allowed_tools, aliases: "-t", type: :string,
                                   desc: "Comma-separated list of allowed tool patterns (supports wildcards)"
-    method_option :disallowed_tools, type: :array,
+    method_option :disallowed_tools, type: :string,
                                      desc: "Comma-separated list of disallowed tool patterns (supports wildcards)"
     method_option :debug, type: :boolean, default: false,
                           desc: "Enable debug output"

@@ -63,3 +63,6 @@ Minitest/MultipleAssertions:
 
 Metrics/ParameterLists:
   Enabled: false
+
+Style/PerlBackrefs:
+  Enabled: false
