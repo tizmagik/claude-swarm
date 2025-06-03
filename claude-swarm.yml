@@ -8,7 +8,7 @@ swarm:
       directory: .
       model: opus
       prompt: "You are the lead developer coordinating the team"
-      tools: [Read, Edit, Bash, Write]
+      vibe: true
       connections: [frontend_dev]
 
     # Example instances (uncomment and modify as needed):
@@ -18,4 +18,9 @@ swarm:
       directory: .
       model: opus
       prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
-      tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
+      tools: [mcp__headless_browser__*]
+      mcps:
+        - name: headless_browser
+          type: stdio
+          command: bundle
+          args: ["exec", "hbt", "stdio"]

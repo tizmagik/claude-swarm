@@ -1,3 +1,23 @@
+## [0.1.7]
+
+### Added
+- **Vibe mode support**: Per-instance `vibe: true` configuration to skip all permission checks for specific instances
+- **Automatic permission management**: Built-in permission MCP server that handles tool authorization without manual approval
+- **Permission logging**: All permission checks are logged to `.claude-swarm/sessions/{timestamp}/permissions.log`
+- **Mixed permission modes**: Support for running some instances with full permissions while others remain restricted
+- **New CLI command**: `claude-swarm tools-mcp` for starting a standalone permission management MCP server
+- **Permission tool patterns**: Support for wildcard patterns in tool permissions (e.g., `mcp__frontend__*`)
+
+### Changed
+- Fixed `--system-prompt` to use `--append-system-prompt` for proper Claude Code integration
+- Added `--permission-prompt-tool` flag pointing to `mcp__permissions__check_permission` when not in vibe mode
+- Enhanced MCP generation to include a permission server for each instance (unless in vibe mode)
+
+### Technical Details
+- Permission checks use Fast MCP server with pattern matching for tool names
+- Each instance can have its own permission configuration independent of global settings
+- Permission decisions are made based on configured tool patterns with wildcard support
+
 ## [0.1.6]
 - Refactor: move tools out of the ClaudeMcpServer class
 - Move logging into code executor and save instance interaction streams to session.log
