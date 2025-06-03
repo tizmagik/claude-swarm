@@ -45,7 +45,7 @@ swarm:
       directory: .
       model: opus
       connections: [frontend, backend]
-      tools: # Tools aren't required if you run it with `--vibe`
+      allowed_tools: # Tools aren't required if you run it with `--vibe`
         - Read
         - Edit
         - Bash
@@ -53,7 +53,7 @@ swarm:
       description: "Frontend specialist handling UI and user experience"
       directory: ./frontend
       model: opus
-      tools:
+      allowed_tools:
         - Edit
         - Write
         - Bash
@@ -61,7 +61,7 @@ swarm:
       description: "Backend developer managing APIs and data layer"
       directory: ./backend  
       model: opus
-      tools:
+      allowed_tools:
         - Edit
         - Write
         - Bash
@@ -98,7 +98,7 @@ swarm:
       model: opus
       connections: [frontend_lead, backend_lead, mobile_lead, devops]
       prompt: "You are the system architect coordinating between different service teams"
-      tools: [Read, Edit, WebSearch]
+      allowed_tools: [Read, Edit, WebSearch]
     
     frontend_lead:
       description: "Frontend team lead overseeing React development"
@@ -106,21 +106,21 @@ swarm:
       model: opus
       connections: [react_dev, css_expert]
       prompt: "You lead the web frontend team working with React"
-      tools: [Read, Edit, Bash]
+      allowed_tools: [Read, Edit, Bash]
     
     react_dev:
       description: "React developer specializing in components and state management"
       directory: ./web-frontend/src
       model: opus
       prompt: "You specialize in React components and state management"
-      tools: [Edit, Write, "Bash(npm:*)"]
+      allowed_tools: [Edit, Write, "Bash(npm:*)"]
     
     css_expert:
       description: "CSS specialist handling styling and responsive design"
       directory: ./web-frontend/styles
       model: opus
       prompt: "You handle all CSS and styling concerns"
-      tools: [Edit, Write, Read]
+      allowed_tools: [Edit, Write, Read]
     
     backend_lead:
       description: "Backend team lead managing API development"
@@ -128,21 +128,21 @@ swarm:
       model: opus
       connections: [api_dev, database_expert]
       prompt: "You lead the API backend team"
-      tools: [Read, Edit, Bash]
+      allowed_tools: [Read, Edit, Bash]
     
     api_dev:
       description: "API developer building REST endpoints"
       directory: ./api-server/src
       model: opus
       prompt: "You develop REST API endpoints"
-      tools: [Edit, Write, Bash]
+      allowed_tools: [Edit, Write, Bash]
     
     database_expert:
       description: "Database specialist managing schemas and migrations"
       directory: ./api-server/db
       model: opus
       prompt: "You handle database schema and migrations"
-      tools: [Edit, Write, "Bash(psql:*, migrate:*)"]
+      allowed_tools: [Edit, Write, "Bash(psql:*, migrate:*)"]
     
     mobile_lead:
       description: "Mobile team lead coordinating cross-platform development"
@@ -150,28 +150,28 @@ swarm:
       model: opus
       connections: [ios_dev, android_dev]
       prompt: "You coordinate mobile development across platforms"
-      tools: [Read, Edit]
+      allowed_tools: [Read, Edit]
     
     ios_dev:
       description: "iOS developer building native Apple applications"
       directory: ./mobile-app/ios
       model: opus
       prompt: "You develop the iOS application"
-      tools: [Edit, Write, "Bash(xcodebuild:*, pod:*)"]
+      allowed_tools: [Edit, Write, "Bash(xcodebuild:*, pod:*)"]
     
     android_dev:
       description: "Android developer creating native Android apps"
       directory: ./mobile-app/android
       model: opus
       prompt: "You develop the Android application"
-      tools: [Edit, Write, "Bash(gradle:*, adb:*)"]
+      allowed_tools: [Edit, Write, "Bash(gradle:*, adb:*)"]
     
     devops:
       description: "DevOps engineer managing CI/CD and infrastructure"
       directory: ./infrastructure
       model: opus
       prompt: "You handle CI/CD and infrastructure"
-      tools: [Read, Edit, "Bash(docker:*, kubectl:*)"]
+      allowed_tools: [Read, Edit, "Bash(docker:*, kubectl:*)"]
 ```
 
 In this setup:
@@ -205,7 +205,8 @@ Each instance can have:
 - **directory**: Working directory for this instance (can use ~ for home)
 - **model**: Claude model to use (opus, sonnet, haiku)
 - **connections**: Array of other instances this one can communicate with
-- **tools**: Array of tools this instance can use
+- **allowed_tools**: Array of tools this instance can use (backward compatible with `tools`)
+- **disallowed_tools**: Array of tools to explicitly deny (takes precedence over allowed_tools)
 - **mcps**: Array of additional MCP servers to connect
 - **prompt**: Custom system prompt to append to the instance
 - **vibe**: Enable vibe mode (--dangerously-skip-permissions) for this instance (default: false)
@@ -218,13 +219,16 @@ instance_name:
   connections: [other_instance1, other_instance2]
   prompt: "You are a specialized agent focused on..."
   vibe: false  # Set to true to skip all permission checks for this instance
-  tools:
+  allowed_tools:
     - Read
     - Edit
     - Write
     - Bash
     - WebFetch
     - WebSearch
+  disallowed_tools:  # Optional: explicitly deny specific tools
+    - "Write(*.log)"
+    - "Bash(rm:*)"
   mcps:
     - name: server_name
       type: stdio
@@ -260,23 +264,27 @@ mcps:
 Specify which tools each instance can use:
 
 ```yaml
-tools:
+allowed_tools:
   - Bash           # Command execution
   - Edit           # File editing
   - Write          # File creation
   - Read           # File reading
   - WebFetch       # Fetch web content
   - WebSearch      # Search the web
+
+disallowed_tools:  # Optional: explicitly deny specific tools
+  - "Write(*.md)"  # Don't allow writing markdown files
+  - "Bash(rm:*)"   # Don't allow rm commands
 ```
 
-Tools are passed to Claude using the `--allowedTools` flag with comma-separated values.
+Tools are passed to Claude using the `--allowedTools` and `--disallowedTools` flags with comma-separated values. Disallowed tools take precedence over allowed tools.
 
 #### Tool Restrictions
 
 You can restrict tools with pattern-based filters:
 
 ```yaml
-tools:
+allowed_tools:
   - Read                    # Unrestricted read access
   - Edit                    # Unrestricted edit access
   - "Bash(npm:*)"          # Only allow npm commands
@@ -299,7 +307,7 @@ swarm:
       model: opus
       connections: [frontend, backend, devops]
       prompt: "You are the lead architect responsible for system design and code quality"
-      tools:
+      allowed_tools:
         - Read
         - Edit
         - WebSearch
@@ -310,7 +318,7 @@ swarm:
       model: opus
       connections: [architect]
       prompt: "You specialize in React, TypeScript, and modern frontend development"
-      tools:
+      allowed_tools:
         - Edit
         - Write
         - Bash
@@ -320,7 +328,7 @@ swarm:
       directory: ./backend
       model: opus
       connections: [architect, database]
-      tools:
+      allowed_tools:
         - Edit
         - Write
         - Bash
@@ -329,7 +337,7 @@ swarm:
       description: "Database administrator managing data persistence"
       directory: ./db
       model: haiku
-      tools:
+      allowed_tools:
         - Read
         - Bash
         
@@ -338,7 +346,7 @@ swarm:
       directory: .
       model: opus
       connections: [architect]
-      tools:
+      allowed_tools:
         - Read
         - Edit
         - Bash
@@ -357,7 +365,7 @@ swarm:
       directory: ~/research
       model: opus
       connections: [data_analyst, writer]
-      tools:
+      allowed_tools:
         - Read
         - WebSearch
         - WebFetch
@@ -370,7 +378,7 @@ swarm:
       description: "Data analyst processing research data and statistics"
       directory: ~/research/data
       model: opus
-      tools:
+      allowed_tools:
         - Read
         - Write
         - Bash
@@ -384,7 +392,7 @@ swarm:
       description: "Technical writer preparing research documentation"
       directory: ~/research/papers
       model: opus
-      tools:
+      allowed_tools:
         - Edit
         - Write
         - Read
@@ -411,14 +419,14 @@ swarm:
       description: "Worker with restricted permissions"
       directory: ./sensitive
       model: sonnet
-      tools: [Read, "Bash(ls:*)"]  # Only allow read and ls commands
+      allowed_tools: [Read, "Bash(ls:*)"]  # Only allow read and ls commands
       
     trusted_worker:
       description: "Trusted worker with more permissions"
       directory: ./workspace
       model: sonnet
       vibe: true  # This instance also skips permissions
-      tools: []  # Tools list ignored when vibe: true
+      allowed_tools: []  # Tools list ignored when vibe: true
 ```
 
 ### Command Line Options
@@ -443,6 +451,7 @@ claude-swarm version
 
 # Start permission MCP server (for testing/debugging)
 claude-swarm tools-mcp --allowed-tools 'mcp__frontend__*,mcp__backend__*'
+claude-swarm tools-mcp --allowed-tools 'Read,Edit' --disallowed-tools 'Edit(*.log)'
 
 # Internal command for MCP server (used by connected instances)
 claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TIMESTAMP
@@ -458,6 +467,7 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
 3. **Tool Permissions**: Claude Swarm automatically manages tool permissions:
    - Each instance's configured tools are allowed via the permission MCP
    - Supports wildcard patterns (e.g., `mcp__frontend__*` allows all frontend MCP tools)
+   - Disallowed tools take precedence over allowed tools for fine-grained control
    - Eliminates the need to manually accept each tool or use global `--vibe` mode
    - Per-instance `vibe: true` skips all permission checks for that specific instance
    - The permission MCP uses `--permission-prompt-tool` to check tool access

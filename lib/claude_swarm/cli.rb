@@ -60,6 +60,8 @@ module ClaudeSwarm
                                 desc: "Description of the instance's role"
     method_option :tools, aliases: "-t", type: :array,
                           desc: "Allowed tools for the instance"
+    method_option :disallowed_tools, type: :array,
+                                     desc: "Disallowed tools for the instance"
     method_option :mcp_config_path, type: :string,
                                     desc: "Path to MCP configuration file"
     method_option :debug, type: :boolean, default: false,
@@ -76,6 +78,7 @@ module ClaudeSwarm
         prompt: options[:prompt],
         description: options[:description],
         tools: options[:tools] || [],
+        disallowed_tools: options[:disallowed_tools] || [],
         mcp_config_path: options[:mcp_config_path],
         vibe: options[:vibe]
       }
@@ -113,7 +116,7 @@ module ClaudeSwarm
               directory: .
               model: sonnet
               prompt: "You are the lead developer coordinating the team"
-              tools: [Read, Edit, Bash, Write]
+              allowed_tools: [Read, Edit, Bash, Write]
               # connections: [frontend_dev, backend_dev]
 
             # Example instances (uncomment and modify as needed):
@@ -123,28 +126,28 @@ module ClaudeSwarm
             #   directory: ./frontend
             #   model: sonnet
             #   prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
-            #   tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
+            #   allowed_tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
 
             # backend_dev:
             #   description: "Backend developer focusing on APIs, databases, and server architecture"
             #   directory: ../other-app/backend
             #   model: sonnet
             #   prompt: "You specialize in backend development, APIs, databases, and server architecture"
-            #   tools: [Read, Edit, Write, Bash]
+            #   allowed_tools: [Read, Edit, Write, Bash]
 
             # devops_engineer:
             #   description: "DevOps engineer managing infrastructure, CI/CD, and deployments"
             #   directory: .
             #   model: sonnet
             #   prompt: "You specialize in infrastructure, CI/CD, containerization, and deployment"
-            #   tools: [Read, Edit, Write, "Bash(docker:*)", "Bash(kubectl:*)", "Bash(terraform:*)"]
+            #   allowed_tools: [Read, Edit, Write, "Bash(docker:*)", "Bash(kubectl:*)", "Bash(terraform:*)"]
 
             # qa_engineer:
             #   description: "QA engineer ensuring quality through comprehensive testing"
             #   directory: ./tests
             #   model: sonnet
             #   prompt: "You specialize in testing, quality assurance, and test automation"
-            #   tools: [Read, Edit, Write, Bash]
+            #   allowed_tools: [Read, Edit, Write, Bash]
       YAML
 
       File.write(config_path, template)
@@ -160,10 +163,12 @@ module ClaudeSwarm
     desc "tools-mcp", "Start a permission management MCP server for tool access control"
     method_option :allowed_tools, aliases: "-t", type: :array,
                                   desc: "Comma-separated list of allowed tool patterns (supports wildcards)"
+    method_option :disallowed_tools, type: :array,
+                                     desc: "Comma-separated list of disallowed tool patterns (supports wildcards)"
     method_option :debug, type: :boolean, default: false,
                           desc: "Enable debug output"
     def tools_mcp
-      server = PermissionMcpServer.new(allowed_tools: options[:allowed_tools])
+      server = PermissionMcpServer.new(allowed_tools: options[:allowed_tools], disallowed_tools: options[:disallowed_tools])
       server.start
     rescue StandardError => e
       error "Error starting permission MCP server: #{e.message}"

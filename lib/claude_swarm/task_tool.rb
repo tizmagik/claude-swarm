@@ -23,6 +23,9 @@ module ClaudeSwarm
       # Add allowed tools from instance config
       options[:allowed_tools] = instance_config[:tools] if instance_config[:tools]&.any?
 
+      # Add disallowed tools from instance config
+      options[:disallowed_tools] = instance_config[:disallowed_tools] if instance_config[:disallowed_tools]&.any?
+
       response = executor.execute(prompt, options)
 
       # Return just the result text as expected by MCP

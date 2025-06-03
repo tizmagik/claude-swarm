@@ -196,13 +196,22 @@ module ClaudeSwarm
       # Add any allowed tools or vibe flag
       if @vibe
         cmd_array << "--dangerously-skip-permissions"
-      elsif options[:allowed_tools]
-        tools = Array(options[:allowed_tools]).join(",")
-        cmd_array += ["--allowedTools", tools]
-      end
+      else
+        # Add allowed tools if any
+        if options[:allowed_tools]
+          tools = Array(options[:allowed_tools]).join(",")
+          cmd_array += ["--allowedTools", tools]
+        end
 
-      # Add permission prompt tool if not in vibe mode
-      cmd_array += ["--permission-prompt-tool", "mcp__permissions__check_permission"] unless @vibe
+        # Add disallowed tools if any
+        if options[:disallowed_tools]
+          disallowed_tools = Array(options[:disallowed_tools]).join(",")
+          cmd_array += ["--disallowedTools", disallowed_tools]
+        end
+
+        # Add permission prompt tool if not in vibe mode
+        cmd_array += ["--permission-prompt-tool", "mcp__permissions__check_permission"]
+      end
 
       cmd_array
     end

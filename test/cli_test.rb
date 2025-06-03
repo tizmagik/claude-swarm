@@ -203,6 +203,7 @@ class CLITest < Minitest::Test
       prompt: "Test prompt",
       description: nil,
       tools: %w[Read Edit],
+      disallowed_tools: [],
       mcp_config_path: "/path/to/mcp.json",
       vibe: nil
     }
@@ -236,6 +237,7 @@ class CLITest < Minitest::Test
       prompt: nil,
       description: nil,
       tools: [],
+      disallowed_tools: [],
       mcp_config_path: nil,
       vibe: nil
     }

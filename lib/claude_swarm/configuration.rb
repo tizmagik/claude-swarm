@@ -76,12 +76,17 @@ module ClaudeSwarm
       # Validate required fields
       raise Error, "Instance '#{name}' missing required 'description' field" unless config["description"]
 
+      # Support both 'tools' (deprecated) and 'allowed_tools' for backward compatibility
+      allowed_tools = config["allowed_tools"] || config["tools"] || []
+
       {
         name: name,
         directory: expand_path(config["directory"] || "."),
         model: config["model"] || "sonnet",
         connections: Array(config["connections"]),
-        tools: Array(config["tools"]),
+        tools: Array(allowed_tools), # Keep as 'tools' internally for compatibility
+        allowed_tools: Array(allowed_tools),
+        disallowed_tools: Array(config["disallowed_tools"]),
         mcps: parse_mcps(config["mcps"] || []),
         prompt: config["prompt"],
         description: config["description"],

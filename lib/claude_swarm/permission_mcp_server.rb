@@ -11,19 +11,23 @@ module ClaudeSwarm
     SWARM_DIR = ".claude-swarm"
     SESSIONS_DIR = "sessions"
 
-    def initialize(allowed_tools: nil)
+    def initialize(allowed_tools: nil, disallowed_tools: nil)
       @allowed_tools = allowed_tools
+      @disallowed_tools = disallowed_tools
       setup_logging
     end
 
     def start
-      # Parse allowed tools
-      allowed_patterns = parse_allowed_tools(@allowed_tools)
+      # Parse allowed and disallowed tools
+      allowed_patterns = parse_tool_patterns(@allowed_tools)
+      disallowed_patterns = parse_tool_patterns(@disallowed_tools)
 
-      @logger.info("Starting permission MCP server with allowed patterns: #{allowed_patterns.inspect}")
+      @logger.info("Starting permission MCP server with allowed patterns: #{allowed_patterns.inspect}, " \
+                   "disallowed patterns: #{disallowed_patterns.inspect}")
 
       # Set the patterns on the tool class
       PermissionTool.allowed_patterns = allowed_patterns
+      PermissionTool.disallowed_patterns = disallowed_patterns
       PermissionTool.logger = @logger
 
       server = FastMcp::Server.new(
@@ -64,7 +68,7 @@ module ClaudeSwarm
       @logger.info("Permission MCP server logging initialized")
     end
 
-    def parse_allowed_tools(tools)
+    def parse_tool_patterns(tools)
       return [] if tools.nil? || tools.empty?
 
       # Handle both string and array inputs

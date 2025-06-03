@@ -105,7 +105,7 @@ class OrchestratorTest < Minitest::Test
     assert_match(/🚀 Launching main instance: lead/, output)
     assert_match(/Model: opus/, output)
     assert_match(/Directory:.*src/, output)
-    assert_match(/Tools: Read, Edit, Bash/, output)
+    assert_match(/Allowed tools: Read, Edit, Bash/, output)
     assert_match(/Connections: backend/, output)
   end
 
