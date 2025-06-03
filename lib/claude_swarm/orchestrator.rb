@@ -41,6 +41,7 @@ module ClaudeSwarm
         puts "   Directory: #{main_instance[:directory]}"
         puts "   Tools: #{main_instance[:tools].join(", ")}" if main_instance[:tools].any?
         puts "   Connections: #{main_instance[:connections].join(", ")}" if main_instance[:connections].any?
+        puts "   😎 Vibe mode ON for this instance" if main_instance[:vibe]
         puts
       end
 
@@ -65,12 +66,15 @@ module ClaudeSwarm
         instance[:model]
       ]
 
-      if @vibe
+      if @vibe || instance[:vibe]
         parts << "--dangerously-skip-permissions"
       elsif instance[:tools].any?
         tools_str = instance[:tools].join(",")
         parts << "--allowedTools"
         parts << tools_str
+        # Add permission prompt tool
+        parts << "--permission-prompt-tool"
+        parts << "mcp__permissions__check_permission"
       end
 
       if instance[:prompt]

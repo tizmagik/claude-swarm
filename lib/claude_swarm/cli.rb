@@ -5,6 +5,7 @@ require_relative "configuration"
 require_relative "mcp_generator"
 require_relative "orchestrator"
 require_relative "claude_mcp_server"
+require_relative "permission_mcp_server"
 
 module ClaudeSwarm
   class CLI < Thor
@@ -154,6 +155,20 @@ module ClaudeSwarm
     desc "version", "Show Claude Swarm version"
     def version
       say "Claude Swarm #{VERSION}"
+    end
+
+    desc "tools-mcp", "Start a permission management MCP server for tool access control"
+    method_option :allowed_tools, aliases: "-t", type: :array,
+                                  desc: "Comma-separated list of allowed tool patterns (supports wildcards)"
+    method_option :debug, type: :boolean, default: false,
+                          desc: "Enable debug output"
+    def tools_mcp
+      server = PermissionMcpServer.new(allowed_tools: options[:allowed_tools])
+      server.start
+    rescue StandardError => e
+      error "Error starting permission MCP server: #{e.message}"
+      error e.backtrace.join("\n") if options[:debug]
+      exit 1
     end
 
     default_task :start

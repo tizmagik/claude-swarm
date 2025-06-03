@@ -191,7 +191,7 @@ module ClaudeSwarm
       cmd_array += ["--print", "-p", prompt]
 
       # Add any custom system prompt
-      cmd_array += ["--system-prompt", options[:system_prompt]] if options[:system_prompt]
+      cmd_array += ["--append-system-prompt", options[:system_prompt]] if options[:system_prompt]
 
       # Add any allowed tools or vibe flag
       if @vibe
@@ -200,6 +200,9 @@ module ClaudeSwarm
         tools = Array(options[:allowed_tools]).join(",")
         cmd_array += ["--allowedTools", tools]
       end
+
+      # Add permission prompt tool if not in vibe mode
+      cmd_array += ["--permission-prompt-tool", "mcp__permissions__check_permission"] unless @vibe
 
       cmd_array
     end

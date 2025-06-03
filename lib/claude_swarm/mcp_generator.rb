@@ -58,6 +58,9 @@ module ClaudeSwarm
         mcp_servers[connection_name] = build_instance_mcp_config(connection_name, connected_instance, calling_instance: name)
       end
 
+      # Add permission MCP server if not in vibe mode (global or instance-specific)
+      mcp_servers["permissions"] = build_permission_mcp_config(instance[:tools]) unless @vibe || instance[:vibe]
+
       config = {
         "mcpServers" => mcp_servers
       }
@@ -106,12 +109,30 @@ module ClaudeSwarm
 
       args.push("--calling-instance", calling_instance) if calling_instance
 
-      args.push("--vibe") if @vibe
+      args.push("--vibe") if @vibe || instance[:vibe]
 
       {
         "type" => "stdio",
         "command" => exe_path,
         "args" => args
+      }
+    end
+
+    def build_permission_mcp_config(allowed_tools)
+      exe_path = "claude-swarm"
+
+      args = ["tools-mcp"]
+
+      # Add allowed tools if specified
+      args.push("--allowed-tools", allowed_tools.join(",")) if allowed_tools && !allowed_tools.empty?
+
+      {
+        "type" => "stdio",
+        "command" => exe_path,
+        "args" => args,
+        "env" => {
+          "CLAUDE_SWARM_SESSION_TIMESTAMP" => @timestamp
+        }
       }
     end
   end

@@ -208,6 +208,7 @@ Each instance can have:
 - **tools**: Array of tools this instance can use
 - **mcps**: Array of additional MCP servers to connect
 - **prompt**: Custom system prompt to append to the instance
+- **vibe**: Enable vibe mode (--dangerously-skip-permissions) for this instance (default: false)
 
 ```yaml
 instance_name:
@@ -216,6 +217,7 @@ instance_name:
   model: opus
   connections: [other_instance1, other_instance2]
   prompt: "You are a specialized agent focused on..."
+  vibe: false  # Set to true to skip all permission checks for this instance
   tools:
     - Read
     - Edit
@@ -388,6 +390,37 @@ swarm:
         - Read
 ```
 
+#### Mixed Permission Modes
+
+You can have different permission modes for different instances:
+
+```yaml
+version: 1
+swarm:
+  name: "Mixed Mode Team"
+  main: lead
+  instances:
+    lead:
+      description: "Lead with full permissions"
+      directory: .
+      model: opus
+      vibe: true  # This instance runs with --dangerously-skip-permissions
+      connections: [restricted_worker, trusted_worker]
+      
+    restricted_worker:
+      description: "Worker with restricted permissions"
+      directory: ./sensitive
+      model: sonnet
+      tools: [Read, "Bash(ls:*)"]  # Only allow read and ls commands
+      
+    trusted_worker:
+      description: "Trusted worker with more permissions"
+      directory: ./workspace
+      model: sonnet
+      vibe: true  # This instance also skips permissions
+      tools: []  # Tools list ignored when vibe: true
+```
+
 ### Command Line Options
 
 ```bash
@@ -408,6 +441,9 @@ claude-swarm --prompt "Fix the bug in the payment module"
 # Show version
 claude-swarm version
 
+# Start permission MCP server (for testing/debugging)
+claude-swarm tools-mcp --allowed-tools 'mcp__frontend__*,mcp__backend__*'
+
 # Internal command for MCP server (used by connected instances)
 claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TIMESTAMP
 ```
@@ -418,18 +454,27 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
 2. **MCP Generation**: For each instance, it generates an MCP configuration file that includes:
    - Any explicitly defined MCP servers
    - MCP servers for each connected instance (using `claude-swarm mcp-serve`)
-3. **Session Management**: Claude Swarm maintains session continuity:
+   - A permission MCP server (unless using `--vibe` mode)
+3. **Tool Permissions**: Claude Swarm automatically manages tool permissions:
+   - Each instance's configured tools are allowed via the permission MCP
+   - Supports wildcard patterns (e.g., `mcp__frontend__*` allows all frontend MCP tools)
+   - Eliminates the need to manually accept each tool or use global `--vibe` mode
+   - Per-instance `vibe: true` skips all permission checks for that specific instance
+   - The permission MCP uses `--permission-prompt-tool` to check tool access
+   - Permission decisions are logged to `.claude-swarm/sessions/{timestamp}/permissions.log`
+4. **Session Management**: Claude Swarm maintains session continuity:
    - Generates a shared session timestamp for all instances
    - Each instance can maintain its own Claude session ID
    - Sessions can be reset via the MCP server interface
-4. **Main Instance Launch**: The main instance is launched with its MCP configuration, giving it access to all connected instances
-5. **Inter-Instance Communication**: Connected instances expose themselves as MCP servers with these tools:
+5. **Main Instance Launch**: The main instance is launched with its MCP configuration, giving it access to all connected instances
+6. **Inter-Instance Communication**: Connected instances expose themselves as MCP servers with these tools:
    - **task**: Execute tasks using Claude Code with configurable tools and return results. The tool description includes the instance name and description (e.g., "Execute a task using Agent frontend_dev. Frontend developer specializing in React and TypeScript")
    - **session_info**: Get current Claude session information including ID and working directory
    - **reset_session**: Reset the Claude session for a fresh start
-6. **Session Management**: All session files are organized in `.claude-swarm/sessions/{timestamp}/`:
+7. **Session Management**: All session files are organized in `.claude-swarm/sessions/{timestamp}/`:
    - MCP configuration files: `{instance_name}.mcp.json`
    - Session log: `session.log` with detailed request/response tracking
+   - Permission log: `permissions.log` with all permission checks and decisions
 
 ## Troubleshooting
 

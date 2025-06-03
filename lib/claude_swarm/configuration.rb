@@ -84,7 +84,8 @@ module ClaudeSwarm
         tools: Array(config["tools"]),
         mcps: parse_mcps(config["mcps"] || []),
         prompt: config["prompt"],
-        description: config["description"]
+        description: config["description"],
+        vibe: config["vibe"] || false
       }
     end
 

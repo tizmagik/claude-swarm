@@ -168,7 +168,7 @@ class ClaudeCodeExecutorTest < Minitest::Test
   def test_build_command_with_system_prompt
     command_array = @executor.send(:build_command_array, "test prompt", { system_prompt: "You are a helpful assistant" })
 
-    assert_includes command_array, "--system-prompt"
+    assert_includes command_array, "--append-system-prompt"
     assert_includes command_array, "You are a helpful assistant"
   end
 
