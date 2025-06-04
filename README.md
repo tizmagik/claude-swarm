@@ -48,15 +48,12 @@ swarm:
       directory: .
       model: opus
       connections: [frontend, backend]
-      allowed_tools: # Tools aren't required if you run it with `--vibe`
-        - Read
-        - Edit
-        - Bash
+      vibe: true   # Allow all tools for this instance
     frontend:
       description: "Frontend specialist handling UI and user experience"
       directory: ./frontend
       model: opus
-      allowed_tools:
+      allowed_tools:  # Tools aren't required if you run it with `--vibe`
         - Edit
         - Write
         - Bash
