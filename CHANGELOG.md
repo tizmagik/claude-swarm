@@ -1,3 +1,14 @@
+## [0.1.10]
+
+### Added
+- **YAML validation for tool fields**: Added strict validation to ensure `tools:`, `allowed_tools:`, and `disallowed_tools:` fields must be arrays in the configuration
+- Clear error messages when tool fields are not arrays (e.g., "Instance 'lead' field 'tools' must be an array, got String")
+- Comprehensive test coverage for the new validation rules
+
+### Fixed
+- Prevents silent conversion of non-array tool values that could lead to unexpected behavior
+- Configuration now fails fast with helpful error messages instead of accepting invalid formats
+
 ## [0.1.9]
 
 ### Added

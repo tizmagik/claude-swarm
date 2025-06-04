@@ -76,6 +76,11 @@ module ClaudeSwarm
       # Validate required fields
       raise Error, "Instance '#{name}' missing required 'description' field" unless config["description"]
 
+      # Validate tool fields are arrays if present
+      validate_tool_field(name, config, "tools")
+      validate_tool_field(name, config, "allowed_tools")
+      validate_tool_field(name, config, "disallowed_tools")
+
       # Support both 'tools' (deprecated) and 'allowed_tools' for backward compatibility
       allowed_tools = config["allowed_tools"] || config["tools"] || []
 
@@ -127,6 +132,13 @@ module ClaudeSwarm
         directory = instance[:directory]
         raise Error, "Directory '#{directory}' for instance '#{name}' does not exist" unless File.directory?(directory)
       end
+    end
+
+    def validate_tool_field(instance_name, config, field_name)
+      return unless config.key?(field_name)
+
+      field_value = config[field_name]
+      raise Error, "Instance '#{instance_name}' field '#{field_name}' must be an array, got #{field_value.class.name}" unless field_value.is_a?(Array)
     end
 
     def expand_path(path)

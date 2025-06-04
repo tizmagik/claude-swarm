@@ -441,4 +441,120 @@ class ConfigurationTest < Minitest::Test
     end
     assert_equal "Instance 'lead' missing required 'description' field", error.message
   end
+
+  def test_tools_must_be_array
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            tools: "Read"
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Instance 'lead' field 'tools' must be an array, got String", error.message
+  end
+
+  def test_allowed_tools_must_be_array
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            allowed_tools: Edit
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Instance 'lead' field 'allowed_tools' must be an array, got String", error.message
+  end
+
+  def test_disallowed_tools_must_be_array
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            disallowed_tools: 123
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Instance 'lead' field 'disallowed_tools' must be an array, got Integer", error.message
+  end
+
+  def test_tools_as_hash_raises_error
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            tools:
+              read: true
+              edit: false
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Instance 'lead' field 'tools' must be an array, got Hash", error.message
+  end
+
+  def test_valid_empty_tools_array
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            tools: []
+            allowed_tools: []
+            disallowed_tools: []
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    lead = config.main_instance_config
+
+    assert_empty lead[:tools]
+    assert_empty lead[:allowed_tools]
+    assert_empty lead[:disallowed_tools]
+  end
+
+  def test_valid_tools_arrays
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            allowed_tools: [Read, Edit]
+            disallowed_tools: ["Bash(rm:*)"]
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    lead = config.main_instance_config
+
+    assert_equal %w[Read Edit], lead[:allowed_tools]
+    assert_equal ["Bash(rm:*)"], lead[:disallowed_tools]
+  end
 end

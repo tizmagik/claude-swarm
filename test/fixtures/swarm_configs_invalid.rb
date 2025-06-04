@@ -49,5 +49,44 @@ module Fixtures
               directory: .
       YAML
     end
+
+    def self.tools_not_array
+      <<~YAML
+        version: 1
+        swarm:
+          name: "Invalid Tools"
+          main: lead
+          instances:
+            lead:
+              description: "Lead instance"
+              tools: "Read"
+      YAML
+    end
+
+    def self.allowed_tools_not_array
+      <<~YAML
+        version: 1
+        swarm:
+          name: "Invalid Allowed Tools"
+          main: lead
+          instances:
+            lead:
+              description: "Lead instance"
+              allowed_tools: Edit
+      YAML
+    end
+
+    def self.disallowed_tools_not_array
+      <<~YAML
+        version: 1
+        swarm:
+          name: "Invalid Disallowed Tools"
+          main: lead
+          instances:
+            lead:
+              description: "Lead instance"
+              disallowed_tools: 123
+      YAML
+    end
   end
 end
