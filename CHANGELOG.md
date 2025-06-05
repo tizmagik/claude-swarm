@@ -1,3 +1,7 @@
+## [0.1.11]
+### Added
+- Main instance debug mode with `claude-swarm --debug`
+
 ## [0.1.10]
 
 ### Added

@@ -22,6 +22,8 @@ module ClaudeSwarm
                            desc: "Prompt to pass to the main Claude instance (non-interactive mode)"
     method_option :stream_logs, type: :boolean, default: false,
                                 desc: "Stream session logs to stdout (only works with -p)"
+    method_option :debug, type: :boolean, default: false,
+                          desc: "Enable debug output"
     def start(config_file = nil)
       config_path = config_file || options[:config]
       unless File.exist?(config_path)
@@ -45,7 +47,8 @@ module ClaudeSwarm
                                         vibe: options[:vibe],
                                         prompt: options[:prompt],
                                         session_timestamp: session_timestamp,
-                                        stream_logs: options[:stream_logs])
+                                        stream_logs: options[:stream_logs],
+                                        debug: options[:debug])
         orchestrator.start
       rescue Error => e
         error e.message

@@ -4,13 +4,14 @@ require "shellwords"
 
 module ClaudeSwarm
   class Orchestrator
-    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, session_timestamp: nil, stream_logs: false)
+    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, session_timestamp: nil, stream_logs: false, debug: false)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
       @prompt = prompt
       @session_timestamp = session_timestamp || Time.now.strftime("%Y%m%d_%H%M%S")
       @stream_logs = stream_logs
+      @debug = debug
     end
 
     def start
@@ -48,7 +49,7 @@ module ClaudeSwarm
       end
 
       command = build_main_command(main_instance)
-      if ENV["DEBUG"] && !@prompt
+      if @debug && !@prompt
         puts "Running: #{command}"
         puts
       end
@@ -132,6 +133,8 @@ module ClaudeSwarm
         parts << "--append-system-prompt"
         parts << instance[:prompt]
       end
+
+      parts << "--debug" if @debug
 
       mcp_config_path = @generator.mcp_config_path(@config.main_instance)
       parts << "--mcp-config"

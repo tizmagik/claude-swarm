@@ -241,10 +241,9 @@ class OrchestratorTest < Minitest::Test
   end
 
   def test_debug_mode_shows_command
-    ENV["DEBUG"] = "true"
     config = create_test_config
     generator = ClaudeSwarm::McpGenerator.new(config)
-    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, debug: true)
 
     output = nil
     orchestrator.stub :system, true do
