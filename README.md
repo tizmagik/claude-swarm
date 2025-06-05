@@ -327,7 +327,7 @@ swarm:
       description: "Backend developer building APIs and services"
       directory: ./backend
       model: opus
-      connections: [architect, database]
+      connections: [database]
       allowed_tools:
         - Edit
         - Write
