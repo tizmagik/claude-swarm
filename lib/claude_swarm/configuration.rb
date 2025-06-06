@@ -5,11 +5,11 @@ require "pathname"
 
 module ClaudeSwarm
   class Configuration
-    attr_reader :config, :swarm_name, :main_instance, :instances
+    attr_reader :config, :config_path, :swarm, :swarm_name, :main_instance, :instances
 
-    def initialize(config_path)
+    def initialize(config_path, base_dir: nil)
       @config_path = Pathname.new(config_path).expand_path
-      @config_dir = @config_path.dirname
+      @config_dir = base_dir || @config_path.dirname
       load_and_validate
     end
 
@@ -60,11 +60,11 @@ module ClaudeSwarm
     end
 
     def parse_swarm
-      swarm = @config["swarm"]
-      @swarm_name = swarm["name"]
-      @main_instance = swarm["main"]
+      @swarm = @config["swarm"]
+      @swarm_name = @swarm["name"]
+      @main_instance = @swarm["main"]
       @instances = {}
-      swarm["instances"].each do |name, config|
+      @swarm["instances"].each do |name, config|
         @instances[name] = parse_instance(name, config)
       end
       validate_connections

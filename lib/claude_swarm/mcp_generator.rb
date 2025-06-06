@@ -8,19 +8,26 @@ require_relative "session_path"
 
 module ClaudeSwarm
   class McpGenerator
-    def initialize(configuration, vibe: false)
+    def initialize(configuration, vibe: false, restore_session_path: nil)
       @config = configuration
       @vibe = vibe
+      @restore_session_path = restore_session_path
       @session_path = nil # Will be set when needed
       @instance_ids = {} # Store instance IDs for all instances
+      @restore_states = {} # Store loaded state data during restoration
     end
 
     def generate_all
       ensure_swarm_directory
 
-      # Generate all instance IDs upfront
-      @config.instances.each_key do |name|
-        @instance_ids[name] = "#{name}_#{SecureRandom.hex(4)}"
+      if @restore_session_path
+        # Load existing instance IDs and states from state files
+        load_instance_states
+      else
+        # Generate new instance IDs
+        @config.instances.each_key do |name|
+          @instance_ids[name] = "#{name}_#{SecureRandom.hex(4)}"
+        end
       end
 
       @config.instances.each do |name, instance|
@@ -122,11 +129,38 @@ module ClaudeSwarm
 
       args.push("--vibe") if @vibe || instance[:vibe]
 
+      # Add claude session ID if restoring
+      if @restore_states[name.to_s]
+        claude_session_id = @restore_states[name.to_s]["claude_session_id"]
+        args.push("--claude-session-id", claude_session_id) if claude_session_id
+      end
+
       {
         "type" => "stdio",
         "command" => exe_path,
         "args" => args
       }
+    end
+
+    def load_instance_states
+      state_dir = File.join(@restore_session_path, "state")
+      return unless Dir.exist?(state_dir)
+
+      Dir.glob(File.join(state_dir, "*.json")).each do |state_file|
+        data = JSON.parse(File.read(state_file))
+        instance_name = data["instance_name"]
+        instance_id = data["instance_id"]
+
+        # Check both string and symbol keys since config instances might have either
+        if instance_name && (@config.instances.key?(instance_name) || @config.instances.key?(instance_name.to_sym))
+          # Store with the same key type as in @config.instances
+          key = @config.instances.key?(instance_name) ? instance_name : instance_name.to_sym
+          @instance_ids[key] = instance_id
+          @restore_states[instance_name] = data
+        end
+      rescue StandardError
+        # Skip invalid state files
+      end
     end
 
     def build_permission_mcp_config(allowed_tools, disallowed_tools)

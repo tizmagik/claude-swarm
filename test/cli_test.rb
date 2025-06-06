@@ -206,7 +206,8 @@ class CLITest < Minitest::Test
       disallowed_tools: [],
       mcp_config_path: "/path/to/mcp.json",
       vibe: nil,
-      instance_id: nil
+      instance_id: nil,
+      claude_session_id: nil
     }
 
     ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
@@ -241,7 +242,8 @@ class CLITest < Minitest::Test
       disallowed_tools: [],
       mcp_config_path: nil,
       vibe: nil,
-      instance_id: nil
+      instance_id: nil,
+      claude_session_id: nil
     }
 
     ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument

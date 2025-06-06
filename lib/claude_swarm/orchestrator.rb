@@ -1,50 +1,88 @@
 # frozen_string_literal: true
 
 require "shellwords"
+require "json"
+require "fileutils"
 require_relative "session_path"
 require_relative "process_tracker"
 
 module ClaudeSwarm
   class Orchestrator
-    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false)
+    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false,
+                   restore_session_path: nil)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
       @prompt = prompt
       @stream_logs = stream_logs
       @debug = debug
+      @restore_session_path = restore_session_path
     end
 
     def start
-      unless @prompt
-        puts "🐝 Starting Claude Swarm: #{@config.swarm_name}"
-        puts "😎 Vibe mode ON" if @vibe
-        puts
-      end
+      if @restore_session_path
+        unless @prompt
+          puts "🔄 Restoring Claude Swarm: #{@config.swarm_name}"
+          puts "😎 Vibe mode ON" if @vibe
+          puts
+        end
 
-      # Generate and set session path for all instances
-      session_path = SessionPath.generate(working_dir: Dir.pwd)
-      SessionPath.ensure_directory(session_path)
+        # Use existing session path
+        session_path = @restore_session_path
+        ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
+        ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
 
-      ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
-      ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
+        unless @prompt
+          puts "📝 Using existing session: #{session_path}/"
+          puts
+        end
 
-      unless @prompt
-        puts "📝 Session files will be saved to: #{session_path}/"
-        puts
-      end
+        # Initialize process tracker
+        @process_tracker = ProcessTracker.new(session_path)
 
-      # Initialize process tracker
-      @process_tracker = ProcessTracker.new(session_path)
+        # Set up signal handlers to clean up child processes
+        setup_signal_handlers
 
-      # Set up signal handlers to clean up child processes
-      setup_signal_handlers
+        # Regenerate MCP configurations with session IDs for restoration
+        @generator.generate_all
+        unless @prompt
+          puts "✓ Regenerated MCP configurations with session IDs"
+          puts
+        end
+      else
+        unless @prompt
+          puts "🐝 Starting Claude Swarm: #{@config.swarm_name}"
+          puts "😎 Vibe mode ON" if @vibe
+          puts
+        end
 
-      # Generate all MCP configuration files
-      @generator.generate_all
-      unless @prompt
-        puts "✓ Generated MCP configurations in session directory"
-        puts
+        # Generate and set session path for all instances
+        session_path = SessionPath.generate(working_dir: Dir.pwd)
+        SessionPath.ensure_directory(session_path)
+
+        ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
+        ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
+
+        unless @prompt
+          puts "📝 Session files will be saved to: #{session_path}/"
+          puts
+        end
+
+        # Initialize process tracker
+        @process_tracker = ProcessTracker.new(session_path)
+
+        # Set up signal handlers to clean up child processes
+        setup_signal_handlers
+
+        # Generate all MCP configuration files
+        @generator.generate_all
+        unless @prompt
+          puts "✓ Generated MCP configurations in session directory"
+          puts
+        end
+
+        # Save swarm config path for restoration
+        save_swarm_config_path(session_path)
       end
 
       # Launch the main instance
@@ -86,6 +124,16 @@ module ClaudeSwarm
     end
 
     private
+
+    def save_swarm_config_path(session_path)
+      # Copy the YAML config file to the session directory
+      config_copy_path = File.join(session_path, "config.yml")
+      FileUtils.cp(@config.config_path, config_copy_path)
+
+      # Save the original working directory
+      start_dir_file = File.join(session_path, "start_directory")
+      File.write(start_dir_file, Dir.pwd)
+    end
 
     def setup_signal_handlers
       %w[INT TERM QUIT].each do |signal|
@@ -136,6 +184,26 @@ module ClaudeSwarm
         "--model",
         instance[:model]
       ]
+
+      # Add resume flag if restoring session
+      if @restore_session_path
+        # Look for main instance state file
+        main_instance_name = @config.main_instance
+        state_files = Dir.glob(File.join(@restore_session_path, "state", "*.json"))
+
+        # Find the state file for the main instance
+        state_files.each do |state_file|
+          state_data = JSON.parse(File.read(state_file))
+          next unless state_data["instance_name"] == main_instance_name
+
+          claude_session_id = state_data["claude_session_id"]
+          if claude_session_id
+            parts << "--resume"
+            parts << claude_session_id
+          end
+          break
+        end
+      end
 
       if @vibe || instance[:vibe]
         parts << "--dangerously-skip-permissions"

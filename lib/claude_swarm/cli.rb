@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "thor"
+require "json"
 require_relative "configuration"
 require_relative "mcp_generator"
 require_relative "orchestrator"
@@ -24,7 +25,15 @@ module ClaudeSwarm
                                 desc: "Stream session logs to stdout (only works with -p)"
     method_option :debug, type: :boolean, default: false,
                           desc: "Enable debug output"
+    method_option :session_id, type: :string,
+                               desc: "Resume a previous session by ID or path"
     def start(config_file = nil)
+      # Handle session restoration
+      if options[:session_id]
+        restore_session(options[:session_id])
+        return
+      end
+
       config_path = config_file || options[:config]
       unless File.exist?(config_path)
         error "Configuration file not found: #{config_path}"
@@ -85,6 +94,8 @@ module ClaudeSwarm
                                         desc: "Unique ID of the instance that launched this MCP server"
     method_option :instance_id, type: :string,
                                 desc: "Unique ID of this instance"
+    method_option :claude_session_id, type: :string,
+                                      desc: "Claude session ID to resume"
     def mcp_serve
       instance_config = {
         name: options[:name],
@@ -96,7 +107,8 @@ module ClaudeSwarm
         disallowed_tools: options[:disallowed_tools] || [],
         mcp_config_path: options[:mcp_config_path],
         vibe: options[:vibe],
-        instance_id: options[:instance_id]
+        instance_id: options[:instance_id],
+        claude_session_id: options[:claude_session_id]
       }
 
       begin
@@ -180,6 +192,79 @@ module ClaudeSwarm
       say "Claude Swarm #{VERSION}"
     end
 
+    desc "list-sessions", "List all available Claude Swarm sessions"
+    method_option :limit, aliases: "-l", type: :numeric, default: 10,
+                          desc: "Maximum number of sessions to display"
+    def list_sessions
+      sessions_dir = File.expand_path("~/.claude-swarm/sessions")
+      unless Dir.exist?(sessions_dir)
+        say "No sessions found", :yellow
+        return
+      end
+
+      # Find all sessions with MCP configs
+      sessions = []
+      Dir.glob("#{sessions_dir}/*/*/*.mcp.json").each do |mcp_path|
+        session_path = File.dirname(mcp_path)
+        session_id = File.basename(session_path)
+        project_name = File.basename(File.dirname(session_path))
+
+        # Skip if we've already processed this session
+        next if sessions.any? { |s| s[:path] == session_path }
+
+        # Try to load session info
+        config_file = File.join(session_path, "config.yml")
+        next unless File.exist?(config_file)
+
+        # Load the config to get swarm info
+        config_data = YAML.load_file(config_file)
+        swarm_name = config_data.dig("swarm", "name") || "Unknown"
+        main_instance = config_data.dig("swarm", "main") || "Unknown"
+
+        mcp_files = Dir.glob(File.join(session_path, "*.mcp.json"))
+
+        # Get creation time from directory
+        created_at = File.stat(session_path).ctime
+
+        sessions << {
+          path: session_path,
+          id: session_id,
+          project: project_name,
+          created_at: created_at,
+          main_instance: main_instance,
+          instances_count: mcp_files.size,
+          swarm_name: swarm_name,
+          config_path: config_file
+        }
+      rescue StandardError
+        # Skip invalid manifests
+        next
+      end
+
+      if sessions.empty?
+        say "No sessions found", :yellow
+        return
+      end
+
+      # Sort by creation time (newest first)
+      sessions.sort_by! { |s| -s[:created_at].to_i }
+      sessions = sessions.first(options[:limit])
+
+      # Display sessions
+      say "\nAvailable sessions (newest first):\n", :bold
+      sessions.each do |session|
+        say "\n#{session[:project]}/#{session[:id]}", :green
+        say "  Created: #{session[:created_at].strftime("%Y-%m-%d %H:%M:%S")}"
+        say "  Main: #{session[:main_instance]}"
+        say "  Instances: #{session[:instances_count]}"
+        say "  Swarm: #{session[:swarm_name]}"
+        say "  Config: #{session[:config_path]}", :cyan
+      end
+
+      say "\nTo resume a session, run:", :bold
+      say "  claude-swarm --session-id <session-id>", :cyan
+    end
+
     desc "tools-mcp", "Start a permission management MCP server for tool access control"
     method_option :allowed_tools, aliases: "-t", type: :string,
                                   desc: "Comma-separated list of allowed tool patterns (supports wildcards)"
@@ -202,6 +287,78 @@ module ClaudeSwarm
 
     def error(message)
       say message, :red
+    end
+
+    def restore_session(session_id)
+      say "Restoring session: #{session_id}", :green
+
+      # Find the session path
+      session_path = find_session_path(session_id)
+      unless session_path
+        error "Session not found: #{session_id}"
+        exit 1
+      end
+
+      begin
+        # Load session info from instance ID in MCP config
+        mcp_files = Dir.glob(File.join(session_path, "*.mcp.json"))
+        if mcp_files.empty?
+          error "No MCP configuration files found in session"
+          exit 1
+        end
+
+        # Load the configuration from the session directory
+        config_file = File.join(session_path, "config.yml")
+
+        unless File.exist?(config_file)
+          error "Configuration file not found in session"
+          exit 1
+        end
+
+        # Change to the original start directory if it exists
+        start_dir_file = File.join(session_path, "start_directory")
+        if File.exist?(start_dir_file)
+          original_dir = File.read(start_dir_file).strip
+          if Dir.exist?(original_dir)
+            Dir.chdir(original_dir)
+            say "Changed to original directory: #{original_dir}", :green unless options[:prompt]
+          else
+            error "Original directory no longer exists: #{original_dir}"
+            exit 1
+          end
+        end
+
+        config = Configuration.new(config_file, base_dir: Dir.pwd)
+
+        # Create orchestrator with restoration mode
+        generator = McpGenerator.new(config, vibe: options[:vibe], restore_session_path: session_path)
+        orchestrator = Orchestrator.new(config, generator,
+                                        vibe: options[:vibe],
+                                        prompt: options[:prompt],
+                                        stream_logs: options[:stream_logs],
+                                        debug: options[:debug],
+                                        restore_session_path: session_path)
+        orchestrator.start
+      rescue StandardError => e
+        error "Failed to restore session: #{e.message}"
+        error e.backtrace.join("\n") if options[:debug]
+        exit 1
+      end
+    end
+
+    def find_session_path(session_id)
+      sessions_dir = File.expand_path("~/.claude-swarm/sessions")
+
+      # Check if it's a full path
+      return session_id if File.exist?(File.join(session_id, "config.yml"))
+
+      # Search for the session ID in all projects
+      Dir.glob("#{sessions_dir}/*/#{session_id}").each do |path|
+        config_path = File.join(path, "config.yml")
+        return path if File.exist?(config_path)
+      end
+
+      nil
     end
   end
 end

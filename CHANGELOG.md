@@ -1,6 +1,12 @@
 ## [Unreleased]
 
 ### Added
+- **Session restoration support (Experimental)**: Session management with the ability to resume previous Claude Swarm sessions. Note: This is an experimental feature with limitations - the main instance's conversation context is not fully restored
+  - New `--session-id` flag to resume a session by ID or path
+  - New `list-sessions` command to view available sessions with metadata
+  - Automatic capture and persistence of Claude session IDs for all instances
+  - Individual instance states stored in `state/` directory with instance ID as filename (e.g., `state/lead_abc123.json`)
+  - Swarm configuration copied to session directory as `config.yml` for restoration
 - **Instance ID tracking**: Each instance now gets a unique ID in the format `instance_name_<hex>` for better identification in logs
 - **Enhanced logging with instance IDs**: All log messages now include instance IDs when available (e.g., `lead (lead_1234abcd) -> backend (backend_5678efgh)`)
 - **Calling instance ID propagation**: When one instance calls another, both the calling instance name and ID are passed for complete tracking
@@ -13,13 +19,12 @@
   - Prevents orphaned MCP server processes from continuing to run after swarm termination
 
 ### Changed
-- Log format improved to show instance IDs in parentheses after instance names for easier tracking of multi-instance interactions
-- MCP generator now pre-generates all instance IDs before creating configurations to ensure consistency
-- `log_request` method now logs structured request events to `session.log.json` with full instance tracking metadata
+- Human-readable logs improved to show instance IDs in parentheses after instance names for easier tracking of multi-instance interactions
+- `log_request` method enhanced to include instance IDs in structured JSON logs
+- Configuration class now accepts optional `base_dir` parameter to support session restoration from different directories
 
 ### Fixed
 - Fixed issue where child MCP server processes would continue running after the main instance exits
-- Eliminated race conditions in process tracking by using individual PID files instead of a shared JSON file
 
 ## [0.1.12]
 ### Added

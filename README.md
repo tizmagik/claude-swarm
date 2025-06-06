@@ -446,6 +446,14 @@ claude-swarm --vibe
 claude-swarm -p "Implement the new user authentication feature"
 claude-swarm --prompt "Fix the bug in the payment module"
 
+# Resume a previous session by ID
+claude-swarm --session-id 20241206_143022
+claude-swarm --session-id ~/path/to/session
+
+# List available sessions
+claude-swarm list-sessions
+claude-swarm list-sessions --limit 20
+
 # Show version
 claude-swarm version
 
@@ -456,6 +464,70 @@ claude-swarm tools-mcp --allowed-tools 'Read,Edit' --disallowed-tools 'Edit(*.lo
 # Internal command for MCP server (used by connected instances)
 claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TIMESTAMP
 ```
+
+### Session Management and Restoration (Experimental)
+
+Claude Swarm provides experimental session management with restoration capabilities. **Note: This feature is experimental and has limitations - the main instance's conversation context is not fully restored.**
+
+#### Session Structure
+All session files are organized in `~/.claude-swarm/sessions/{project}/{timestamp}/`:
+- `config.yml`: Copy of the original swarm configuration
+- `state/`: Directory containing individual instance states
+  - `{instance_id}.json`: Claude session ID and status for each instance (e.g., `lead_abc123.json`)
+- `{instance_name}.mcp.json`: MCP configuration files
+- `session.log`: Human-readable request/response tracking
+- `session.log.json`: All events in JSONL format (one JSON per line)
+- `permissions.log`: Permission checks and decisions
+
+#### Listing Sessions
+View your previous Claude Swarm sessions:
+
+```bash
+# List recent sessions (default: 10)
+claude-swarm list-sessions
+
+# List more sessions
+claude-swarm list-sessions --limit 20
+```
+
+Output shows:
+- Session ID (timestamp)
+- Creation time
+- Main instance name
+- Number of instances
+- Configuration file used
+- Full session path
+
+#### Resuming Sessions
+Resume a previous session with all instances restored to their Claude session states:
+
+```bash
+# Resume by session ID
+claude-swarm --session-id 20241206_143022
+
+# Resume by full path
+claude-swarm --session-id ~/.claude-swarm/sessions/my-project/20241206_143022
+```
+
+This will:
+1. Load the session manifest and instance states
+2. Restore the original swarm configuration
+3. Resume the main instance with its Claude session ID
+4. Restore all connected instances with their session IDs
+5. Maintain the same working directories and tool permissions
+
+#### How Session Restoration Works
+- Each instance's Claude session ID is automatically captured and persisted
+- Instance states are stored in separate files named by instance ID to prevent concurrency issues
+- MCP configurations are regenerated with the saved session IDs
+- The main instance uses Claude's `--resume` flag (limited effectiveness)
+- Connected instances receive their session IDs via `--claude-session-id`
+
+**Important Limitations:**
+- The main instance's conversation history and context are not fully restored
+- Only the session ID is preserved, not the actual conversation state
+- Connected instances restore more reliably than the main instance
+- This is an experimental feature and may not work as expected
 
 ## How It Works
 
@@ -472,20 +544,16 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
    - Per-instance `vibe: true` skips all permission checks for that specific instance
    - The permission MCP uses `--permission-prompt-tool` to check tool access
    - Permission decisions are logged to `~/.claude-swarm/sessions/{project}/{timestamp}/permissions.log`
-4. **Session Management**: Claude Swarm maintains session continuity:
-   - Generates a shared session timestamp for all instances
-   - Each instance can maintain its own Claude session ID
-   - Sessions can be reset via the MCP server interface
+4. **Session Persistence**: Claude Swarm automatically tracks session state:
+   - Generates a shared session path for all instances
+   - Each instance's Claude session ID is captured and saved
+   - Instance states are stored using instance IDs as filenames to avoid conflicts
+   - Sessions can be fully restored with all instances reconnected
 5. **Main Instance Launch**: The main instance is launched with its MCP configuration, giving it access to all connected instances
 6. **Inter-Instance Communication**: Connected instances expose themselves as MCP servers with these tools:
    - **task**: Execute tasks using Claude Code with configurable tools and return results. The tool description includes the instance name and description (e.g., "Execute a task using Agent frontend_dev. Frontend developer specializing in React and TypeScript")
    - **session_info**: Get current Claude session information including ID and working directory
    - **reset_session**: Reset the Claude session for a fresh start
-7. **Session Management**: All session files are organized in `~/.claude-swarm/sessions/{project}/{timestamp}/`:
-   - MCP configuration files: `{instance_name}.mcp.json`
-   - Session log: `session.log` with detailed request/response tracking
-   - Session JSON log: `session.log.json` with all events in JSONL format (one JSON per line)
-   - Permission log: `permissions.log` with all permission checks and decisions
 
 ## Troubleshooting
 

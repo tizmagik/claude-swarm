@@ -11,12 +11,13 @@ module ClaudeSwarm
     attr_reader :session_id, :last_response, :working_directory, :logger, :session_path
 
     def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false,
-                   instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil)
+                   instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil,
+                   claude_session_id: nil)
       @working_directory = working_directory
       @model = model
       @mcp_config = mcp_config
       @vibe = vibe
-      @session_id = nil
+      @session_id = claude_session_id
       @last_response = nil
       @instance_name = instance_name
       @instance_id = instance_id
@@ -54,7 +55,10 @@ module ClaudeSwarm
           log_streaming_event(json_data)
 
           # Capture session_id from system init
-          @session_id = json_data["session_id"] if json_data["type"] == "system" && json_data["subtype"] == "init"
+          if json_data["type"] == "system" && json_data["subtype"] == "init"
+            @session_id = json_data["session_id"]
+            write_instance_state
+          end
 
           # Capture the final result
           result_response = json_data if json_data["type"] == "result"
@@ -94,6 +98,27 @@ module ClaudeSwarm
     end
 
     private
+
+    def write_instance_state
+      return unless @instance_id && @session_id
+
+      state_dir = File.join(@session_path, "state")
+      FileUtils.mkdir_p(state_dir)
+
+      state_file = File.join(state_dir, "#{@instance_id}.json")
+      state_data = {
+        instance_name: @instance_name,
+        instance_id: @instance_id,
+        claude_session_id: @session_id,
+        status: "active",
+        updated_at: Time.now.iso8601
+      }
+
+      File.write(state_file, JSON.pretty_generate(state_data))
+      @logger.info("Wrote instance state for #{@instance_name} (#{@instance_id}) with session ID: #{@session_id}")
+    rescue StandardError => e
+      @logger.error("Failed to write instance state for #{@instance_name} (#{@instance_id}): #{e.message}")
+    end
 
     def setup_logging
       # Use session path from environment (required)

@@ -27,7 +27,8 @@ module ClaudeSwarm
         instance_name: instance_config[:name],
         instance_id: instance_config[:instance_id],
         calling_instance: calling_instance,
-        calling_instance_id: calling_instance_id
+        calling_instance_id: calling_instance_id,
+        claude_session_id: instance_config[:claude_session_id]
       )
 
       # Set class variables so tools can access them
