@@ -124,6 +124,19 @@ module ClaudeSwarm
       instance_info = @instance_name
       instance_info += " (#{@instance_id})" if @instance_id
       @logger.info("#{caller_info} -> #{instance_info}: \n---\n#{prompt}\n---")
+
+      # Build event hash for JSON logging
+      event = {
+        type: "request",
+        from_instance: @calling_instance,
+        from_instance_id: @calling_instance_id,
+        to_instance: @instance_name,
+        to_instance_id: @instance_id,
+        prompt: prompt,
+        timestamp: Time.now.iso8601
+      }
+
+      append_to_session_json(event)
     end
 
     def log_response(response)

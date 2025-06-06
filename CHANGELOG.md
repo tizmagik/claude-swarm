@@ -1,3 +1,18 @@
+## [Unreleased]
+
+### Added
+- **Instance ID tracking**: Each instance now gets a unique ID in the format `instance_name_<hex>` for better identification in logs
+- **Enhanced logging with instance IDs**: All log messages now include instance IDs when available (e.g., `lead (lead_1234abcd) -> backend (backend_5678efgh)`)
+- **Calling instance ID propagation**: When one instance calls another, both the calling instance name and ID are passed for complete tracking
+- Instance IDs are stored in MCP configuration files with `instance_id` and `instance_name` fields
+- New CLI options: `--instance-id` and `--calling-instance-id` for the `mcp-serve` command
+- ClaudeCodeExecutor now tracks and logs both instance and calling instance IDs
+
+### Changed
+- Log format improved to show instance IDs in parentheses after instance names for easier tracking of multi-instance interactions
+- MCP generator now pre-generates all instance IDs before creating configurations to ensure consistency
+- `log_request` method now logs structured request events to `session.log.json` with full instance tracking metadata
+
 ## [0.1.12]
 ### Added
 - **Circular dependency detection**: Configuration validation now detects and reports circular dependencies between instances
