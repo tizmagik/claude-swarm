@@ -7,6 +7,7 @@
 - Added `SessionPath` module to centralize session path management
 - Sessions are now organized by project directory for better multi-project support
 - Added `CLAUDE_SWARM_HOME` environment variable support for custom storage location
+- Log full JSON to `session.log.json` as JSONL
 
 ### Changed
 - Session files moved from `./.claude-swarm/sessions/` to `~/.claude-swarm/sessions/[project]/[timestamp]/`

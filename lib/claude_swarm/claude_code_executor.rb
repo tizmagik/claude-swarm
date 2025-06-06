@@ -122,6 +122,8 @@ module ClaudeSwarm
     end
 
     def log_streaming_event(event)
+      append_to_session_json(event)
+
       return log_system_message(event) if event["type"] == "system"
 
       # Add specific details based on event type
@@ -162,6 +164,32 @@ module ClaudeSwarm
 
     def log_user_message(content)
       @logger.debug("USER: #{JSON.pretty_generate(content)}")
+    end
+
+    def append_to_session_json(event)
+      json_filename = "session.log.json"
+      json_path = File.join(@session_path, json_filename)
+
+      # Use file locking to ensure thread-safe writes
+      File.open(json_path, File::WRONLY | File::APPEND | File::CREAT) do |file|
+        file.flock(File::LOCK_EX)
+
+        # Create entry with metadata
+        entry = {
+          instance: @instance_name,
+          calling_instance: @calling_instance,
+          timestamp: Time.now.iso8601,
+          event: event
+        }
+
+        # Write as single line JSON (JSONL format)
+        file.puts(entry.to_json)
+
+        file.flock(File::LOCK_UN)
+      end
+    rescue StandardError => e
+      @logger.error("Failed to append to session JSON: #{e.message}")
+      raise
     end
 
     def build_command_array(prompt, options)
