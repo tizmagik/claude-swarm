@@ -10,11 +10,19 @@ class PermissionMcpServerTest < Minitest::Test
     @original_pwd = Dir.pwd
     @temp_dir = Dir.mktmpdir
     Dir.chdir(@temp_dir)
+
+    # Set up session path for tests
+    @session_path = File.join(@temp_dir, "test_session")
+    @original_env = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
   end
 
   def teardown
     Dir.chdir(@original_pwd)
     FileUtils.remove_entry(@temp_dir)
+
+    # Restore environment
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @original_env if @original_env
   end
 
   def test_initialization_with_no_tools
@@ -37,10 +45,10 @@ class PermissionMcpServerTest < Minitest::Test
 
   def test_initialization_creates_log_directory
     ClaudeSwarm::PermissionMcpServer.new
-    session_dir = Dir.glob(File.join(@temp_dir, ".claude-swarm", "sessions", "*")).first
 
-    assert session_dir, "Session directory should be created"
-    assert_path_exists File.join(session_dir, "permissions.log")
+    # Check that session directory was created
+    assert_path_exists @session_path
+    assert_path_exists File.join(@session_path, "permissions.log")
   end
 
   def test_parse_tool_patterns_with_nil
@@ -194,17 +202,16 @@ class PermissionMcpServerTest < Minitest::Test
     assert_equal expected, result
   end
 
-  def test_logging_uses_environment_timestamp_if_available
-    timestamp = "20240115_120000"
-    ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = timestamp
+  def test_logging_uses_environment_session_path_if_available
+    session_path = File.join(ClaudeSwarm::SessionPath.swarm_home, "sessions/test+project/20240115_120000")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
 
     ClaudeSwarm::PermissionMcpServer.new
-    session_dir = File.join(@temp_dir, ".claude-swarm", "sessions", timestamp)
 
-    assert_path_exists session_dir, "Should use environment timestamp for session directory"
-    assert_path_exists File.join(session_dir, "permissions.log")
+    assert_path_exists session_path, "Should use environment session path for directory"
+    assert_path_exists File.join(session_path, "permissions.log")
   ensure
-    ENV.delete("CLAUDE_SWARM_SESSION_TIMESTAMP")
+    ENV.delete("CLAUDE_SWARM_SESSION_PATH")
   end
 
   def test_parse_tool_patterns_with_parameter_syntax

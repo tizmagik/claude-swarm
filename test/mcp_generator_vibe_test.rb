@@ -8,10 +8,13 @@ class McpGeneratorVibeTest < Minitest::Test
   def setup
     @tmpdir = Dir.mktmpdir
     @config_path = File.join(@tmpdir, "claude-swarm.yml")
+    @session_path = File.join(@tmpdir, "test_session")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
   end
 
   def teardown
     FileUtils.remove_entry(@tmpdir)
+    ENV.delete("CLAUDE_SWARM_SESSION_PATH")
   end
 
   def write_config(content)
@@ -19,7 +22,7 @@ class McpGeneratorVibeTest < Minitest::Test
   end
 
   def read_mcp_config(instance_name)
-    generator = ClaudeSwarm::McpGenerator.new(@config, timestamp: "test")
+    generator = ClaudeSwarm::McpGenerator.new(@config)
     mcp_path = generator.mcp_config_path(instance_name)
     JSON.parse(File.read(mcp_path))
   end
@@ -38,7 +41,7 @@ class McpGeneratorVibeTest < Minitest::Test
     YAML
 
     @config = ClaudeSwarm::Configuration.new(@config_path)
-    generator = ClaudeSwarm::McpGenerator.new(@config, timestamp: "test")
+    generator = ClaudeSwarm::McpGenerator.new(@config)
 
     Dir.chdir(@tmpdir) do
       generator.generate_all
@@ -64,7 +67,7 @@ class McpGeneratorVibeTest < Minitest::Test
 
     @config = ClaudeSwarm::Configuration.new(@config_path)
     # Test with global vibe enabled
-    generator = ClaudeSwarm::McpGenerator.new(@config, vibe: true, timestamp: "test")
+    generator = ClaudeSwarm::McpGenerator.new(@config, vibe: true)
 
     Dir.chdir(@tmpdir) do
       generator.generate_all
@@ -94,7 +97,7 @@ class McpGeneratorVibeTest < Minitest::Test
     YAML
 
     @config = ClaudeSwarm::Configuration.new(@config_path)
-    generator = ClaudeSwarm::McpGenerator.new(@config, timestamp: "test")
+    generator = ClaudeSwarm::McpGenerator.new(@config)
 
     Dir.chdir(@tmpdir) do
       generator.generate_all
@@ -127,7 +130,7 @@ class McpGeneratorVibeTest < Minitest::Test
     YAML
 
     @config = ClaudeSwarm::Configuration.new(@config_path)
-    generator = ClaudeSwarm::McpGenerator.new(@config, timestamp: "test")
+    generator = ClaudeSwarm::McpGenerator.new(@config)
 
     Dir.chdir(@tmpdir) do
       generator.generate_all

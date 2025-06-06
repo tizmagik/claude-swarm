@@ -11,7 +11,7 @@ module ClaudeSwarm
   class ClaudeMcpServer
     # Class variables to share state with tool classes
     class << self
-      attr_accessor :executor, :instance_config, :logger, :session_timestamp, :calling_instance
+      attr_accessor :executor, :instance_config, :logger, :session_path, :calling_instance
     end
 
     def initialize(instance_config, calling_instance:)
@@ -30,7 +30,7 @@ module ClaudeSwarm
       self.class.executor = @executor
       self.class.instance_config = @instance_config
       self.class.logger = @executor.logger
-      self.class.session_timestamp = @executor.session_timestamp
+      self.class.session_path = @executor.session_path
       self.class.calling_instance = @calling_instance
     end
 

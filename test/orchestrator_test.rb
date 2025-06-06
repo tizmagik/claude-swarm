@@ -12,6 +12,10 @@ class OrchestratorTest < Minitest::Test
     @tmpdir = Dir.mktmpdir
     @config_path = File.join(@tmpdir, "claude-swarm.yml")
     @original_env = ENV.to_h
+
+    # Set up a default session path for tests that create McpGenerator directly
+    @test_session_path = File.join(@tmpdir, "test_session")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] ||= @test_session_path
   end
 
   def teardown
@@ -22,7 +26,11 @@ class OrchestratorTest < Minitest::Test
   end
 
   def find_mcp_file(name)
-    Dir.glob(".claude-swarm/**/#{name}.mcp.json").first
+    session_path = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
+    return nil unless session_path
+
+    file_path = File.join(session_path, "#{name}.mcp.json")
+    File.exist?(file_path) ? file_path : nil
   end
 
   def write_config(content)
@@ -55,7 +63,7 @@ class OrchestratorTest < Minitest::Test
     ClaudeSwarm::Configuration.new(@config_path)
   end
 
-  def test_start_sets_session_timestamp
+  def test_start_sets_session_path
     config = create_test_config
     generator = ClaudeSwarm::McpGenerator.new(config)
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
@@ -67,8 +75,9 @@ class OrchestratorTest < Minitest::Test
       end
     end
 
-    assert ENV.fetch("CLAUDE_SWARM_SESSION_TIMESTAMP", nil)
-    assert_match(/^\d{8}_\d{6}$/, ENV.fetch("CLAUDE_SWARM_SESSION_TIMESTAMP", nil))
+    assert ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
+    assert ENV.fetch("CLAUDE_SWARM_START_DIR", nil)
+    assert_match(%r{/sessions/.+/\d{8}_\d{6}}, ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil))
   end
 
   def test_start_generates_mcp_configs
@@ -83,9 +92,12 @@ class OrchestratorTest < Minitest::Test
         end
       end
 
-      assert Dir.exist?(".claude-swarm")
-      assert find_mcp_file("lead"), "Expected lead.mcp.json to exist"
-      assert find_mcp_file("backend"), "Expected backend.mcp.json to exist"
+      # MCP files are now in ~/.claude-swarm, not in the current directory
+      session_path = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
+
+      assert session_path
+      assert_path_exists File.join(session_path, "lead.mcp.json"), "Expected lead.mcp.json to exist"
+      assert_path_exists File.join(session_path, "backend.mcp.json"), "Expected backend.mcp.json to exist"
     end
   end
 
@@ -100,7 +112,7 @@ class OrchestratorTest < Minitest::Test
     end
 
     assert_match(/🐝 Starting Claude Swarm: Test Swarm/, output)
-    assert_match(%r{📝 Session files will be saved to:.*\.claude-swarm/sessions/\d{8}_\d{6}}, output)
+    assert_match(%r{📝 Session files will be saved to:.*/sessions/.+/\d{8}_\d{6}}, output)
     assert_match(/✓ Generated MCP configurations/, output)
     assert_match(/🚀 Launching main instance: lead/, output)
     assert_match(/Model: opus/, output)

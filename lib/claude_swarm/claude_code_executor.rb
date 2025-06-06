@@ -4,13 +4,11 @@ require "json"
 require "open3"
 require "logger"
 require "fileutils"
+require_relative "session_path"
 
 module ClaudeSwarm
   class ClaudeCodeExecutor
-    SWARM_DIR = ".claude-swarm"
-    SESSIONS_DIR = "sessions"
-
-    attr_reader :session_id, :last_response, :working_directory, :logger, :session_timestamp
+    attr_reader :session_id, :last_response, :working_directory, :logger, :session_path
 
     def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false, instance_name: nil, calling_instance: nil)
       @working_directory = working_directory
@@ -95,17 +93,13 @@ module ClaudeSwarm
     private
 
     def setup_logging
-      # Use environment variable for session timestamp if available (set by orchestrator)
-      # Otherwise create a new timestamp
-      @session_timestamp = ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] || Time.now.strftime("%Y%m%d_%H%M%S")
-
-      # Ensure the session directory exists
-      session_dir = File.join(Dir.pwd, SWARM_DIR, SESSIONS_DIR, @session_timestamp)
-      FileUtils.mkdir_p(session_dir)
+      # Use session path from environment (required)
+      @session_path = SessionPath.from_env
+      SessionPath.ensure_directory(@session_path)
 
       # Create logger with session.log filename
       log_filename = "session.log"
-      log_path = File.join(session_dir, log_filename)
+      log_path = File.join(@session_path, log_filename)
       @logger = Logger.new(log_path)
       @logger.level = Logger::INFO
 

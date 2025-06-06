@@ -28,11 +28,12 @@ class ClaudeMcpServerTest < Minitest::Test
     ClaudeSwarm::ClaudeMcpServer.executor = nil
     ClaudeSwarm::ClaudeMcpServer.instance_config = nil
     ClaudeSwarm::ClaudeMcpServer.logger = nil
-    ClaudeSwarm::ClaudeMcpServer.session_timestamp = nil
+    ClaudeSwarm::ClaudeMcpServer.session_path = nil
 
-    # Clear environment
-    @original_env = ENV.fetch("CLAUDE_SWARM_SESSION_TIMESTAMP", nil)
-    ENV.delete("CLAUDE_SWARM_SESSION_TIMESTAMP")
+    # Set up session path for tests
+    @session_path = File.join(@tmpdir, "test_session")
+    @original_env = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
 
     # Store original tool descriptions
     @original_task_description = ClaudeSwarm::TaskTool.description
@@ -41,7 +42,7 @@ class ClaudeMcpServerTest < Minitest::Test
   def teardown
     Dir.chdir(@original_dir)
     FileUtils.rm_rf(@tmpdir)
-    ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = @original_env if @original_env
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @original_env if @original_env
 
     # Reset TaskTool description to original
     ClaudeSwarm::TaskTool.description @original_task_description
@@ -59,18 +60,21 @@ class ClaudeMcpServerTest < Minitest::Test
   def test_logging_setup_creates_directory
     ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
 
-    sessions_dir = File.join(@tmpdir, ".claude-swarm", "sessions")
+    # Sessions are now in ~/.claude-swarm
+    home_swarm = File.expand_path("~/.claude-swarm/sessions")
 
-    assert Dir.exist?(sessions_dir)
+    assert Dir.exist?(home_swarm)
   end
 
-  def test_logging_with_environment_timestamp
-    ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = "20240101_120000"
+  def test_logging_with_environment_session_path
+    session_path = File.join(ClaudeSwarm::SessionPath.swarm_home, "sessions/test+project/20240101_120000")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
+
     ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
 
-    assert_equal "20240101_120000", ClaudeSwarm::ClaudeMcpServer.session_timestamp
+    assert_equal session_path, ClaudeSwarm::ClaudeMcpServer.session_path
 
-    log_file = File.join(@tmpdir, ".claude-swarm", "sessions", "20240101_120000", "session.log")
+    log_file = File.join(session_path, "session.log")
 
     assert_path_exists log_file
 
@@ -79,14 +83,14 @@ class ClaudeMcpServerTest < Minitest::Test
     assert_match(/Started Claude Code executor for instance: test_instance/, log_content)
   end
 
-  def test_logging_without_environment_timestamp
+  def test_logging_without_environment_session_path
     ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
 
-    timestamp = ClaudeSwarm::ClaudeMcpServer.session_timestamp
+    session_path = ClaudeSwarm::ClaudeMcpServer.session_path
 
-    assert_match(/^\d{8}_\d{6}$/, timestamp)
+    assert_equal @session_path, session_path
 
-    log_file = File.join(@tmpdir, ".claude-swarm", "sessions", timestamp, "session.log")
+    log_file = File.join(session_path, "session.log")
 
     assert_path_exists log_file
   end

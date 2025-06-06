@@ -7,6 +7,12 @@ require "logger"
 
 class PermissionIntegrationTest < Minitest::Test
   def setup
+    # Set up session path for tests
+    @tmpdir = Dir.mktmpdir
+    @session_path = File.join(@tmpdir, "test_session")
+    @original_env = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
+
     # Create a test logger
     @log_output = StringIO.new
     @logger = Logger.new(@log_output)
@@ -26,6 +32,10 @@ class PermissionIntegrationTest < Minitest::Test
     ClaudeSwarm::PermissionTool.logger = nil
     ClaudeSwarm::PermissionTool.allowed_patterns = nil
     ClaudeSwarm::PermissionTool.disallowed_patterns = nil
+
+    # Clean up session path
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @original_env if @original_env
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
   end
 
   # Test exact tool matching

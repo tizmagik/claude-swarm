@@ -41,12 +41,10 @@ module ClaudeSwarm
 
       begin
         config = Configuration.new(config_path)
-        session_timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
-        generator = McpGenerator.new(config, vibe: options[:vibe], timestamp: session_timestamp)
+        generator = McpGenerator.new(config, vibe: options[:vibe])
         orchestrator = Orchestrator.new(config, generator,
                                         vibe: options[:vibe],
                                         prompt: options[:prompt],
-                                        session_timestamp: session_timestamp,
                                         stream_logs: options[:stream_logs],
                                         debug: options[:debug])
         orchestrator.start

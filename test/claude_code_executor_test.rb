@@ -12,6 +12,10 @@ class ClaudeCodeExecutorTest < Minitest::Test
     @original_dir = Dir.pwd
     Dir.chdir(@tmpdir)
 
+    # Set up session path for tests
+    @session_path = File.join(@tmpdir, "test_session")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
+
     @executor = ClaudeSwarm::ClaudeCodeExecutor.new(
       instance_name: "test_instance",
       calling_instance: "test_caller"
@@ -21,6 +25,7 @@ class ClaudeCodeExecutorTest < Minitest::Test
   def teardown
     Dir.chdir(@original_dir)
     FileUtils.rm_rf(@tmpdir)
+    ENV.delete("CLAUDE_SWARM_SESSION_PATH")
   end
 
   # Helper method to create streaming JSON output
@@ -78,27 +83,28 @@ class ClaudeCodeExecutorTest < Minitest::Test
     assert_nil @executor.last_response
     assert_equal Dir.pwd, @executor.working_directory
     assert_kind_of Logger, @executor.logger
-    assert_match(/\d{8}_\d{6}/, @executor.session_timestamp)
+    assert_equal @session_path, @executor.session_path
   end
 
-  def test_initialization_with_environment_timestamp
+  def test_initialization_with_environment_session_path
     # Set environment variable
-    ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = "20240102_123456"
+    session_path = File.join(ClaudeSwarm::SessionPath.swarm_home, "sessions/test+project/20240102_123456")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
 
     executor = ClaudeSwarm::ClaudeCodeExecutor.new(
       instance_name: "env_test",
       calling_instance: "env_caller"
     )
 
-    assert_equal "20240102_123456", executor.session_timestamp
+    assert_equal session_path, executor.session_path
 
     # Check that the log file is created in the correct directory
-    log_path = File.join(Dir.pwd, ".claude-swarm/sessions/20240102_123456/session.log")
+    log_path = File.join(session_path, "session.log")
 
     assert_path_exists log_path, "Expected log file to exist at #{log_path}"
   ensure
     # Clean up environment variable
-    ENV.delete("CLAUDE_SWARM_SESSION_TIMESTAMP")
+    ENV.delete("CLAUDE_SWARM_SESSION_PATH")
   end
 
   def test_has_session
@@ -216,12 +222,12 @@ class ClaudeCodeExecutorTest < Minitest::Test
       assert_equal "test-session-123", @executor.session_id
     end
 
-    # Check log file
-    log_files = Dir.glob(".claude-swarm/sessions/*/session.log")
+    # Check log file in new location
+    log_path = File.join(@executor.session_path, "session.log")
 
-    assert_predicate log_files, :any?, "Expected to find log files"
+    assert_path_exists log_path, "Expected to find log file"
 
-    log_content = File.read(log_files.first)
+    log_content = File.read(log_path)
 
     # Check request logging - new format: "calling_instance -> instance_name:"
     assert_match(/test_caller -> test_instance:/, log_content)
@@ -247,11 +253,11 @@ class ClaudeCodeExecutorTest < Minitest::Test
     end
 
     # Check log file for error
-    log_files = Dir.glob(".claude-swarm/sessions/*/session.log")
+    log_path = File.join(@executor.session_path, "session.log")
 
-    assert_predicate log_files, :any?, "Expected to find log files"
+    assert_path_exists log_path, "Expected to find log file"
 
-    log_content = File.read(log_files.first)
+    log_content = File.read(log_path)
 
     assert_match(/ERROR.*Execution error for test_instance: Command failed/, log_content)
   end
@@ -270,8 +276,8 @@ class ClaudeCodeExecutorTest < Minitest::Test
     end
 
     # Check log file for tool call
-    log_files = Dir.glob(".claude-swarm/sessions/*/session.log")
-    log_content = File.read(log_files.first)
+    log_path = File.join(@executor.session_path, "session.log")
+    log_content = File.read(log_path)
 
     # Check tool call logging
     assert_match(/Tool call from test_instance -> Tool: Bash, ID: tool_123, Arguments: {"command":"ls -la"}/, log_content)

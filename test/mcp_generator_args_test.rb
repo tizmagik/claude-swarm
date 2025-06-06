@@ -8,6 +8,10 @@ require "tmpdir"
 
 class McpGeneratorArgsTest < Minitest::Test
   def setup
+    @tmpdir = Dir.mktmpdir
+    @session_path = File.join(@tmpdir, "test_session")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
+
     @config_content = <<~YAML
       version: 1
       swarm:
@@ -28,6 +32,11 @@ class McpGeneratorArgsTest < Minitest::Test
             tools: [Bash, Grep]
             prompt: "You are a backend dev"
     YAML
+  end
+
+  def teardown
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
+    ENV.delete("CLAUDE_SWARM_SESSION_PATH")
   end
 
   def test_mcp_config_generates_correct_args

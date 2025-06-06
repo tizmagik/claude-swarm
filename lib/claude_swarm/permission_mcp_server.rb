@@ -5,13 +5,10 @@ require "fast_mcp"
 require "logger"
 require "fileutils"
 require_relative "permission_tool"
+require_relative "session_path"
 
 module ClaudeSwarm
   class PermissionMcpServer
-    # Directory constants
-    SWARM_DIR = ".claude-swarm"
-    SESSIONS_DIR = "sessions"
-
     # Server configuration
     SERVER_NAME = "claude-swarm-permissions"
     SERVER_VERSION = "1.0.0"
@@ -60,20 +57,14 @@ module ClaudeSwarm
     end
 
     def setup_logging
-      session_dir = create_session_directory
-      @logger = create_logger(session_dir)
+      session_path = SessionPath.from_env
+      SessionPath.ensure_directory(session_path)
+      @logger = create_logger(session_path)
       @logger.info("Permission MCP server logging initialized")
     end
 
-    def create_session_directory
-      session_timestamp = ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] || Time.now.strftime("%Y%m%d_%H%M%S")
-      session_dir = File.join(Dir.pwd, SWARM_DIR, SESSIONS_DIR, session_timestamp)
-      FileUtils.mkdir_p(session_dir)
-      session_dir
-    end
-
-    def create_logger(session_dir)
-      log_path = File.join(session_dir, "permissions.log")
+    def create_logger(session_path)
+      log_path = File.join(session_path, "permissions.log")
       logger = Logger.new(log_path)
       logger.level = Logger::DEBUG
       logger.formatter = log_formatter

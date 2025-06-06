@@ -11,10 +11,13 @@ class McpGeneratorTest < Minitest::Test
   def setup
     @tmpdir = Dir.mktmpdir
     @config_path = File.join(@tmpdir, "claude-swarm.yml")
+    @session_path = File.join(@tmpdir, "test_session")
+    ENV["CLAUDE_SWARM_SESSION_PATH"] = @session_path
   end
 
   def teardown
     FileUtils.rm_rf(@tmpdir)
+    ENV.delete("CLAUDE_SWARM_SESSION_PATH")
   end
 
   def write_config(content)
@@ -38,7 +41,7 @@ class McpGeneratorTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      assert Dir.exist?(".claude-swarm"), "Expected .claude-swarm directory to exist in #{Dir.pwd}, contents: #{Dir.entries(".")}"
+      assert Dir.exist?(@session_path), "Expected session directory to exist"
     end
   end
 

@@ -3,6 +3,15 @@
 - **Circular dependency detection**: Configuration validation now detects and reports circular dependencies between instances
 - Clear error messages showing the dependency cycle (e.g., "Circular dependency detected: lead -> backend -> lead")
 - Comprehensive test coverage for various circular dependency scenarios
+- **Session management improvements**: Session files are now stored in `~/.claude-swarm/sessions/` organized by project path
+- Added `SessionPath` module to centralize session path management
+- Sessions are now organized by project directory for better multi-project support
+- Added `CLAUDE_SWARM_HOME` environment variable support for custom storage location
+
+### Changed
+- Session files moved from `./.claude-swarm/sessions/` to `~/.claude-swarm/sessions/[project]/[timestamp]/`
+- Replaced `CLAUDE_SWARM_SESSION_TIMESTAMP` with `CLAUDE_SWARM_SESSION_PATH` environment variable
+- MCP server configurations now use the new centralized session path
 
 ### Fixed
 - Fixed circular dependency example in README documentation

@@ -3,16 +3,14 @@
 require "json"
 require "fileutils"
 require "shellwords"
+require_relative "session_path"
 
 module ClaudeSwarm
   class McpGenerator
-    SWARM_DIR = ".claude-swarm"
-    SESSIONS_SUBDIR = "sessions"
-
-    def initialize(configuration, vibe: false, timestamp: nil)
+    def initialize(configuration, vibe: false)
       @config = configuration
       @vibe = vibe
-      @timestamp = timestamp || Time.now.strftime("%Y%m%d_%H%M%S")
+      @session_path = nil # Will be set when needed
     end
 
     def generate_all
@@ -24,24 +22,19 @@ module ClaudeSwarm
     end
 
     def mcp_config_path(instance_name)
-      File.join(Dir.pwd, SWARM_DIR, SESSIONS_SUBDIR, @timestamp, "#{instance_name}.mcp.json")
+      File.join(session_path, "#{instance_name}.mcp.json")
     end
 
     private
 
-    def swarm_dir
-      File.join(Dir.pwd, SWARM_DIR)
+    def session_path
+      @session_path ||= SessionPath.from_env
     end
 
     def ensure_swarm_directory
-      FileUtils.mkdir_p(swarm_dir)
-
-      # Create session directory with timestamp
-      session_dir = File.join(swarm_dir, SESSIONS_SUBDIR, @timestamp)
-      FileUtils.mkdir_p(session_dir)
-
-      gitignore_path = File.join(swarm_dir, ".gitignore")
-      File.write(gitignore_path, "*\n") unless File.exist?(gitignore_path)
+      # Session directory is already created by orchestrator
+      # Just ensure it exists
+      SessionPath.ensure_directory(session_path)
     end
 
     def generate_mcp_config(name, instance)
@@ -134,10 +127,7 @@ module ClaudeSwarm
       {
         "type" => "stdio",
         "command" => exe_path,
-        "args" => args,
-        "env" => {
-          "CLAUDE_SWARM_SESSION_TIMESTAMP" => @timestamp
-        }
+        "args" => args
       }
     end
   end

@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 require "shellwords"
+require_relative "session_path"
 
 module ClaudeSwarm
   class Orchestrator
-    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, session_timestamp: nil, stream_logs: false, debug: false)
+    def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
       @prompt = prompt
-      @session_timestamp = session_timestamp || Time.now.strftime("%Y%m%d_%H%M%S")
       @stream_logs = stream_logs
       @debug = debug
     end
@@ -21,10 +21,15 @@ module ClaudeSwarm
         puts
       end
 
-      # Set session timestamp for all instances to share the same session directory
-      ENV["CLAUDE_SWARM_SESSION_TIMESTAMP"] = @session_timestamp
+      # Generate and set session path for all instances
+      session_path = SessionPath.generate(working_dir: Dir.pwd)
+      SessionPath.ensure_directory(session_path)
+
+      ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
+      ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
+
       unless @prompt
-        puts "📝 Session files will be saved to: .claude-swarm/sessions/#{@session_timestamp}/"
+        puts "📝 Session files will be saved to: #{session_path}/"
         puts
       end
 
@@ -74,9 +79,7 @@ module ClaudeSwarm
 
     def start_log_streaming
       Thread.new do
-        session_log_path = File.join(Dir.pwd, ClaudeSwarm::ClaudeCodeExecutor::SWARM_DIR,
-                                     ClaudeSwarm::ClaudeCodeExecutor::SESSIONS_DIR,
-                                     @session_timestamp, "session.log")
+        session_log_path = File.join(ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil), "session.log")
 
         # Wait for log file to be created
         sleep 0.1 until File.exist?(session_log_path)
