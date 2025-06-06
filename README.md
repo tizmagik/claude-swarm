@@ -80,7 +80,7 @@ claude-swarm --vibe # That will allow ALL tools for all instances! Be Careful!
 This will:
 - Launch the main instance (lead) with connections to other instances
 - The lead instance can communicate with the other instances via MCP
-- All session files are stored in `.claude-swarm/sessions/{timestamp}/`
+- All session files are stored in `~/.claude-swarm/sessions/{project}/{timestamp}/` (customizable via `CLAUDE_SWARM_HOME`)
 
 #### Multi-Level Swarm Example
 
@@ -471,7 +471,7 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
    - Eliminates the need to manually accept each tool or use global `--vibe` mode
    - Per-instance `vibe: true` skips all permission checks for that specific instance
    - The permission MCP uses `--permission-prompt-tool` to check tool access
-   - Permission decisions are logged to `.claude-swarm/sessions/{timestamp}/permissions.log`
+   - Permission decisions are logged to `~/.claude-swarm/sessions/{project}/{timestamp}/permissions.log`
 4. **Session Management**: Claude Swarm maintains session continuity:
    - Generates a shared session timestamp for all instances
    - Each instance can maintain its own Claude session ID
@@ -481,9 +481,10 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
    - **task**: Execute tasks using Claude Code with configurable tools and return results. The tool description includes the instance name and description (e.g., "Execute a task using Agent frontend_dev. Frontend developer specializing in React and TypeScript")
    - **session_info**: Get current Claude session information including ID and working directory
    - **reset_session**: Reset the Claude session for a fresh start
-7. **Session Management**: All session files are organized in `.claude-swarm/sessions/{timestamp}/`:
+7. **Session Management**: All session files are organized in `~/.claude-swarm/sessions/{project}/{timestamp}/`:
    - MCP configuration files: `{instance_name}.mcp.json`
    - Session log: `session.log` with detailed request/response tracking
+   - Session JSON log: `session.log.json` with all events in JSONL format (one JSON per line)
    - Permission log: `permissions.log` with all permission checks and decisions
 
 ## Troubleshooting
@@ -507,14 +508,15 @@ claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TI
 ### Debug Output
 
 The swarm will display:
-- Session directory location (`.claude-swarm/sessions/{timestamp}/`)
+- Session directory location (`~/.claude-swarm/sessions/{project}/{timestamp}/`)
 - Main instance details (model, directory, tools, connections)
 - The exact command being run
 
 ### Session Files
 
-Check the session directory `.claude-swarm/sessions/{timestamp}/` for:
-- `session.log`: Detailed logs with request/response tracking
+Check the session directory `~/.claude-swarm/sessions/{project}/{timestamp}/` for:
+- `session.log`: Human-readable logs with request/response tracking
+- `session.log.json`: All events in JSONL format (one JSON object per line)
 - `{instance}.mcp.json`: MCP configuration for each instance
 - All files for a session are kept together for easy review
 
