@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    claude_swarm (0.1.12)
+    claude_swarm (0.1.13)
       fast-mcp
       thor (~> 1.3)
 
