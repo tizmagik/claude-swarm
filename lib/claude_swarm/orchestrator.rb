@@ -2,6 +2,7 @@
 
 require "shellwords"
 require_relative "session_path"
+require_relative "process_tracker"
 
 module ClaudeSwarm
   class Orchestrator
@@ -32,6 +33,12 @@ module ClaudeSwarm
         puts "📝 Session files will be saved to: #{session_path}/"
         puts
       end
+
+      # Initialize process tracker
+      @process_tracker = ProcessTracker.new(session_path)
+
+      # Set up signal handlers to clean up child processes
+      setup_signal_handlers
 
       # Generate all MCP configuration files
       @generator.generate_all
@@ -69,13 +76,33 @@ module ClaudeSwarm
       end
 
       # Clean up log streaming thread
-      return unless log_thread
+      if log_thread
+        log_thread.terminate
+        log_thread.join
+      end
 
-      log_thread.terminate
-      log_thread.join
+      # Clean up child processes
+      cleanup_processes
     end
 
     private
+
+    def setup_signal_handlers
+      %w[INT TERM QUIT].each do |signal|
+        Signal.trap(signal) do
+          puts "\n🛑 Received #{signal} signal, cleaning up..."
+          cleanup_processes
+          exit
+        end
+      end
+    end
+
+    def cleanup_processes
+      @process_tracker.cleanup_all
+      puts "✓ Cleanup complete"
+    rescue StandardError => e
+      puts "⚠️  Error during cleanup: #{e.message}"
+    end
 
     def start_log_streaming
       Thread.new do

@@ -7,11 +7,19 @@
 - Instance IDs are stored in MCP configuration files with `instance_id` and `instance_name` fields
 - New CLI options: `--instance-id` and `--calling-instance-id` for the `mcp-serve` command
 - ClaudeCodeExecutor now tracks and logs both instance and calling instance IDs
+- **Process tracking and cleanup**: Added automatic tracking and cleanup of child MCP server processes
+  - New `ProcessTracker` class creates individual PID files in a `pids/` directory within the session path
+  - Signal handlers (INT, TERM, QUIT) ensure all child processes are terminated when the main instance exits
+  - Prevents orphaned MCP server processes from continuing to run after swarm termination
 
 ### Changed
 - Log format improved to show instance IDs in parentheses after instance names for easier tracking of multi-instance interactions
 - MCP generator now pre-generates all instance IDs before creating configurations to ensure consistency
 - `log_request` method now logs structured request events to `session.log.json` with full instance tracking metadata
+
+### Fixed
+- Fixed issue where child MCP server processes would continue running after the main instance exits
+- Eliminated race conditions in process tracking by using individual PID files instead of a shared JSON file
 
 ## [0.1.12]
 ### Added

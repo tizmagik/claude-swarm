@@ -6,6 +6,7 @@ require "logger"
 require "fileutils"
 require_relative "permission_tool"
 require_relative "session_path"
+require_relative "process_tracker"
 
 module ClaudeSwarm
   class PermissionMcpServer
@@ -46,6 +47,13 @@ module ClaudeSwarm
     end
 
     def create_and_start_server
+      # Track this process
+      session_path = SessionPath.from_env
+      if session_path && File.exist?(session_path)
+        tracker = ProcessTracker.new(session_path)
+        tracker.track_pid(Process.pid, "mcp_permissions")
+      end
+
       server = FastMcp::Server.new(
         name: SERVER_NAME,
         version: SERVER_VERSION

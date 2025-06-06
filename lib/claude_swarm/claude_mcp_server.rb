@@ -6,6 +6,7 @@ require_relative "claude_code_executor"
 require_relative "task_tool"
 require_relative "session_info_tool"
 require_relative "reset_session_tool"
+require_relative "process_tracker"
 
 module ClaudeSwarm
   class ClaudeMcpServer
@@ -39,6 +40,12 @@ module ClaudeSwarm
     end
 
     def start
+      # Track this process
+      if @executor.session_path && File.exist?(@executor.session_path)
+        tracker = ProcessTracker.new(@executor.session_path)
+        tracker.track_pid(Process.pid, "mcp_#{@instance_config[:name]}")
+      end
+
       server = FastMcp::Server.new(
         name: @instance_config[:name],
         version: "1.0.0"
