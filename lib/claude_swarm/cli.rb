@@ -81,6 +81,10 @@ module ClaudeSwarm
                          desc: "Run with --dangerously-skip-permissions"
     method_option :calling_instance, type: :string, required: true,
                                      desc: "Name of the instance that launched this MCP server"
+    method_option :calling_instance_id, type: :string,
+                                        desc: "Unique ID of the instance that launched this MCP server"
+    method_option :instance_id, type: :string,
+                                desc: "Unique ID of this instance"
     def mcp_serve
       instance_config = {
         name: options[:name],
@@ -91,11 +95,16 @@ module ClaudeSwarm
         tools: options[:tools] || [],
         disallowed_tools: options[:disallowed_tools] || [],
         mcp_config_path: options[:mcp_config_path],
-        vibe: options[:vibe]
+        vibe: options[:vibe],
+        instance_id: options[:instance_id]
       }
 
       begin
-        server = ClaudeMcpServer.new(instance_config, calling_instance: options[:calling_instance])
+        server = ClaudeMcpServer.new(
+          instance_config,
+          calling_instance: options[:calling_instance],
+          calling_instance_id: options[:calling_instance_id]
+        )
         server.start
       rescue StandardError => e
         error "Error starting MCP server: #{e.message}"

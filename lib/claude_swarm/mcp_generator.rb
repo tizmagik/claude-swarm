@@ -3,6 +3,7 @@
 require "json"
 require "fileutils"
 require "shellwords"
+require "securerandom"
 require_relative "session_path"
 
 module ClaudeSwarm
@@ -11,10 +12,16 @@ module ClaudeSwarm
       @config = configuration
       @vibe = vibe
       @session_path = nil # Will be set when needed
+      @instance_ids = {} # Store instance IDs for all instances
     end
 
     def generate_all
       ensure_swarm_directory
+
+      # Generate all instance IDs upfront
+      @config.instances.each_key do |name|
+        @instance_ids[name] = "#{name}_#{SecureRandom.hex(4)}"
+      end
 
       @config.instances.each do |name, instance|
         generate_mcp_config(name, instance)
@@ -48,13 +55,18 @@ module ClaudeSwarm
       # Add connection MCPs for other instances
       instance[:connections].each do |connection_name|
         connected_instance = @config.instances[connection_name]
-        mcp_servers[connection_name] = build_instance_mcp_config(connection_name, connected_instance, calling_instance: name)
+        mcp_servers[connection_name] = build_instance_mcp_config(
+          connection_name, connected_instance,
+          calling_instance: name, calling_instance_id: @instance_ids[name]
+        )
       end
 
       # Add permission MCP server if not in vibe mode (global or instance-specific)
       mcp_servers["permissions"] = build_permission_mcp_config(instance[:tools], instance[:disallowed_tools]) unless @vibe || instance[:vibe]
 
       config = {
+        "instance_id" => @instance_ids[name],
+        "instance_name" => name,
         "mcpServers" => mcp_servers
       }
 
@@ -79,7 +91,7 @@ module ClaudeSwarm
       end
     end
 
-    def build_instance_mcp_config(name, instance, calling_instance:)
+    def build_instance_mcp_config(name, instance, calling_instance:, calling_instance_id:)
       # Get the path to the claude-swarm executable
       exe_path = "claude-swarm"
 
@@ -103,6 +115,10 @@ module ClaudeSwarm
       args.push("--mcp-config-path", mcp_config_path(name))
 
       args.push("--calling-instance", calling_instance) if calling_instance
+
+      args.push("--calling-instance-id", calling_instance_id) if calling_instance_id
+
+      args.push("--instance-id", @instance_ids[name]) if @instance_ids[name]
 
       args.push("--vibe") if @vibe || instance[:vibe]
 

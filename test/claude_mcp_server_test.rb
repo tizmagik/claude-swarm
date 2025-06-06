@@ -29,6 +29,7 @@ class ClaudeMcpServerTest < Minitest::Test
     ClaudeSwarm::ClaudeMcpServer.instance_config = nil
     ClaudeSwarm::ClaudeMcpServer.logger = nil
     ClaudeSwarm::ClaudeMcpServer.session_path = nil
+    ClaudeSwarm::ClaudeMcpServer.calling_instance_id = nil
 
     # Set up session path for tests
     @session_path = File.join(@tmpdir, "test_session")
@@ -55,6 +56,16 @@ class ClaudeMcpServerTest < Minitest::Test
     assert ClaudeSwarm::ClaudeMcpServer.executor
     assert_equal @instance_config, ClaudeSwarm::ClaudeMcpServer.instance_config
     assert ClaudeSwarm::ClaudeMcpServer.logger
+  end
+
+  def test_initialization_with_calling_instance_id
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller", calling_instance_id: "test_caller_1234abcd")
+
+    # Check class variables are set
+    assert ClaudeSwarm::ClaudeMcpServer.executor
+    assert_equal @instance_config, ClaudeSwarm::ClaudeMcpServer.instance_config
+    assert ClaudeSwarm::ClaudeMcpServer.logger
+    assert_equal "test_caller_1234abcd", ClaudeSwarm::ClaudeMcpServer.calling_instance_id
   end
 
   def test_logging_with_environment_session_path

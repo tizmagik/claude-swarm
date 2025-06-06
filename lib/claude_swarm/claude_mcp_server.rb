@@ -11,19 +11,22 @@ module ClaudeSwarm
   class ClaudeMcpServer
     # Class variables to share state with tool classes
     class << self
-      attr_accessor :executor, :instance_config, :logger, :session_path, :calling_instance
+      attr_accessor :executor, :instance_config, :logger, :session_path, :calling_instance, :calling_instance_id
     end
 
-    def initialize(instance_config, calling_instance:)
+    def initialize(instance_config, calling_instance:, calling_instance_id: nil)
       @instance_config = instance_config
       @calling_instance = calling_instance
+      @calling_instance_id = calling_instance_id
       @executor = ClaudeCodeExecutor.new(
         working_directory: instance_config[:directory],
         model: instance_config[:model],
         mcp_config: instance_config[:mcp_config_path],
         vibe: instance_config[:vibe],
         instance_name: instance_config[:name],
-        calling_instance: calling_instance
+        instance_id: instance_config[:instance_id],
+        calling_instance: calling_instance,
+        calling_instance_id: calling_instance_id
       )
 
       # Set class variables so tools can access them
@@ -32,6 +35,7 @@ module ClaudeSwarm
       self.class.logger = @executor.logger
       self.class.session_path = @executor.session_path
       self.class.calling_instance = @calling_instance
+      self.class.calling_instance_id = @calling_instance_id
     end
 
     def start

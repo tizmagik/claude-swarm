@@ -351,4 +351,104 @@ class McpGeneratorTest < Minitest::Test
       assert_equal("Read,Edit,mcp__frontend__*", permissions_mcp["args"][tools_index])
     end
   end
+
+  def test_instance_ids_are_generated
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            connections: [backend]
+          backend:
+            description: "Backend instance"
+    YAML
+
+    Dir.mkdir(File.join(@tmpdir, "backend"))
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    generator = ClaudeSwarm::McpGenerator.new(config)
+
+    Dir.chdir(@tmpdir) do
+      generator.generate_all
+
+      # Check lead config has instance_id
+      lead_config = read_mcp_config("lead")
+
+      assert lead_config.key?("instance_id")
+      assert lead_config.key?("instance_name")
+      assert_equal "lead", lead_config["instance_name"]
+      assert_match(/^lead_[a-f0-9]{8}$/, lead_config["instance_id"])
+
+      # Check backend config has instance_id
+      backend_config = read_mcp_config("backend")
+
+      assert backend_config.key?("instance_id")
+      assert backend_config.key?("instance_name")
+      assert_equal "backend", backend_config["instance_name"]
+      assert_match(/^backend_[a-f0-9]{8}$/, backend_config["instance_id"])
+
+      # Check that connection includes calling_instance_id
+      backend_connection = lead_config["mcpServers"]["backend"]
+
+      assert_includes backend_connection["args"], "--calling-instance-id"
+
+      calling_id_index = backend_connection["args"].index("--calling-instance-id") + 1
+
+      assert_equal lead_config["instance_id"], backend_connection["args"][calling_id_index]
+
+      # Check that connection includes instance_id for the target instance
+      assert_includes backend_connection["args"], "--instance-id"
+
+      instance_id_index = backend_connection["args"].index("--instance-id") + 1
+
+      assert_equal backend_config["instance_id"], backend_connection["args"][instance_id_index]
+    end
+  end
+
+  def test_multiple_callers_get_different_ids
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            connections: [shared]
+          frontend:
+            description: "Frontend instance"
+            connections: [shared]
+          shared:
+            description: "Shared service"
+    YAML
+
+    Dir.mkdir(File.join(@tmpdir, "frontend"))
+    Dir.mkdir(File.join(@tmpdir, "shared"))
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    generator = ClaudeSwarm::McpGenerator.new(config)
+
+    Dir.chdir(@tmpdir) do
+      generator.generate_all
+
+      lead_config = read_mcp_config("lead")
+      frontend_config = read_mcp_config("frontend")
+
+      # Both should have unique instance IDs
+      refute_equal lead_config["instance_id"], frontend_config["instance_id"]
+
+      # Check that shared service gets different calling_instance_ids from each caller
+      lead_shared_connection = lead_config["mcpServers"]["shared"]
+      frontend_shared_connection = frontend_config["mcpServers"]["shared"]
+
+      lead_calling_id_index = lead_shared_connection["args"].index("--calling-instance-id") + 1
+      frontend_calling_id_index = frontend_shared_connection["args"].index("--calling-instance-id") + 1
+
+      assert_equal lead_config["instance_id"], lead_shared_connection["args"][lead_calling_id_index]
+      assert_equal frontend_config["instance_id"], frontend_shared_connection["args"][frontend_calling_id_index]
+    end
+  end
 end

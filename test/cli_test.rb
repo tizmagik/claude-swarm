@@ -205,10 +205,11 @@ class CLITest < Minitest::Test
       tools: %w[Read Edit],
       disallowed_tools: [],
       mcp_config_path: "/path/to/mcp.json",
-      vibe: nil
+      vibe: nil,
+      instance_id: nil
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
       assert_equal expected_config, config
       assert_equal "parent_instance", calling_instance
       server_mock
@@ -239,10 +240,11 @@ class CLITest < Minitest::Test
       tools: [],
       disallowed_tools: [],
       mcp_config_path: nil,
-      vibe: nil
+      vibe: nil,
+      instance_id: nil
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:|
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
       assert_equal expected_config, config
       assert_equal "test_caller", calling_instance
       server_mock
@@ -262,7 +264,7 @@ class CLITest < Minitest::Test
       calling_instance: "test_caller"
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:| # rubocop:disable Lint/UnusedBlockArgument
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
       raise StandardError, "Test error"
     } do
       out, = capture_cli_output do
@@ -283,7 +285,7 @@ class CLITest < Minitest::Test
       calling_instance: "test_caller"
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:| # rubocop:disable Lint/UnusedBlockArgument
+    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
       raise StandardError, "Test error"
     } do
       out, = capture_cli_output do

@@ -10,7 +10,8 @@ module ClaudeSwarm
   class ClaudeCodeExecutor
     attr_reader :session_id, :last_response, :working_directory, :logger, :session_path
 
-    def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false, instance_name: nil, calling_instance: nil)
+    def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false,
+                   instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil)
       @working_directory = working_directory
       @model = model
       @mcp_config = mcp_config
@@ -18,7 +19,9 @@ module ClaudeSwarm
       @session_id = nil
       @last_response = nil
       @instance_name = instance_name
+      @instance_id = instance_id
       @calling_instance = calling_instance
+      @calling_instance_id = calling_instance_id
 
       # Setup logging
       setup_logging
@@ -108,16 +111,28 @@ module ClaudeSwarm
         "[#{datetime.strftime("%Y-%m-%d %H:%M:%S.%L")}] [#{severity}] #{msg}\n"
       end
 
-      @logger.info("Started Claude Code executor for instance: #{@instance_name}") if @instance_name
+      return unless @instance_name
+
+      instance_info = @instance_name
+      instance_info += " (#{@instance_id})" if @instance_id
+      @logger.info("Started Claude Code executor for instance: #{instance_info}")
     end
 
     def log_request(prompt)
-      @logger.info("#{@calling_instance} -> #{@instance_name}: \n---\n#{prompt}\n---")
+      caller_info = @calling_instance
+      caller_info += " (#{@calling_instance_id})" if @calling_instance_id
+      instance_info = @instance_name
+      instance_info += " (#{@instance_id})" if @instance_id
+      @logger.info("#{caller_info} -> #{instance_info}: \n---\n#{prompt}\n---")
     end
 
     def log_response(response)
+      caller_info = @calling_instance
+      caller_info += " (#{@calling_instance_id})" if @calling_instance_id
+      instance_info = @instance_name
+      instance_info += " (#{@instance_id})" if @instance_id
       @logger.info(
-        "($#{response["total_cost"]} - #{response["duration_ms"]}ms) #{@instance_name} -> #{@calling_instance}: \n---\n#{response["result"]}\n---"
+        "($#{response["total_cost"]} - #{response["duration_ms"]}ms) #{instance_info} -> #{caller_info}: \n---\n#{response["result"]}\n---"
       )
     end
 
@@ -151,14 +166,18 @@ module ClaudeSwarm
         arguments = tool_call["input"].to_json
         arguments = "#{arguments[0..300]} ...}" if arguments.length > 300
 
+        instance_info = @instance_name
+        instance_info += " (#{@instance_id})" if @instance_id
         @logger.info(
-          "Tool call from #{@instance_name} -> Tool: #{tool_call["name"]}, ID: #{tool_call["id"]}, Arguments: #{arguments}"
+          "Tool call from #{instance_info} -> Tool: #{tool_call["name"]}, ID: #{tool_call["id"]}, Arguments: #{arguments}"
         )
       end
 
       text = content.select { |c| c["type"] == "text" }
       text.each do |t|
-        @logger.info("#{@instance_name} is thinking:\n---\n#{t["text"]}\n---")
+        instance_info = @instance_name
+        instance_info += " (#{@instance_id})" if @instance_id
+        @logger.info("#{instance_info} is thinking:\n---\n#{t["text"]}\n---")
       end
     end
 
@@ -177,7 +196,9 @@ module ClaudeSwarm
         # Create entry with metadata
         entry = {
           instance: @instance_name,
+          instance_id: @instance_id,
           calling_instance: @calling_instance,
+          calling_instance_id: @calling_instance_id,
           timestamp: Time.now.iso8601,
           event: event
         }
