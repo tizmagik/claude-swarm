@@ -68,6 +68,7 @@ module ClaudeSwarm
         @instances[name] = parse_instance(name, config)
       end
       validate_connections
+      detect_circular_dependencies
     end
 
     def parse_instance(name, config)
@@ -125,6 +126,31 @@ module ClaudeSwarm
           raise Error, "Instance '#{name}' has connection to unknown instance '#{connection}'" unless @instances.key?(connection)
         end
       end
+    end
+
+    def detect_circular_dependencies
+      @instances.each_key do |instance_name|
+        visited = Set.new
+        path = []
+        detect_cycle_from(instance_name, visited, path)
+      end
+    end
+
+    def detect_cycle_from(instance_name, visited, path)
+      return if visited.include?(instance_name)
+
+      if path.include?(instance_name)
+        cycle_start = path.index(instance_name)
+        cycle = path[cycle_start..] + [instance_name]
+        raise Error, "Circular dependency detected: #{cycle.join(" -> ")}"
+      end
+
+      path.push(instance_name)
+      @instances[instance_name][:connections].each do |connection|
+        detect_cycle_from(connection, visited, path)
+      end
+      path.pop
+      visited.add(instance_name)
     end
 
     def validate_directories

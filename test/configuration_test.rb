@@ -557,4 +557,164 @@ class ConfigurationTest < Minitest::Test
     assert_equal %w[Read Edit], lead[:allowed_tools]
     assert_equal ["Bash(rm:*)"], lead[:disallowed_tools]
   end
+
+  def test_circular_dependency_self_reference
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Test instance"
+            connections: [lead]
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Circular dependency detected: lead -> lead", error.message
+  end
+
+  def test_circular_dependency_two_instances
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            connections: [worker]
+          worker:
+            description: "Worker instance"
+            connections: [lead]
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Circular dependency detected: lead -> worker -> lead", error.message
+  end
+
+  def test_circular_dependency_three_instances
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            connections: [worker1]
+          worker1:
+            description: "Worker 1 instance"
+            connections: [worker2]
+          worker2:
+            description: "Worker 2 instance"
+            connections: [lead]
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Circular dependency detected: lead -> worker1 -> worker2 -> lead", error.message
+  end
+
+  def test_circular_dependency_in_subtree
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            connections: [worker1]
+          worker1:
+            description: "Worker 1 instance"
+            connections: [worker2]
+          worker2:
+            description: "Worker 2 instance"
+            connections: [worker3]
+          worker3:
+            description: "Worker 3 instance"
+            connections: [worker1]
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Circular dependency detected: worker1 -> worker2 -> worker3 -> worker1", error.message
+  end
+
+  def test_valid_tree_no_circular_dependency
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            connections: [frontend, backend]
+          frontend:
+            description: "Frontend instance"
+            connections: [ui_specialist]
+          backend:
+            description: "Backend instance"
+            connections: [database]
+          ui_specialist:
+            description: "UI specialist instance"
+          database:
+            description: "Database instance"
+    YAML
+
+    # Create required directories
+    Dir.mkdir(File.join(@tmpdir, "frontend"))
+    Dir.mkdir(File.join(@tmpdir, "backend"))
+
+    # Should not raise any errors
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_equal "Test", config.swarm_name
+    assert_equal %w[frontend backend], config.connections_for("lead")
+    assert_equal ["ui_specialist"], config.connections_for("frontend")
+    assert_equal ["database"], config.connections_for("backend")
+  end
+
+  def test_complex_valid_hierarchy
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Complex Hierarchy"
+        main: architect
+        instances:
+          architect:
+            description: "System architect"
+            connections: [frontend_lead, backend_lead, devops]
+          frontend_lead:
+            description: "Frontend team lead"
+            connections: [react_dev, css_expert]
+          backend_lead:
+            description: "Backend team lead"
+            connections: [api_dev, db_expert]
+          react_dev:
+            description: "React developer"
+          css_expert:
+            description: "CSS specialist"
+          api_dev:
+            description: "API developer"
+          db_expert:
+            description: "Database expert"
+          devops:
+            description: "DevOps engineer"
+    YAML
+
+    # Should not raise any errors
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_equal "Complex Hierarchy", config.swarm_name
+    assert_equal 8, config.instances.size
+  end
 end

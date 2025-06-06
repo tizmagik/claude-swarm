@@ -1,3 +1,12 @@
+## [Unreleased]
+### Added
+- **Circular dependency detection**: Configuration validation now detects and reports circular dependencies between instances
+- Clear error messages showing the dependency cycle (e.g., "Circular dependency detected: lead -> backend -> lead")
+- Comprehensive test coverage for various circular dependency scenarios
+
+### Fixed
+- Fixed circular dependency example in README documentation
+
 ## [0.1.11]
 ### Added
 - Main instance debug mode with `claude-swarm --debug`
