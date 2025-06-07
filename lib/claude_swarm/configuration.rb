@@ -9,7 +9,8 @@ module ClaudeSwarm
 
     def initialize(config_path, base_dir: nil)
       @config_path = Pathname.new(config_path).expand_path
-      @config_dir = base_dir || @config_path.dirname
+      @config_dir = @config_path.dirname
+      @base_dir = base_dir || @config_dir
       load_and_validate
     end
 
@@ -168,7 +169,7 @@ module ClaudeSwarm
     end
 
     def expand_path(path)
-      Pathname.new(path).expand_path(@config_dir).to_s
+      Pathname.new(path).expand_path(@base_dir).to_s
     end
   end
 end

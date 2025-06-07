@@ -1,4 +1,12 @@
-## [Unreleased]
+## [0.1.14]
+
+### Changed
+- **Working directory behavior**: Swarms now run from the directory where `claude-swarm` is executed, not from the directory containing the YAML configuration file
+  - Instance directories in the YAML are now resolved relative to the launch directory
+  - Session restoration properly restores to the original working directory
+  - Fixes issues where relative paths in YAML files would resolve differently depending on config file location
+
+## [0.1.13]
 
 ### Added
 - **Session restoration support (Experimental)**: Session management with the ability to resume previous Claude Swarm sessions. Note: This is an experimental feature with limitations - the main instance's conversation context is not fully restored

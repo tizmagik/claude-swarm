@@ -49,7 +49,7 @@ module ClaudeSwarm
       end
 
       begin
-        config = Configuration.new(config_path)
+        config = Configuration.new(config_path, base_dir: Dir.pwd)
         generator = McpGenerator.new(config, vibe: options[:vibe])
         orchestrator = Orchestrator.new(config, generator,
                                         vibe: options[:vibe],

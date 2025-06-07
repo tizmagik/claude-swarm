@@ -313,7 +313,7 @@ class CLITest < Minitest::Test
 
     @cli.options = { config: "valid.yml", verbose: false }
 
-    ClaudeSwarm::Configuration.stub :new, lambda { |_|
+    ClaudeSwarm::Configuration.stub :new, lambda { |_, _|
       raise StandardError, "Unexpected test error"
     } do
       out, = capture_cli_output do
@@ -339,7 +339,7 @@ class CLITest < Minitest::Test
 
     @cli.options = { config: "valid.yml", verbose: true }
 
-    ClaudeSwarm::Configuration.stub :new, lambda { |_|
+    ClaudeSwarm::Configuration.stub :new, lambda { |_, _|
       raise StandardError, "Unexpected test error"
     } do
       out, = capture_cli_output do
