@@ -1,3 +1,10 @@
+## [0.1.15]
+
+### Changed
+- **Dependency update**: Switched from `fast-mcp` to `fast-mcp-annotations` for improved tool annotation support
+- **Task tool annotations**: Added read-only, non-destructive, and closed-world hints to the task tool to allow parallel execution
+- Change the task tool description to say there's no description parameter, so claude does not try to send it.
+
 ## [0.1.14]
 
 ### Changed

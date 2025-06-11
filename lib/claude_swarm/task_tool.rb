@@ -4,6 +4,7 @@ module ClaudeSwarm
   class TaskTool < FastMcp::Tool
     tool_name "task"
     description "Execute a task using Claude Code. There is no description parameter."
+    annotations(readOnlyHint: true, openWorldHint: false, destructiveHint: false)
 
     arguments do
       required(:prompt).filled(:string).description("The task or question for the agent")
