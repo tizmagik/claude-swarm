@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "fast_mcp"
+require "fast_mcp_annotations"
 require "json"
 require_relative "claude_code_executor"
 require_relative "task_tool"

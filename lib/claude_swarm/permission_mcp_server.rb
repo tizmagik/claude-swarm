@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
-require "fast_mcp"
+require "fast_mcp_annotations"
 require "logger"
 require "fileutils"
 require_relative "permission_tool"

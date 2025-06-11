@@ -60,7 +60,7 @@ GEM
       json (~> 2.0)
       mime-types (~> 3.4)
       rack (~> 3.1)
-    fast-mcp-annotations (1.5.0)
+    fast-mcp-annotations (1.5.2)
       addressable (~> 2.8)
       base64
       dry-schema (~> 1.14)
