@@ -292,7 +292,7 @@ class ClaudeMcpServerTest < Minitest::Test
   end
 
   def test_tool_descriptions
-    assert_equal "Execute a task using Claude Code", ClaudeSwarm::TaskTool.description
+    assert_equal "Execute a task using Claude Code. There is no description parameter.", ClaudeSwarm::TaskTool.description
     assert_equal "Get information about the current Claude session for this agent", ClaudeSwarm::SessionInfoTool.description
     assert_equal "Reset the Claude session for this agent, starting fresh on the next task",
                  ClaudeSwarm::ResetSessionTool.description
