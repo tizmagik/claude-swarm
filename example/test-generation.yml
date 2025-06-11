@@ -36,7 +36,7 @@ swarm:
       description: "Unit test specialist focusing on models, services, and isolated business logic with Minitest"
       directory: ./spec
       model: opus
-      connections: [test_architect, factory_specialist]
+      connections: [factory_specialist]
       prompt: |
         You are a Rails unit testing expert specializing in Minitest. Your focus areas:
         
@@ -76,7 +76,7 @@ swarm:
       description: "Integration test specialist for controllers, API endpoints, and request specs"
       directory: ./spec
       model: opus
-      connections: [test_architect, factory_specialist]
+      connections: [factory_specialist]
       prompt: |
         You are a Rails integration testing expert focusing on request specs and controller tests. Your expertise:
         
@@ -117,7 +117,6 @@ swarm:
       description: "System test specialist for end-to-end user flows and JavaScript interactions"
       directory: ./spec/system
       model: opus
-      connections: [test_architect]
       prompt: |
         You are a Rails system testing expert using Capybara and Selenium. Your specialization:
         
@@ -161,7 +160,6 @@ swarm:
       description: "Test data specialist managing factories, traits, and test data generation"
       directory: ./spec/factories
       model: opus
-      connections: [test_architect, unit_test_expert, integration_test_expert]
       prompt: |
         You are a Rails test data expert specializing in FactoryBot. Your responsibilities:
         
@@ -206,7 +204,6 @@ swarm:
       description: "Test quality assurance specialist ensuring best practices, coverage, and maintainability"
       directory: .
       model: opus
-      connections: [test_architect]
       prompt: |
         You are a Rails test quality reviewer ensuring all tests meet the highest standards. Your review criteria:
         
