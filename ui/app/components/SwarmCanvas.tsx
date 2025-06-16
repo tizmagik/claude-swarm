@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { Zap, Users, ArrowRight } from 'lucide-react';
 
 interface AgentNode {
   id: string;
@@ -53,7 +54,25 @@ function ReactFlowCanvas({
       id: node.id,
       type: 'default',
       position: { x: node.x, y: node.y },
-      data: { label: node.name },
+      data: { 
+        label: (
+          <div className="text-center">
+            <div className="text-white font-semibold text-sm mb-1">{node.name}</div>
+            <div className="text-slate-100 text-xs">{node.model}</div>
+            <div className="text-slate-200 text-xs mt-1">{node.tools.length} tools</div>
+          </div>
+        )
+      },
+      style: {
+        background: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
+        color: 'white',
+        border: '2px solid #64748b',
+        borderRadius: '12px',
+        padding: '12px',
+        width: '160px',
+        height: '80px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+      },
     }));
   }, [nodes]);
 
@@ -62,7 +81,15 @@ function ReactFlowCanvas({
       id: `${conn.from}-${conn.to}`,
       source: conn.from,
       target: conn.to,
-      type: 'default',
+      type: 'smoothstep',
+      style: {
+        stroke: '#64748b',
+        strokeWidth: 2,
+      },
+      markerEnd: {
+        type: 'arrowclosed',
+        color: '#64748b',
+      },
     }));
   }, [connections]);
 
@@ -80,11 +107,14 @@ function ReactFlowCanvas({
         nodes={reactFlowNodes}
         edges={reactFlowEdges}
         fitView
-        className="bg-gray-900"
+        className="bg-slate-950"
         style={{ width: '100%', height: '100%' }}
+        nodeTypes={{}}
+        edgeTypes={{}}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
       >
-        {Controls && <Controls />}
-        {Background && <Background color="#374151" gap={20} />}
+        {Controls && <Controls className="bg-slate-800 border border-slate-700 rounded-lg" />}
+        {Background && <Background color="#1e293b" gap={20} variant="dots" />}
       </ReactFlow>
     </div>
   );
@@ -105,19 +135,31 @@ export default function SwarmCanvas({
   }, []);
   
   return (
-    <div className="flex-1 bg-gray-900 relative overflow-hidden">
+    <div className="flex-1 bg-slate-950 relative overflow-hidden">
       {/* Header */}
-      <div className="absolute top-4 left-4 z-10">
-        <h1 className="text-2xl font-bold text-white">{swarmName}</h1>
+      <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-3 lg:px-6 border border-slate-700 max-w-sm lg:max-w-none">
+        <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
+          <Zap className="w-5 h-5 lg:w-6 lg:h-6 mr-2 lg:mr-3 text-blue-400" />
+          <span className="truncate">{swarmName}</span>
+        </h1>
+        <div className="text-slate-400 text-xs lg:text-sm mt-1 flex items-center">
+          <Users className="w-3 h-3 mr-1" />
+          {nodes.length} agents
+          <ArrowRight className="w-3 h-3 mx-2" />
+          {connections.length} connections
+        </div>
       </div>
 
       {/* ReactFlow Canvas */}
-      <div className="w-full h-full" style={{ width: '100%', height: 'calc(100vh - 120px)', minHeight: '400px' }}>
+      <div className="w-full h-full" style={{ width: '100%', height: '100%', minHeight: '300px' }}>
         {isClient ? (
           <ReactFlowCanvas nodes={nodes} connections={connections} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-900">
-            <div className="text-gray-500">Initializing canvas...</div>
+          <div className="w-full h-full flex items-center justify-center bg-slate-950">
+            <div className="text-center">
+              <Zap className="w-12 h-12 mx-auto animate-pulse text-blue-400 mb-4" />
+              <div className="text-slate-400 text-base lg:text-lg">Initializing canvas...</div>
+            </div>
           </div>
         )}
       </div>

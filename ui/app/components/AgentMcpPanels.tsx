@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Bot, Settings, Wrench, Crown, Monitor, Server, Building, TestTube, Shield, BarChart3, Palette } from 'lucide-react';
 
 interface AgentTemplate {
   id: string;
@@ -137,63 +138,152 @@ export default function AgentMcpPanels() {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
+  const categoryColors = {
+    leadership: 'bg-amber-500',
+    frontend: 'bg-blue-500',
+    backend: 'bg-emerald-500',
+    infrastructure: 'bg-purple-500',
+    testing: 'bg-red-500',
+    security: 'bg-orange-500',
+    productivity: 'bg-cyan-500',
+    design: 'bg-pink-500',
+  } as const;
+
+  const categoryIcons = {
+    leadership: Crown,
+    frontend: Monitor,
+    backend: Server,
+    infrastructure: Building,
+    testing: TestTube,
+    security: Shield,
+    productivity: BarChart3,
+    design: Palette,
+  } as const;
+
+  const getAgentCategory = (name: string): keyof typeof categoryColors => {
+    if (name.toLowerCase().includes('lead')) return 'leadership';
+    if (name.toLowerCase().includes('frontend') || name.toLowerCase().includes('react')) return 'frontend';
+    if (name.toLowerCase().includes('backend') || name.toLowerCase().includes('rails')) return 'backend';
+    if (name.toLowerCase().includes('devops')) return 'infrastructure';
+    return 'backend';
+  };
+
+  const getMcpCategory = (name: string): keyof typeof categoryColors => {
+    if (name.toLowerCase().includes('playwright') || name.toLowerCase().includes('test')) return 'testing';
+    if (name.toLowerCase().includes('vault') || name.toLowerCase().includes('security')) return 'security';
+    if (name.toLowerCase().includes('gsuite') || name.toLowerCase().includes('workspace')) return 'productivity';
+    if (name.toLowerCase().includes('figma') || name.toLowerCase().includes('design')) return 'design';
+    return 'testing';
+  };
+
   if (loading) {
     return (
-      <div className="w-80 bg-gray-100 border-l border-gray-300 p-4">
-        <div className="animate-pulse">Loading...</div>
+      <div className="w-80 bg-slate-900 border-l border-slate-700 p-6">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">⚡</div>
+          <div className="text-slate-400">Loading resources...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-80 bg-gray-100 border-l border-gray-300 p-4 flex flex-col h-full">
+    <div className="w-80 lg:w-80 md:w-72 sm:w-64 bg-slate-900 border-l border-slate-700 flex flex-col h-full">
       {/* Agents Section */}
-      <div className="flex-1 mb-6">
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">Agents</h2>
-        <div className="space-y-2 overflow-y-auto">
-          {agents.map((agent) => (
-            <div
-              key={agent.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, agent, 'agent')}
-              className="p-3 bg-gray-800 text-white rounded-lg cursor-grab hover:bg-gray-700 transition-colors border border-gray-600"
-            >
-              <div className="font-medium text-sm">{agent.name}</div>
-              <div className="text-xs text-gray-300 mt-1 line-clamp-2">
-                {agent.description}
-              </div>
-              {agent.model && (
-                <div className="text-xs text-blue-300 mt-1">
-                  Model: {agent.model}
+      <div className="flex-1 p-3 lg:p-4 border-b border-slate-700 min-h-0">
+        <div className="flex items-center mb-3 lg:mb-4">
+          <h2 className="text-lg lg:text-xl font-bold text-white flex items-center">
+            <Bot className="w-5 h-5 mr-2 text-blue-400" />
+            <span className="hidden sm:inline">Agents</span>
+          </h2>
+        </div>
+        <div className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4 hidden sm:block">
+          Drag agents to add them to your swarm
+        </div>
+        <div className="space-y-2 lg:space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(50vh - 120px)' }}>
+          {agents.map((agent) => {
+            const category = getAgentCategory(agent.name);
+            const IconComponent = categoryIcons[category];
+            return (
+              <div
+                key={agent.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, agent, 'agent')}
+                className="p-3 lg:p-4 bg-slate-800 rounded-xl border border-slate-700 cursor-grab hover:bg-slate-750 hover:border-slate-600 hover:shadow-lg transition-all duration-200 group"
+              >
+                <div className="flex items-center mb-2">
+                  <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-lg ${categoryColors[category]} flex items-center justify-center text-white mr-2 lg:mr-3`}>
+                    <IconComponent className="w-3 h-3 lg:w-4 lg:h-4" />
+                  </div>
+                  <div className="font-semibold text-white text-xs lg:text-sm group-hover:text-blue-300 transition-colors truncate">
+                    {agent.name}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="text-xs text-slate-300 mb-2 lg:mb-3 leading-relaxed line-clamp-2 hidden sm:block">
+                  {agent.description}
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 capitalize px-2 py-1 bg-slate-700 rounded-full hidden sm:inline">
+                    {category}
+                  </span>
+                  {agent.model && (
+                    <span className="text-white px-2 py-1 bg-slate-700 rounded-full font-medium">
+                      {agent.model}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* MCPs Section */}
-      <div className="flex-1">
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">MCPs</h2>
-        <div className="space-y-2 overflow-y-auto">
-          {mcps.map((mcp) => (
-            <div
-              key={mcp.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, mcp, 'mcp')}
-              className="p-3 bg-gray-800 text-white rounded-lg cursor-grab hover:bg-gray-700 transition-colors border border-gray-600"
-            >
-              <div className="font-medium text-sm">{mcp.name}</div>
-              {mcp.description && (
-                <div className="text-xs text-gray-300 mt-1 line-clamp-2">
-                  {mcp.description}
+      <div className="flex-1 p-3 lg:p-4 min-h-0">
+        <div className="flex items-center mb-3 lg:mb-4">
+          <h2 className="text-lg lg:text-xl font-bold text-white flex items-center">
+            <Wrench className="w-5 h-5 mr-2 text-purple-400" />
+            <span className="hidden sm:inline">MCPs</span>
+          </h2>
+        </div>
+        <div className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4 hidden sm:block">
+          Available MCP tools and integrations
+        </div>
+        <div className="space-y-2 lg:space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(50vh - 120px)' }}>
+          {mcps.map((mcp) => {
+            const category = getMcpCategory(mcp.name);
+            const IconComponent = categoryIcons[category];
+            return (
+              <div
+                key={mcp.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, mcp, 'mcp')}
+                className="p-3 lg:p-4 bg-slate-800 rounded-xl border border-slate-700 cursor-grab hover:bg-slate-750 hover:border-slate-600 hover:shadow-lg transition-all duration-200 group"
+              >
+                <div className="flex items-center mb-2">
+                  <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-lg ${categoryColors[category]} flex items-center justify-center text-white mr-2 lg:mr-3`}>
+                    <IconComponent className="w-3 h-3 lg:w-4 lg:h-4" />
+                  </div>
+                  <div className="font-semibold text-white text-xs lg:text-sm group-hover:text-purple-300 transition-colors truncate">
+                    {mcp.name}
+                  </div>
                 </div>
-              )}
-              <div className="text-xs text-purple-300 mt-1">
-                Type: {mcp.type}
+                {mcp.description && (
+                  <div className="text-xs text-slate-300 mb-2 lg:mb-3 leading-relaxed line-clamp-2 hidden sm:block">
+                    {mcp.description}
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 capitalize px-2 py-1 bg-slate-700 rounded-full hidden sm:inline">
+                    {category}
+                  </span>
+                  <span className="text-white px-2 py-1 bg-slate-700 rounded-full font-medium">
+                    {mcp.type}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
