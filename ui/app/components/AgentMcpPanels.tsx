@@ -213,7 +213,7 @@ export default function AgentMcpPanels() {
               >
                 <div className="flex items-center mb-2">
                   <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-lg ${categoryColors[category]} flex items-center justify-center text-white mr-2 lg:mr-3`}>
-                    <IconComponent className="w-3 h-3 lg:w-4 lg:h-4" />
+                    {IconComponent && <IconComponent className="w-3 h-3 lg:w-4 lg:h-4" />}
                   </div>
                   <div className="font-semibold text-white text-xs lg:text-sm group-hover:text-blue-300 transition-colors truncate">
                     {agent.name}
@@ -262,7 +262,7 @@ export default function AgentMcpPanels() {
               >
                 <div className="flex items-center mb-2">
                   <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-lg ${categoryColors[category]} flex items-center justify-center text-white mr-2 lg:mr-3`}>
-                    <IconComponent className="w-3 h-3 lg:w-4 lg:h-4" />
+                    {IconComponent && <IconComponent className="w-3 h-3 lg:w-4 lg:h-4" />}
                   </div>
                   <div className="font-semibold text-white text-xs lg:text-sm group-hover:text-purple-300 transition-colors truncate">
                     {mcp.name}
