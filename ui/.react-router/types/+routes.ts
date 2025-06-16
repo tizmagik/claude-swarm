@@ -39,19 +39,19 @@ type RouteFiles = {
     page: "/";
   };
   "routes/api.swarms.ts": {
-    id: "routes/api.swarms";
+    id: "api-swarms";
     page: "/api/swarms";
   };
   "routes/api.swarms.$filename.ts": {
-    id: "routes/api.swarms.$filename";
+    id: "api-swarms-detail";
     page: "/api/swarms/:filename";
   };
   "routes/api.agent-templates.ts": {
-    id: "routes/api.agent-templates";
+    id: "api-agent-templates";
     page: "/api/agent-templates";
   };
   "routes/api.mcp-tools.ts": {
-    id: "routes/api.mcp-tools";
+    id: "api-mcp-tools";
     page: "/api/mcp-tools";
   };
 };

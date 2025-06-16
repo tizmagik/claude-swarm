@@ -11,7 +11,9 @@
       "mcp__playwright__playwright_get_visible_text",
       "mcp__playwright__playwright_evaluate",
       "mcp__playwright__playwright_click",
-      "mcp__playwright__playwright_drag"
+      "mcp__playwright__playwright_drag",
+      "WebFetch(domain:reactflow.dev)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

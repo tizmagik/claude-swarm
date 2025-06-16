@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.swarms.$filename";
-import fs from 'fs-extra';
-import path from 'path';
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { parse, stringify } from 'yaml';
 
 // GET /api/swarms/:filename - Get specific swarm
@@ -12,7 +12,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     }
 
     const baseDir = path.resolve(process.cwd(), '../');
-    const content = await fs.readFile(path.join(baseDir, filename), 'utf8');
+    const content = await readFile(path.join(baseDir, filename), 'utf8');
     const config = parse(content);
     return Response.json(config);
   } catch (error: any) {
@@ -38,7 +38,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     const { config } = await request.json();
     const baseDir = path.resolve(process.cwd(), '../');
     const yamlContent = stringify(config);
-    await fs.writeFile(path.join(baseDir, filename), yamlContent);
+    await writeFile(path.join(baseDir, filename), yamlContent);
     return Response.json({ success: true });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });

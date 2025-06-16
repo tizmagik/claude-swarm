@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.agent-templates";
-import fs from 'fs-extra';
-import path from 'path';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 
 interface AgentTemplate {
   id: string;
@@ -24,8 +25,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const templatesPath = path.join(process.cwd(), '../data/agent-templates.json');
     let templates: AgentTemplate[] = [];
-    if (await fs.pathExists(templatesPath)) {
-      templates = await fs.readJson(templatesPath);
+    if (existsSync(templatesPath)) {
+      const content = await readFile(templatesPath, 'utf8');
+      templates = JSON.parse(content);
     }
     return Response.json(templates);
   } catch (error: any) {
@@ -41,16 +43,17 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const templatesPath = path.join(process.cwd(), '../data/agent-templates.json');
-    await fs.ensureDir(path.dirname(templatesPath));
+    await mkdir(path.dirname(templatesPath), { recursive: true });
     
     let templates: AgentTemplate[] = [];
-    if (await fs.pathExists(templatesPath)) {
-      templates = await fs.readJson(templatesPath);
+    if (existsSync(templatesPath)) {
+      const content = await readFile(templatesPath, 'utf8');
+      templates = JSON.parse(content);
     }
     
     const newTemplate = await request.json();
     templates.push(newTemplate);
-    await fs.writeJson(templatesPath, templates, { spaces: 2 });
+    await writeFile(templatesPath, JSON.stringify(templates, null, 2));
     return Response.json({ success: true });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });

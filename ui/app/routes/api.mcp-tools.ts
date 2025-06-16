@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.mcp-tools";
-import fs from 'fs-extra';
-import path from 'path';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 
 interface McpTool {
   id: string;
@@ -17,8 +18,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const toolsPath = path.join(process.cwd(), '../data/mcp-tools.json');
     let tools: McpTool[] = [];
-    if (await fs.pathExists(toolsPath)) {
-      tools = await fs.readJson(toolsPath);
+    if (existsSync(toolsPath)) {
+      const content = await readFile(toolsPath, 'utf8');
+      tools = JSON.parse(content);
     }
     return Response.json(tools);
   } catch (error: any) {
@@ -34,16 +36,17 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const toolsPath = path.join(process.cwd(), '../data/mcp-tools.json');
-    await fs.ensureDir(path.dirname(toolsPath));
+    await mkdir(path.dirname(toolsPath), { recursive: true });
     
     let tools: McpTool[] = [];
-    if (await fs.pathExists(toolsPath)) {
-      tools = await fs.readJson(toolsPath);
+    if (existsSync(toolsPath)) {
+      const content = await readFile(toolsPath, 'utf8');
+      tools = JSON.parse(content);
     }
     
     const newTool = await request.json();
     tools.push(newTool);
-    await fs.writeJson(toolsPath, tools, { spaces: 2 });
+    await writeFile(toolsPath, JSON.stringify(tools, null, 2));
     return Response.json({ success: true });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });

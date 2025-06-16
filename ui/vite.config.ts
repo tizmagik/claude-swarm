@@ -5,4 +5,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  ssr: {
+    // Exclude ReactFlow from SSR since we're doing client-side only
+    external: ["@xyflow/react", "node:fs", "node:fs/promises", "node:path"],
+  },
 });
