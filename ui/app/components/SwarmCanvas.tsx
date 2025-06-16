@@ -89,30 +89,63 @@ function ReactFlowCanvas({
           !currentLocalNodes.every((localNode, index) => localNode.id === newReactFlowNodes[index]?.id)) {
         return newReactFlowNodes;
       }
-      // Update positions from parent nodes but preserve any pending drag positions
+      // Update node data but preserve current positions (which may be from drag operations)
       return currentLocalNodes.map(localNode => {
         const parentNode = newReactFlowNodes.find(n => n.id === localNode.id);
-        return parentNode ? { ...localNode, ...parentNode } : localNode;
+        return parentNode ? { ...parentNode, position: localNode.position } : localNode;
       });
     });
   }, [nodes]);
 
-  const onNodeDrag = useCallback((_event: any, node: any) => {
-    // Update local nodes for real-time drag feedback
-    setLocalNodes((currentNodes) =>
-      currentNodes.map((n) =>
-        n.id === node.id ? { ...n, position: node.position } : n
-      )
-    );
-  }, []);
 
-  const onNodeDragStop = useCallback(
-    (_event: any, node: any) => {
-      // Update the parent component with the new node positions
-      const updatedNodes = nodes.map((n) =>
-        n.id === node.id ? { ...n, x: node.position.x, y: node.position.y } : n
-      );
-      onNodeUpdate(updatedNodes);
+  const onNodesChange = useCallback(
+    (changes: any[]) => {
+      // Handle position changes
+      const positionChanges = changes.filter(change => change.type === 'position' && change.dragging === false);
+      
+      if (positionChanges.length > 0) {
+        // Update local nodes first
+        setLocalNodes(currentNodes => {
+          let updatedLocalNodes = [...currentNodes];
+          positionChanges.forEach(change => {
+            const nodeIndex = updatedLocalNodes.findIndex(n => n.id === change.id);
+            if (nodeIndex !== -1 && change.position) {
+              updatedLocalNodes[nodeIndex] = {
+                ...updatedLocalNodes[nodeIndex],
+                position: change.position
+              };
+            }
+          });
+          return updatedLocalNodes;
+        });
+        
+        // Update parent component
+        const updatedNodes = nodes.map(n => {
+          const positionChange = positionChanges.find(change => change.id === n.id);
+          return positionChange && positionChange.position
+            ? { ...n, x: positionChange.position.x, y: positionChange.position.y }
+            : n;
+        });
+        
+        onNodeUpdate(updatedNodes);
+      } else {
+        // Apply other changes to local nodes
+        setLocalNodes(currentNodes => {
+          let updatedNodes = [...currentNodes];
+          changes.forEach(change => {
+            if (change.type === 'position' && change.position) {
+              const nodeIndex = updatedNodes.findIndex(n => n.id === change.id);
+              if (nodeIndex !== -1) {
+                updatedNodes[nodeIndex] = {
+                  ...updatedNodes[nodeIndex],
+                  position: change.position
+                };
+              }
+            }
+          });
+          return updatedNodes;
+        });
+      }
     },
     [nodes, onNodeUpdate]
   );
@@ -147,8 +180,7 @@ function ReactFlowCanvas({
       <ReactFlow
         nodes={localNodes}
         edges={reactFlowEdges}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
+        onNodesChange={onNodesChange}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         className="bg-slate-950"
