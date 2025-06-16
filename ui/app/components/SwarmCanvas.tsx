@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 
 interface AgentNode {
   id: string;
@@ -25,6 +25,71 @@ interface SwarmCanvasProps {
   onConnectionUpdate: (connections: Connection[]) => void;
 }
 
+// Client-side only ReactFlow component
+function ReactFlowCanvas({ 
+  nodes, 
+  connections 
+}: { 
+  nodes: AgentNode[], 
+  connections: Connection[] 
+}) {
+  const [ReactFlow, setReactFlow] = useState<any>(null);
+  const [Controls, setControls] = useState<any>(null);
+  const [Background, setBackground] = useState<any>(null);
+
+  useEffect(() => {
+    // Import ReactFlow only on client-side
+    import('@xyflow/react').then((module) => {
+      setReactFlow(() => module.ReactFlow);
+      setControls(() => module.Controls);
+      setBackground(() => module.Background);
+    });
+    // Import ReactFlow styles
+    import('@xyflow/react/dist/style.css');
+  }, []);
+
+  const reactFlowNodes = useMemo(() => {
+    return nodes.map((node) => ({
+      id: node.id,
+      type: 'default',
+      position: { x: node.x, y: node.y },
+      data: { label: node.name },
+    }));
+  }, [nodes]);
+
+  const reactFlowEdges = useMemo(() => {
+    return connections.map((conn) => ({
+      id: `${conn.from}-${conn.to}`,
+      source: conn.from,
+      target: conn.to,
+      type: 'default',
+    }));
+  }, [connections]);
+
+  if (!ReactFlow) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900">
+        <div className="text-gray-500">Loading canvas...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%', height: '600px' }}>
+      <ReactFlow
+        nodes={reactFlowNodes}
+        edges={reactFlowEdges}
+        fitView
+        className="bg-gray-900"
+        style={{ width: '100%', height: '100%' }}
+      >
+        {Controls && <Controls />}
+        {Background && <Background color="#374151" gap={20} />}
+      </ReactFlow>
+    </div>
+  );
+}
+
 export default function SwarmCanvas({ 
   swarmName, 
   nodes, 
@@ -33,6 +98,11 @@ export default function SwarmCanvas({
   onConnectionUpdate 
 }: SwarmCanvasProps) {
   console.log('SwarmCanvas rendered with nodes:', nodes);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   return (
     <div className="flex-1 bg-gray-900 relative overflow-hidden">
@@ -41,78 +111,13 @@ export default function SwarmCanvas({
         <h1 className="text-2xl font-bold text-white">{swarmName}</h1>
       </div>
 
-      {/* Simple Canvas */}
-      <div className="w-full h-full relative">
-        {/* Agent Nodes */}
-        {nodes.map((node) => (
-          <div
-            key={node.id}
-            className="absolute bg-gray-800 border border-gray-600 rounded-lg p-4 w-48 text-white"
-            style={{ 
-              left: node.x, 
-              top: node.y,
-              zIndex: 2
-            }}
-          >
-            <div className="font-semibold text-sm mb-2">
-              {node.name}
-            </div>
-            
-            <div className="text-gray-300 text-xs mb-3">
-              {node.description}
-            </div>
-
-            <div className="space-y-2">
-              <div>
-                <div className="text-gray-400 text-xs font-medium">Tools:</div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {node.tools.slice(0, 3).map((tool) => (
-                    <span
-                      key={tool}
-                      className="bg-blue-600 text-white text-xs px-2 py-1 rounded"
-                    >
-                      {tool}
-                    </span>
-                  ))}
-                  {node.tools.length > 3 && (
-                    <span className="text-gray-400 text-xs">
-                      +{node.tools.length - 3} more
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {node.mcps.length > 0 && (
-                <div>
-                  <div className="text-gray-400 text-xs font-medium">MCPs:</div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {node.mcps.slice(0, 2).map((mcp) => (
-                      <span
-                        key={mcp}
-                        className="bg-purple-600 text-white text-xs px-2 py-1 rounded"
-                      >
-                        {mcp}
-                      </span>
-                    ))}
-                    {node.mcps.length > 2 && (
-                      <span className="text-gray-400 text-xs">
-                        +{node.mcps.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Drop zone message when empty */}
-        {nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-gray-500 text-center">
-              <div className="text-xl mb-2">🎯</div>
-              <div>Select a swarm from the sidebar to see agents</div>
-            </div>
+      {/* ReactFlow Canvas */}
+      <div className="w-full h-full" style={{ width: '100%', height: 'calc(100vh - 120px)', minHeight: '400px' }}>
+        {isClient ? (
+          <ReactFlowCanvas nodes={nodes} connections={connections} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-900">
+            <div className="text-gray-500">Initializing canvas...</div>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.swarms";
-import fs from 'fs-extra';
-import path from 'path';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { parse, stringify } from 'yaml';
 
 interface SwarmConfig {
@@ -16,7 +16,7 @@ interface SwarmConfig {
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     const baseDir = path.resolve(process.cwd(), '../');
-    const swarmFiles = await fs.readdir(baseDir, { withFileTypes: true });
+    const swarmFiles = await readdir(baseDir, { withFileTypes: true });
     const ymlFiles = swarmFiles
       .filter(file => file.isFile() && file.name.endsWith('.yml'))
       .map(file => file.name);
@@ -24,7 +24,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const swarms = [];
     for (const file of ymlFiles) {
       try {
-        const content = await fs.readFile(path.join(baseDir, file), 'utf8');
+        const content = await readFile(path.join(baseDir, file), 'utf8');
         const config: SwarmConfig = parse(content);
         if (config.swarm) {
           swarms.push({
@@ -55,7 +55,7 @@ export async function action({ request }: Route.ActionArgs) {
     const { filename, config } = await request.json();
     const baseDir = path.resolve(process.cwd(), '../');
     const yamlContent = stringify(config);
-    await fs.writeFile(path.join(baseDir, filename), yamlContent);
+    await writeFile(path.join(baseDir, filename), yamlContent);
     return Response.json({ success: true });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
