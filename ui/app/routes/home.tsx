@@ -115,7 +115,7 @@ export default function Home() {
           {selectedSwarm ? (
             <>
               {/* Canvas - Top portion */}
-              <div className="flex-1 min-h-0">
+              <div className="flex-1" style={{ height: '100%' }}>
                 <SwarmCanvas
                   swarmName={selectedSwarm.name}
                   nodes={nodes}

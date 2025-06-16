@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Zap, Users, ArrowRight } from 'lucide-react';
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Zap, Users, ArrowRight } from "lucide-react";
 
 interface AgentNode {
   id: string;
@@ -27,68 +27,97 @@ interface SwarmCanvasProps {
 }
 
 // Client-side only ReactFlow component
-function ReactFlowCanvas({ 
-  nodes, 
-  connections 
-}: { 
-  nodes: AgentNode[], 
-  connections: Connection[] 
+function ReactFlowCanvas({
+  nodes,
+  connections,
+  onNodeUpdate,
+}: {
+  nodes: AgentNode[];
+  connections: Connection[];
+  onNodeUpdate: (nodes: AgentNode[]) => void;
 }) {
   const [ReactFlow, setReactFlow] = useState<any>(null);
   const [Controls, setControls] = useState<any>(null);
   const [Background, setBackground] = useState<any>(null);
+  const [reactFlowNodes, setReactFlowNodes] = useState<any[]>([]);
 
   useEffect(() => {
     // Import ReactFlow only on client-side
-    import('@xyflow/react').then((module) => {
+    import("@xyflow/react").then((module) => {
       setReactFlow(() => module.ReactFlow);
       setControls(() => module.Controls);
       setBackground(() => module.Background);
     });
     // Import ReactFlow styles
-    import('@xyflow/react/dist/style.css');
+    import("@xyflow/react/dist/style.css");
   }, []);
 
-  const reactFlowNodes = useMemo(() => {
-    return nodes.map((node) => ({
+  // Update reactFlowNodes when nodes change
+  useEffect(() => {
+    const newReactFlowNodes = nodes.map((node) => ({
       id: node.id,
-      type: 'default',
+      type: "default",
       position: { x: node.x, y: node.y },
-      data: { 
+      data: {
         label: (
           <div className="text-center">
-            <div className="text-white font-semibold text-sm mb-1">{node.name}</div>
+            <div className="text-white font-semibold text-sm mb-1">
+              {node.name}
+            </div>
             <div className="text-slate-100 text-xs">{node.model}</div>
-            <div className="text-slate-200 text-xs mt-1">{node.tools.length} tools</div>
+            <div className="text-slate-200 text-xs mt-1">
+              {node.tools.length} tools
+            </div>
           </div>
-        )
+        ),
       },
       style: {
-        background: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
-        color: 'white',
-        border: '2px solid #64748b',
-        borderRadius: '12px',
-        padding: '12px',
-        width: '160px',
-        height: '80px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        background: "linear-gradient(135deg, #334155 0%, #475569 100%)",
+        color: "white",
+        border: "2px solid #64748b",
+        borderRadius: "12px",
+        padding: "12px",
+        width: "160px",
+        height: "80px",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       },
     }));
+    setReactFlowNodes(newReactFlowNodes);
   }, [nodes]);
+
+  const onNodeDrag = useCallback((_event: any, node: any) => {
+    // Update the node position in real-time during drag
+    setReactFlowNodes((currentNodes) =>
+      currentNodes.map((n) =>
+        n.id === node.id ? { ...n, position: node.position } : n
+      )
+    );
+  }, []);
+
+  const onNodeDragStop = useCallback(
+    (_event: any, node: any) => {
+      // Update the parent component with the new node positions
+      const updatedNodes = nodes.map((n) =>
+        n.id === node.id ? { ...n, x: node.position.x, y: node.position.y } : n
+      );
+      onNodeUpdate(updatedNodes);
+    },
+    [nodes, onNodeUpdate]
+  );
 
   const reactFlowEdges = useMemo(() => {
     return connections.map((conn) => ({
       id: `${conn.from}-${conn.to}`,
       source: conn.from,
       target: conn.to,
-      type: 'smoothstep',
+      type: "smoothstep",
       style: {
-        stroke: '#64748b',
+        stroke: "#64748b",
         strokeWidth: 2,
       },
       markerEnd: {
-        type: 'arrowclosed',
-        color: '#64748b',
+        type: "arrowclosed",
+        color: "#64748b",
       },
     }));
   }, [connections]);
@@ -102,40 +131,45 @@ function ReactFlowCanvas({
   }
 
   return (
-    <div style={{ width: '100%', height: '600px' }}>
+    <div style={{ width: "100%", height: "100%" }}>
       <ReactFlow
         nodes={reactFlowNodes}
         edges={reactFlowEdges}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
         className="bg-slate-950"
-        style={{ width: '100%', height: '100%' }}
-        nodeTypes={{}}
-        edgeTypes={{}}
+        style={{ width: "100%", height: "100%" }}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        elementsSelectable={true}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
       >
-        {Controls && <Controls className="bg-slate-800 border border-slate-700 rounded-lg" />}
+        {Controls && (
+          <Controls className="bg-slate-800 border border-slate-700 rounded-lg" />
+        )}
         {Background && <Background color="#1e293b" gap={20} variant="dots" />}
       </ReactFlow>
     </div>
   );
 }
 
-export default function SwarmCanvas({ 
-  swarmName, 
-  nodes, 
-  connections, 
-  onNodeUpdate, 
-  onConnectionUpdate 
+export default function SwarmCanvas({
+  swarmName,
+  nodes,
+  connections,
+  onNodeUpdate,
 }: SwarmCanvasProps) {
-  console.log('SwarmCanvas rendered with nodes:', nodes);
+  console.log("SwarmCanvas rendered with nodes:", nodes);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
+
   return (
-    <div className="flex-1 bg-slate-950 relative overflow-hidden">
+    <div className="flex-1 bg-slate-950 relative overflow-hidden" style={{ height: '100%' }}>
       {/* Header */}
       <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-3 lg:px-6 border border-slate-700 max-w-sm lg:max-w-none">
         <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
@@ -151,14 +185,29 @@ export default function SwarmCanvas({
       </div>
 
       {/* ReactFlow Canvas */}
-      <div className="w-full h-full" style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+      <div 
+        className="absolute w-full" 
+        style={{
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 'calc(100% - 0px)'
+        }}
+      >
         {isClient ? (
-          <ReactFlowCanvas nodes={nodes} connections={connections} />
+          <ReactFlowCanvas
+            nodes={nodes}
+            connections={connections}
+            onNodeUpdate={onNodeUpdate}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-slate-950">
             <div className="text-center">
               <Zap className="w-12 h-12 mx-auto animate-pulse text-blue-400 mb-4" />
-              <div className="text-slate-400 text-base lg:text-lg">Initializing canvas...</div>
+              <div className="text-slate-400 text-base lg:text-lg">
+                Initializing canvas...
+              </div>
             </div>
           </div>
         )}
