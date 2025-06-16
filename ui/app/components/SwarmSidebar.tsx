@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { Zap, Plus, Users, Settings, Wrench } from 'lucide-react';
 
 export interface SwarmSummary {
   filename: string;
@@ -75,38 +76,62 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
   }
 
   return (
-    <div className="w-80 bg-gray-100 border-r border-gray-300 p-4 flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Swarms</h2>
-        <button
-          onClick={handleNewSwarm}
-          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-        >
-          New
-        </button>
+    <div className="w-80 lg:w-80 md:w-72 sm:w-64 bg-slate-900 border-r border-slate-700 flex flex-col h-full">
+      <div className="p-4 lg:p-6 border-b border-slate-700 flex-shrink-0">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg lg:text-xl font-bold text-white flex items-center">
+            <Zap className="w-5 h-5 mr-2 text-blue-400" />
+            <span className="hidden sm:inline">Swarms</span>
+          </h2>
+          <button
+            onClick={handleNewSwarm}
+            className="px-3 py-2 lg:px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">New</span>
+          </button>
+        </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-3 lg:p-4 min-h-0">
         {swarms.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
-            No swarms found. Create a new one to get started.
+          <div className="text-slate-300 text-center py-8 lg:py-12">
+            <Zap className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+            <div className="text-base lg:text-lg font-medium mb-2 text-white">No swarms found</div>
+            <div className="text-sm text-slate-400">Create a new one to get started</div>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 lg:space-y-3">
             {swarms.map((swarm) => (
               <div
                 key={swarm.filename}
                 onClick={() => onSwarmSelect(swarm)}
-                className={`p-3 rounded cursor-pointer transition-colors ${
+                className={`p-3 lg:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                   selectedSwarm?.filename === swarm.filename
-                    ? 'bg-blue-100 border-blue-300 border'
-                    : 'bg-white hover:bg-gray-50 border border-gray-200'
+                    ? 'bg-blue-600 shadow-lg shadow-blue-500/25 border border-blue-400'
+                    : 'bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 hover:shadow-lg'
                 }`}
               >
-                <div className="font-medium text-sm">{swarm.name}</div>
-                <div className="text-xs text-gray-500 mt-1">{swarm.filename}</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  Main: {swarm.main} | {swarm.instances.length} instances
+                <div className={`font-semibold text-sm lg:text-base mb-2 ${
+                  selectedSwarm?.filename === swarm.filename ? 'text-white' : 'text-white'
+                }`}>{swarm.name}</div>
+                <div className={`text-xs lg:text-sm mb-2 font-mono truncate ${
+                  selectedSwarm?.filename === swarm.filename ? 'text-blue-100' : 'text-slate-400'
+                }`}>{swarm.filename}</div>
+                <div className="flex items-center justify-between text-xs">
+                  <div className={`truncate mr-2 ${
+                    selectedSwarm?.filename === swarm.filename ? 'text-blue-200' : 'text-slate-500'
+                  }`}>
+                    <span className="font-medium">Main:</span> <span className="hidden sm:inline">{swarm.main}</span>
+                  </div>
+                  <div className={`px-2 py-1 rounded-full flex items-center ${
+                    selectedSwarm?.filename === swarm.filename 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    <Users className="w-3 h-3 mr-1" />
+                    {swarm.instances.length}
+                  </div>
                 </div>
               </div>
             ))}
@@ -114,18 +139,22 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
         )}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-gray-300">
+      <div className="p-3 lg:p-4 border-t border-slate-700 space-y-2 lg:space-y-3 flex-shrink-0">
         <Link
           to="/agent-templates"
-          className="block w-full px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 text-center"
+          className="block w-full px-3 py-2 lg:px-4 lg:py-3 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 text-center font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
         >
-          Manage Agent Templates
+          <Settings className="w-4 h-4 mr-2" />
+          <span className="hidden sm:inline">Manage Agent Templates</span>
+          <span className="sm:hidden">Agents</span>
         </Link>
         <Link
           to="/mcp-tools"
-          className="block w-full px-3 py-2 mt-2 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 text-center"
+          className="block w-full px-3 py-2 lg:px-4 lg:py-3 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-500 text-center font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
         >
-          Manage MCP Tools
+          <Wrench className="w-4 h-4 mr-2" />
+          <span className="hidden sm:inline">Manage MCP Tools</span>
+          <span className="sm:hidden">MCPs</span>
         </Link>
       </div>
     </div>

@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(rm:*)",
-      "mcp__playwright__*",
+      "mcp__playwright__(*)",
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__playwright_navigate",
@@ -13,7 +13,8 @@
       "mcp__playwright__playwright_click",
       "mcp__playwright__playwright_drag",
       "WebFetch(domain:reactflow.dev)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:vite.dev)"
     ],
     "deny": []
   }
