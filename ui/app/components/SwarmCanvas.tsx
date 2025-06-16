@@ -39,8 +39,7 @@ function ReactFlowCanvas({
   const [ReactFlow, setReactFlow] = useState<any>(null);
   const [Controls, setControls] = useState<any>(null);
   const [Background, setBackground] = useState<any>(null);
-  const [reactFlowNodes, setReactFlowNodes] = useState<any[]>([]);
-
+  const [localNodes, setLocalNodes] = useState<any[]>([]);
   useEffect(() => {
     // Import ReactFlow only on client-side
     import("@xyflow/react").then((module) => {
@@ -52,7 +51,7 @@ function ReactFlowCanvas({
     import("@xyflow/react/dist/style.css");
   }, []);
 
-  // Update reactFlowNodes when nodes change
+  // Convert nodes to ReactFlow format and update local state when nodes change
   useEffect(() => {
     const newReactFlowNodes = nodes.map((node) => ({
       id: node.id,
@@ -82,12 +81,25 @@ function ReactFlowCanvas({
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       },
     }));
-    setReactFlowNodes(newReactFlowNodes);
+    
+    // Only update localNodes if this is a new set of nodes (different IDs or count)
+    // Don't overwrite if it's just position changes from drag operations
+    setLocalNodes(currentLocalNodes => {
+      if (currentLocalNodes.length !== newReactFlowNodes.length ||
+          !currentLocalNodes.every((localNode, index) => localNode.id === newReactFlowNodes[index]?.id)) {
+        return newReactFlowNodes;
+      }
+      // Update positions from parent nodes but preserve any pending drag positions
+      return currentLocalNodes.map(localNode => {
+        const parentNode = newReactFlowNodes.find(n => n.id === localNode.id);
+        return parentNode ? { ...localNode, ...parentNode } : localNode;
+      });
+    });
   }, [nodes]);
 
   const onNodeDrag = useCallback((_event: any, node: any) => {
-    // Update the node position in real-time during drag
-    setReactFlowNodes((currentNodes) =>
+    // Update local nodes for real-time drag feedback
+    setLocalNodes((currentNodes) =>
       currentNodes.map((n) =>
         n.id === node.id ? { ...n, position: node.position } : n
       )
@@ -133,7 +145,7 @@ function ReactFlowCanvas({
   return (
     <div style={{ width: "100%", height: "100%" }}>
       <ReactFlow
-        nodes={reactFlowNodes}
+        nodes={localNodes}
         edges={reactFlowEdges}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
