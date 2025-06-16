@@ -11,3 +11,4 @@
 .claude-swarm
 *.gem
 tmp/
+node_modules/
