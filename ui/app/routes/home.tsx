@@ -214,6 +214,46 @@ export default function Home() {
     setSaveError(null);
   };
 
+  const handleSwarmNameUpdate = async (newName: string) => {
+    if (!selectedSwarm || !originalConfig) return;
+    
+    try {
+      // Update the config with new name
+      const updatedConfig = {
+        ...originalConfig,
+        swarm: {
+          ...originalConfig.swarm,
+          name: newName
+        }
+      };
+      
+      // Save to API
+      const response = await fetch(`/api/swarms/${selectedSwarm.filename}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: updatedConfig }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update swarm name');
+      }
+      
+      // Update local state
+      setOriginalConfig(updatedConfig);
+      setSelectedSwarm(prev => prev ? { ...prev, name: newName } : null);
+      
+      // Trigger refresh of swarm list to update sidebar
+      setRefreshTrigger(prev => prev + 1);
+      
+      console.log('Swarm name updated successfully');
+    } catch (error) {
+      console.error('Failed to update swarm name:', error);
+      setSaveError('Failed to update swarm name');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950">
       <div className="flex h-screen overflow-hidden">
@@ -222,7 +262,7 @@ export default function Home() {
           <SwarmSidebar 
             onSwarmSelect={handleSwarmSelect}
             selectedSwarm={selectedSwarm}
-            key={refreshTrigger}
+            refreshTrigger={refreshTrigger}
           />
         </div>
         
@@ -262,6 +302,7 @@ export default function Home() {
                   onNodeUpdate={handleNodeUpdate}
                   onConnectionUpdate={handleConnectionUpdate}
                   onDeleteNode={handleDeleteNode}
+                  onSwarmNameUpdate={handleSwarmNameUpdate}
                 />
               </div>
               

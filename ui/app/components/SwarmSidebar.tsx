@@ -11,9 +11,10 @@ export interface SwarmSummary {
 interface SwarmSidebarProps {
   onSwarmSelect: (swarm: SwarmSummary) => void;
   selectedSwarm: SwarmSummary | null;
+  refreshTrigger?: number;
 }
 
-export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSidebarProps) {
+export default function SwarmSidebar({ onSwarmSelect, selectedSwarm, refreshTrigger }: SwarmSidebarProps) {
   const [swarms, setSwarms] = useState<SwarmSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
 
   useEffect(() => {
     fetchSwarms();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchSwarms = async () => {
     try {
