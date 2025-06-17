@@ -122,7 +122,16 @@ export default function Home() {
       // Convert UI state back to YAML format
       const instances: any = {};
       
-      nodes.forEach(node => {
+      // Load MCP tools once for all nodes
+      let mcpTools: any[] = [];
+      try {
+        const mcpResponse = await fetch('/api/mcp-tools');
+        mcpTools = await mcpResponse.json();
+      } catch (error) {
+        console.error('Failed to load MCP tools:', error);
+      }
+      
+      for (const node of nodes) {
         // Convert display name back to original key format
         const instanceKey = node.id;
         
@@ -144,15 +153,28 @@ export default function Home() {
             if (originalMcp) {
               return originalMcp;
             } else {
-              // Create new MCP entry with default stdio type
-              return {
-                name: mcpName,
-                type: 'stdio'
-              };
+              // Look up the MCP tool definition to get proper command/args
+              const mcpTool = mcpTools.find((tool: any) => tool.name === mcpName);
+              
+              if (mcpTool) {
+                return {
+                  name: mcpTool.name,
+                  type: mcpTool.type,
+                  ...(mcpTool.command && { command: mcpTool.command }),
+                  ...(mcpTool.args && { args: mcpTool.args }),
+                  ...(mcpTool.url && { url: mcpTool.url })
+                };
+              } else {
+                // Fallback for unknown MCP
+                return {
+                  name: mcpName,
+                  type: 'stdio'
+                };
+              }
             }
           })
         };
-      });
+      }
       
       // Create updated config maintaining original structure
       const updatedConfig = {
