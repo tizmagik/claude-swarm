@@ -4,7 +4,7 @@ import SwarmSidebar from '../components/SwarmSidebar';
 import SwarmCanvas from '../components/SwarmCanvas';
 import AgentMcpPanels from '../components/AgentMcpPanels';
 import type { SwarmSummary } from '../components/SwarmSidebar';
-import { Zap, Play } from 'lucide-react';
+import { Zap, Play, Save, AlertCircle } from 'lucide-react';
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -35,6 +35,10 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [nodes, setNodes] = useState<AgentNode[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [originalConfig, setOriginalConfig] = useState<any>(null);
 
   const handleSwarmSelect = (swarm: SwarmSummary) => {
     console.log('Swarm selected:', swarm);
@@ -51,6 +55,11 @@ export default function Home() {
       if (response.ok) {
         const config = await response.json();
         console.log('Loaded config:', config);
+        
+        // Store original config for save operations
+        setOriginalConfig(config);
+        setHasUnsavedChanges(false);
+        setSaveError(null);
         // Convert swarm instances to visual nodes
         const swarmNodes: AgentNode[] = Object.entries(config.swarm.instances || {}).map(([name, instance]: [string, any], index) => ({
           id: name,
@@ -92,10 +101,91 @@ export default function Home() {
 
   const handleNodeUpdate = (newNodes: AgentNode[]) => {
     setNodes(newNodes);
+    setHasUnsavedChanges(true);
+    setSaveError(null);
   };
 
   const handleConnectionUpdate = (newConnections: Connection[]) => {
     setConnections(newConnections);
+    setHasUnsavedChanges(true);
+    setSaveError(null);
+  };
+
+  const saveSwarmChanges = async () => {
+    if (!selectedSwarm || !originalConfig) return;
+    
+    setIsSaving(true);
+    setSaveError(null);
+    
+    try {
+      // Convert UI state back to YAML format
+      const instances: any = {};
+      
+      nodes.forEach(node => {
+        // Convert display name back to original key format
+        const instanceKey = node.id;
+        
+        instances[instanceKey] = {
+          // Preserve original config structure
+          ...(originalConfig.swarm.instances[instanceKey] || {}),
+          // Update with current node data
+          model: node.model,
+          description: node.description,
+          tools: node.tools,
+          connections: node.connections,
+          // Convert MCPs back to original format
+          mcps: node.mcps.map(mcpName => {
+            // Try to find original MCP config
+            const originalInstance = originalConfig.swarm.instances[instanceKey];
+            const originalMcp = originalInstance?.mcps?.find((mcp: any) => mcp.name === mcpName);
+            
+            if (originalMcp) {
+              return originalMcp;
+            } else {
+              // Create new MCP entry with default stdio type
+              return {
+                name: mcpName,
+                type: 'stdio'
+              };
+            }
+          })
+        };
+      });
+      
+      // Create updated config maintaining original structure
+      const updatedConfig = {
+        ...originalConfig,
+        swarm: {
+          ...originalConfig.swarm,
+          instances
+        }
+      };
+      
+      // Save to API
+      const response = await fetch(`/api/swarms/${selectedSwarm.filename}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: updatedConfig }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save swarm');
+      }
+      
+      // Update original config and reset unsaved changes
+      setOriginalConfig(updatedConfig);
+      setHasUnsavedChanges(false);
+      
+      console.log('Swarm saved successfully');
+    } catch (error: any) {
+      console.error('Failed to save swarm:', error);
+      setSaveError(error.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -114,6 +204,29 @@ export default function Home() {
         <div className="flex-1 flex flex-col min-w-0">
           {selectedSwarm ? (
             <>
+              {/* Save Controls Bar */}
+              {hasUnsavedChanges && (
+                <div className="bg-yellow-900/50 border-b border-yellow-700 px-4 py-2 flex items-center justify-between">
+                  <div className="flex items-center text-yellow-200 text-sm">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    You have unsaved changes
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {saveError && (
+                      <span className="text-red-400 text-sm">{saveError}</span>
+                    )}
+                    <button
+                      onClick={saveSwarmChanges}
+                      disabled={isSaving}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white px-4 py-1.5 rounded-md text-sm font-medium flex items-center transition-colors"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               {/* Canvas - Top portion */}
               <div className="flex-1" style={{ height: '100%' }}>
                 <SwarmCanvas
