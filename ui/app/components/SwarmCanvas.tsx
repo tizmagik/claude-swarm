@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Zap, Users, ArrowRight, Edit3, X, Save, Bot, Settings, Wrench, Minus } from "lucide-react";
+import { Zap, Users, ArrowRight, Edit3, X, Save, Bot, Settings, Wrench, Minus, Plus, Trash2 } from "lucide-react";
 
 interface AgentNode {
   id: string;
@@ -24,6 +24,8 @@ interface SwarmCanvasProps {
   connections: Connection[];
   onNodeUpdate: (nodes: AgentNode[]) => void;
   onConnectionUpdate: (connections: Connection[]) => void;
+  onAddNode?: () => void;
+  onDeleteNode?: (nodeId: string) => void;
 }
 
 // Client-side only ReactFlow component
@@ -31,10 +33,12 @@ function ReactFlowCanvas({
   nodes,
   connections,
   onNodeUpdate,
+  onDeleteNode,
 }: {
   nodes: AgentNode[];
   connections: Connection[];
   onNodeUpdate: (nodes: AgentNode[]) => void;
+  onDeleteNode?: (nodeId: string) => void;
 }) {
   const [ReactFlow, setReactFlow] = useState<any>(null);
   const [Controls, setControls] = useState<any>(null);
@@ -481,20 +485,38 @@ function ReactFlowCanvas({
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 mt-8">
-              <button
-                onClick={handleEditCancel}
-                className="px-4 py-2 text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEditSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </button>
+            <div className="flex justify-between mt-8">
+              <div>
+                {onDeleteNode && (
+                  <button
+                    onClick={() => {
+                      if (editingNode && confirm(`Are you sure you want to delete agent "${editingNode.name}"?`)) {
+                        onDeleteNode(editingNode.id);
+                        setEditingNode(null);
+                      }
+                    }}
+                    className="px-4 py-2 text-red-400 hover:text-red-300 border border-red-600 hover:border-red-500 rounded-lg hover:bg-red-600/10 transition-colors flex items-center"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Agent
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleEditCancel}
+                  className="px-4 py-2 text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -508,6 +530,8 @@ export default function SwarmCanvas({
   nodes,
   connections,
   onNodeUpdate,
+  onAddNode,
+  onDeleteNode,
 }: SwarmCanvasProps) {
   console.log("SwarmCanvas rendered with nodes:", nodes);
   const [isClient, setIsClient] = useState(false);
@@ -520,15 +544,28 @@ export default function SwarmCanvas({
     <div className="flex-1 bg-slate-950 relative overflow-hidden" style={{ height: '100%' }}>
       {/* Header */}
       <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-3 lg:px-6 border border-slate-700 max-w-sm lg:max-w-none">
-        <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
-          <Zap className="w-5 h-5 lg:w-6 lg:h-6 mr-2 lg:mr-3 text-blue-400" />
-          <span className="truncate">{swarmName}</span>
-        </h1>
-        <div className="text-slate-400 text-xs lg:text-sm mt-1 flex items-center">
-          <Users className="w-3 h-3 mr-1" />
-          {nodes.length} agents
-          <ArrowRight className="w-3 h-3 mx-2" />
-          {connections.length} connections
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
+              <Zap className="w-5 h-5 lg:w-6 lg:h-6 mr-2 lg:mr-3 text-blue-400" />
+              <span className="truncate">{swarmName}</span>
+            </h1>
+            <div className="text-slate-400 text-xs lg:text-sm mt-1 flex items-center">
+              <Users className="w-3 h-3 mr-1" />
+              {nodes.length} agents
+              <ArrowRight className="w-3 h-3 mx-2" />
+              {connections.length} connections
+            </div>
+          </div>
+          {onAddNode && (
+            <button
+              onClick={onAddNode}
+              className="ml-4 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 text-sm font-medium transition-colors flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Agent
+            </button>
+          )}
         </div>
       </div>
 
@@ -548,6 +585,7 @@ export default function SwarmCanvas({
             nodes={nodes}
             connections={connections}
             onNodeUpdate={onNodeUpdate}
+            onDeleteNode={onDeleteNode}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-slate-950">
