@@ -132,6 +132,7 @@ export default function Home() {
           model: node.model,
           description: node.description,
           tools: node.tools,
+          allowed_tools: node.tools, // Keep both arrays in sync
           connections: node.connections,
           // Convert MCPs back to original format
           mcps: node.mcps.map(mcpName => {
@@ -188,27 +189,6 @@ export default function Home() {
     }
   };
 
-  const handleAddNode = () => {
-    if (!selectedSwarm) return;
-    
-    const nodeId = `agent_${Date.now()}`;
-    const newNode: AgentNode = {
-      id: nodeId,
-      name: 'New Agent',
-      description: 'A new agent in the swarm',
-      x: 200 + (nodes.length % 3) * 250,
-      y: 150 + Math.floor(nodes.length / 3) * 200,
-      tools: ['Read', 'Edit', 'Write'],
-      mcps: [],
-      model: 'sonnet',
-      connections: []
-    };
-    
-    const updatedNodes = [...nodes, newNode];
-    setNodes(updatedNodes);
-    setHasUnsavedChanges(true);
-    setSaveError(null);
-  };
 
   const handleDeleteNode = (nodeId: string) => {
     if (!selectedSwarm) return;
@@ -281,7 +261,6 @@ export default function Home() {
                   connections={connections}
                   onNodeUpdate={handleNodeUpdate}
                   onConnectionUpdate={handleConnectionUpdate}
-                  onAddNode={handleAddNode}
                   onDeleteNode={handleDeleteNode}
                 />
               </div>
