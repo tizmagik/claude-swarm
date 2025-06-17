@@ -188,6 +188,52 @@ export default function Home() {
     }
   };
 
+  const handleAddNode = () => {
+    if (!selectedSwarm) return;
+    
+    const nodeId = `agent_${Date.now()}`;
+    const newNode: AgentNode = {
+      id: nodeId,
+      name: 'New Agent',
+      description: 'A new agent in the swarm',
+      x: 200 + (nodes.length % 3) * 250,
+      y: 150 + Math.floor(nodes.length / 3) * 200,
+      tools: ['Read', 'Edit', 'Write'],
+      mcps: [],
+      model: 'sonnet',
+      connections: []
+    };
+    
+    const updatedNodes = [...nodes, newNode];
+    setNodes(updatedNodes);
+    setHasUnsavedChanges(true);
+    setSaveError(null);
+  };
+
+  const handleDeleteNode = (nodeId: string) => {
+    if (!selectedSwarm) return;
+    
+    // Remove the node
+    const updatedNodes = nodes.filter(n => n.id !== nodeId);
+    setNodes(updatedNodes);
+    
+    // Remove any connections to/from this node
+    const updatedConnections = connections.filter(
+      conn => conn.from !== nodeId && conn.to !== nodeId
+    );
+    setConnections(updatedConnections);
+    
+    // Remove this node from other nodes' connections arrays
+    const nodesWithUpdatedConnections = updatedNodes.map(node => ({
+      ...node,
+      connections: node.connections.filter(conn => conn !== nodeId)
+    }));
+    setNodes(nodesWithUpdatedConnections);
+    
+    setHasUnsavedChanges(true);
+    setSaveError(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950">
       <div className="flex h-screen overflow-hidden">
@@ -235,6 +281,8 @@ export default function Home() {
                   connections={connections}
                   onNodeUpdate={handleNodeUpdate}
                   onConnectionUpdate={handleConnectionUpdate}
+                  onAddNode={handleAddNode}
+                  onDeleteNode={handleDeleteNode}
                 />
               </div>
               
