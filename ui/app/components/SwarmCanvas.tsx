@@ -296,7 +296,23 @@ function ReactFlowCanvas({
           });
           
           const agent = dragData.item;
-          const nodeId = `agent_${Date.now()}`;
+          
+          // Generate human-readable ID from agent name
+          const baseId = agent.name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+            .replace(/\s+/g, '_') // Replace spaces with underscores
+            .replace(/_+/g, '_') // Replace multiple underscores with single
+            .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+          
+          // Ensure uniqueness by checking existing node IDs
+          let nodeId = baseId;
+          let counter = 1;
+          while (nodes.some(n => n.id === nodeId)) {
+            nodeId = `${baseId}_${counter}`;
+            counter++;
+          }
+          
           const newNode: AgentNode = {
             id: nodeId,
             name: agent.name,
