@@ -1,5 +1,18 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Zap, Users, ArrowRight, Edit3, X, Save, Bot, Settings, Wrench, Minus, Plus, Trash2 } from "lucide-react";
+import {
+  Zap,
+  Users,
+  ArrowRight,
+  Edit3,
+  X,
+  Save,
+  Bot,
+  Settings,
+  Wrench,
+  Minus,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
 interface AgentNode {
   id: string;
@@ -31,12 +44,16 @@ const nodeWidth = 180;
 const nodeHeight = 120;
 
 // Automatic layout using dagre - dynamic import for client-side
-const getLayoutedElements = async (nodes: any[], edges: any[], direction = 'TB') => {
-  const dagre = await import('@dagrejs/dagre');
+const getLayoutedElements = async (
+  nodes: any[],
+  edges: any[],
+  direction = "TB"
+) => {
+  const dagre = await import("@dagrejs/dagre");
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const isHorizontal = direction === 'LR';
+  const isHorizontal = direction === "LR";
   dagreGraph.setGraph({ rankdir: direction });
 
   nodes.forEach((node) => {
@@ -51,8 +68,8 @@ const getLayoutedElements = async (nodes: any[], edges: any[], direction = 'TB')
 
   nodes.forEach((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    node.targetPosition = isHorizontal ? 'left' : 'top';
-    node.sourcePosition = isHorizontal ? 'right' : 'bottom';
+    node.targetPosition = isHorizontal ? "left" : "top";
+    node.sourcePosition = isHorizontal ? "right" : "bottom";
 
     // We are shifting the dagre node position (anchor=center center) to the top left
     // so it matches the React Flow node anchor point (top left).
@@ -87,11 +104,11 @@ function ReactFlowCanvas({
   const [localNodes, setLocalNodes] = useState<any[]>([]);
   const [editingNode, setEditingNode] = useState<AgentNode | null>(null);
   const [editForm, setEditForm] = useState({
-    name: '',
-    model: '',
+    name: "",
+    model: "",
     tools: [] as string[],
     mcps: [] as string[],
-    description: ''
+    description: "",
   });
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   useEffect(() => {
@@ -154,18 +171,24 @@ function ReactFlowCanvas({
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       },
     }));
-    
+
     // Only update localNodes if this is a new set of nodes (different IDs or count)
     // Don't overwrite if it's just position changes from drag operations
-    setLocalNodes(currentLocalNodes => {
-      if (currentLocalNodes.length !== newReactFlowNodes.length ||
-          !currentLocalNodes.every((localNode, index) => localNode.id === newReactFlowNodes[index]?.id)) {
+    setLocalNodes((currentLocalNodes) => {
+      if (
+        currentLocalNodes.length !== newReactFlowNodes.length ||
+        !currentLocalNodes.every(
+          (localNode, index) => localNode.id === newReactFlowNodes[index]?.id
+        )
+      ) {
         return newReactFlowNodes;
       }
       // Update node data but preserve current positions (which may be from drag operations)
-      return currentLocalNodes.map(localNode => {
-        const parentNode = newReactFlowNodes.find(n => n.id === localNode.id);
-        return parentNode ? { ...parentNode, position: localNode.position } : localNode;
+      return currentLocalNodes.map((localNode) => {
+        const parentNode = newReactFlowNodes.find((n) => n.id === localNode.id);
+        return parentNode
+          ? { ...parentNode, position: localNode.position }
+          : localNode;
       });
     });
   }, [nodes]);
@@ -187,32 +210,39 @@ function ReactFlowCanvas({
     }));
   }, [connections]);
 
-  const handleMcpAddToForm = useCallback((mcp: string) => {
-    if (mcp && !editForm.mcps.includes(mcp)) {
-      setEditForm(prev => ({
-        ...prev,
-        mcps: [...prev.mcps, mcp]
-      }));
-    }
-  }, [editForm.mcps]);
+  const handleMcpAddToForm = useCallback(
+    (mcp: string) => {
+      if (mcp && !editForm.mcps.includes(mcp)) {
+        setEditForm((prev) => ({
+          ...prev,
+          mcps: [...prev.mcps, mcp],
+        }));
+      }
+    },
+    [editForm.mcps]
+  );
 
   // Auto-layout when nodes or connections change
   useEffect(() => {
-    if (localNodes.length > 0 && reactFlowEdges.length >= 0 && reactFlowInstance) {
+    if (
+      localNodes.length > 0 &&
+      reactFlowEdges.length >= 0 &&
+      reactFlowInstance
+    ) {
       const applyAutoLayout = async () => {
         try {
           const { nodes: layoutedNodes } = await getLayoutedElements(
             localNodes,
             reactFlowEdges,
-            'TB' // Always use vertical layout
+            "TB" // Always use vertical layout
           );
 
           setLocalNodes([...layoutedNodes]);
 
           // Update parent component with new positions
-          const updatedNodes = nodes.map(n => {
-            const layoutedNode = layoutedNodes.find(ln => ln.id === n.id);
-            return layoutedNode 
+          const updatedNodes = nodes.map((n) => {
+            const layoutedNode = layoutedNodes.find((ln) => ln.id === n.id);
+            return layoutedNode
               ? { ...n, x: layoutedNode.position.x, y: layoutedNode.position.y }
               : n;
           });
@@ -223,7 +253,7 @@ function ReactFlowCanvas({
             reactFlowInstance.fitView({ padding: 0.2, duration: 800 });
           }, 100);
         } catch (error) {
-          console.error('Auto-layout failed:', error);
+          console.error("Auto-layout failed:", error);
         }
       };
 
@@ -231,177 +261,203 @@ function ReactFlowCanvas({
     }
   }, [localNodes.length, reactFlowEdges.length, reactFlowInstance]);
 
+  const onConnect = useCallback(
+    (connection: any) => {
+      const newConnection: Connection = {
+        from: connection.source,
+        to: connection.target,
+      };
 
-  const onConnect = useCallback((connection: any) => {
-    const newConnection: Connection = {
-      from: connection.source,
-      to: connection.target
-    };
-    
-    // Add to connections array
-    const updatedConnections = [...connections, newConnection];
-    onConnectionUpdate(updatedConnections);
-    
-    // Update the source node's connections array
-    const updatedNodes = nodes.map(node => {
-      if (node.id === connection.source) {
-        return {
-          ...node,
-          connections: [...new Set([...node.connections, connection.target])]
-        };
-      }
-      return node;
-    });
-    onNodeUpdate(updatedNodes);
-    
-    console.log('Created connection:', newConnection);
-  }, [connections, nodes, onConnectionUpdate, onNodeUpdate]);
+      // Add to connections array
+      const updatedConnections = [...connections, newConnection];
+      onConnectionUpdate(updatedConnections);
 
-  const onNodeClick = useCallback((_event: any, node: any) => {
-    const agentNode = nodes.find(n => n.id === node.id);
-    if (agentNode) {
-      setEditingNode(agentNode);
-      setEditForm({
-        name: agentNode.name,
-        model: agentNode.model,
-        tools: [...agentNode.tools],
-        mcps: [...agentNode.mcps],
-        description: agentNode.description
+      // Update the source node's connections array
+      const updatedNodes = nodes.map((node) => {
+        if (node.id === connection.source) {
+          return {
+            ...node,
+            connections: [...new Set([...node.connections, connection.target])],
+          };
+        }
+        return node;
       });
-    }
-  }, [nodes]);
+      onNodeUpdate(updatedNodes);
+
+      console.log("Created connection:", newConnection);
+    },
+    [connections, nodes, onConnectionUpdate, onNodeUpdate]
+  );
+
+  const onNodeClick = useCallback(
+    (_event: any, node: any) => {
+      const agentNode = nodes.find((n) => n.id === node.id);
+      if (agentNode) {
+        setEditingNode(agentNode);
+        setEditForm({
+          name: agentNode.name,
+          model: agentNode.model,
+          tools: [...agentNode.tools],
+          mcps: [...agentNode.mcps],
+          description: agentNode.description,
+        });
+      }
+    },
+    [nodes]
+  );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
+    event.dataTransfer.dropEffect = "copy";
   }, []);
 
-  const onDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    
-    try {
-      const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
-      console.log('Drop event:', dragData);
-      
-      if (dragData.type === 'agent') {
-        // Create new agent from template
-        const clientX = event.clientX;
-        const clientY = event.clientY;
-        const reactFlowBounds = (event.target as HTMLElement).closest('.react-flow')?.getBoundingClientRect();
-        
-        if (reactFlowBounds && reactFlowInstance) {
-          const position = reactFlowInstance.screenToFlowPosition({
-            x: clientX - reactFlowBounds.left,
-            y: clientY - reactFlowBounds.top,
-          });
-          
-          const agent = dragData.item;
-          
-          // Generate human-readable ID from agent name
-          const baseId = agent.name
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-            .replace(/\s+/g, '_') // Replace spaces with underscores
-            .replace(/_+/g, '_') // Replace multiple underscores with single
-            .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
-          
-          // Ensure uniqueness by checking existing node IDs
-          let nodeId = baseId;
-          let counter = 1;
-          while (nodes.some(n => n.id === nodeId)) {
-            nodeId = `${baseId}_${counter}`;
-            counter++;
-          }
-          
-          const newNode: AgentNode = {
-            id: nodeId,
-            name: agent.name,
-            description: agent.description || 'A new agent in the swarm',
-            x: position.x,
-            y: position.y,
-            tools: agent.allowed_tools || ['Read', 'Edit', 'Write'],
-            mcps: agent.mcps?.map((mcp: any) => mcp.name) || [],
-            model: agent.model || 'sonnet',
-            connections: []
-          };
-          
-          const updatedNodes = [...nodes, newNode];
-          onNodeUpdate(updatedNodes);
-          console.log('Created new agent:', newNode);
-        }
-      } else if (dragData.type === 'mcp') {
-        // Get the element that was dropped on
-        const dropTarget = event.target as HTMLElement;
-        const nodeElement = dropTarget.closest('.react-flow__node');
-        
-        if (nodeElement) {
-          const nodeId = nodeElement.getAttribute('data-id');
-          if (nodeId) {
-            // Add MCP to the node
-            const updatedNodes = nodes.map(n => 
-              n.id === nodeId 
-                ? { ...n, mcps: [...new Set([...n.mcps, dragData.item.name])] }
-                : n
-            );
-            
-            // If we're editing this node, update the form state instead of the node directly
-            if (editingNode && editingNode.id === nodeId) {
-              handleMcpAddToForm(dragData.item.name);
-              return; // Don't update the node directly, just the form
-            }
-            
-            console.log('Adding MCP', dragData.item.name, 'to node', nodeId);
-            onNodeUpdate(updatedNodes);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing drop data:', error);
-    }
-  }, [nodes, onNodeUpdate, reactFlowInstance, editingNode, handleMcpAddToForm]);
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
 
+      try {
+        const dragData = JSON.parse(
+          event.dataTransfer.getData("application/json")
+        );
+        console.log("Drop event:", dragData);
+
+        if (dragData.type === "agent") {
+          // Create new agent from template
+          const clientX = event.clientX;
+          const clientY = event.clientY;
+          const reactFlowBounds = (event.target as HTMLElement)
+            .closest(".react-flow")
+            ?.getBoundingClientRect();
+
+          if (reactFlowBounds && reactFlowInstance) {
+            const position = reactFlowInstance.screenToFlowPosition({
+              x: clientX - reactFlowBounds.left,
+              y: clientY - reactFlowBounds.top,
+            });
+
+            const agent = dragData.item;
+
+            // Generate human-readable ID from agent name
+            const baseId = agent.name
+              .toLowerCase()
+              .replace(/[^a-z0-9\s]/g, "") // Remove special characters
+              .replace(/\s+/g, "_") // Replace spaces with underscores
+              .replace(/_+/g, "_") // Replace multiple underscores with single
+              .replace(/^_|_$/g, ""); // Remove leading/trailing underscores
+
+            // Ensure uniqueness by checking existing node IDs
+            let nodeId = baseId;
+            let counter = 1;
+            while (nodes.some((n) => n.id === nodeId)) {
+              nodeId = `${baseId}_${counter}`;
+              counter++;
+            }
+
+            const newNode: AgentNode = {
+              id: nodeId,
+              name: agent.name,
+              description: agent.description || "A new agent in the swarm",
+              x: position.x,
+              y: position.y,
+              tools: agent.allowed_tools || ["Read", "Edit", "Write"],
+              mcps: agent.mcps?.map((mcp: any) => mcp.name) || [],
+              model: agent.model || "sonnet",
+              connections: [],
+            };
+
+            const updatedNodes = [...nodes, newNode];
+            onNodeUpdate(updatedNodes);
+            console.log("Created new agent:", newNode);
+          }
+        } else if (dragData.type === "mcp") {
+          // Get the element that was dropped on
+          const dropTarget = event.target as HTMLElement;
+          const nodeElement = dropTarget.closest(".react-flow__node");
+
+          if (nodeElement) {
+            const nodeId = nodeElement.getAttribute("data-id");
+            if (nodeId) {
+              // Add MCP to the node
+              const updatedNodes = nodes.map((n) =>
+                n.id === nodeId
+                  ? {
+                      ...n,
+                      mcps: [...new Set([...n.mcps, dragData.item.name])],
+                    }
+                  : n
+              );
+
+              // If we're editing this node, update the form state instead of the node directly
+              if (editingNode && editingNode.id === nodeId) {
+                handleMcpAddToForm(dragData.item.name);
+                return; // Don't update the node directly, just the form
+              }
+
+              console.log("Adding MCP", dragData.item.name, "to node", nodeId);
+              onNodeUpdate(updatedNodes);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing drop data:", error);
+      }
+    },
+    [nodes, onNodeUpdate, reactFlowInstance, editingNode, handleMcpAddToForm]
+  );
 
   const onNodesChange = useCallback(
     (changes: any[]) => {
       // Handle position changes
-      const positionChanges = changes.filter(change => change.type === 'position' && change.dragging === false);
-      
+      const positionChanges = changes.filter(
+        (change) => change.type === "position" && change.dragging === false
+      );
+
       if (positionChanges.length > 0) {
         // Update local nodes first
-        setLocalNodes(currentNodes => {
+        setLocalNodes((currentNodes) => {
           let updatedLocalNodes = [...currentNodes];
-          positionChanges.forEach(change => {
-            const nodeIndex = updatedLocalNodes.findIndex(n => n.id === change.id);
+          positionChanges.forEach((change) => {
+            const nodeIndex = updatedLocalNodes.findIndex(
+              (n) => n.id === change.id
+            );
             if (nodeIndex !== -1 && change.position) {
               updatedLocalNodes[nodeIndex] = {
                 ...updatedLocalNodes[nodeIndex],
-                position: change.position
+                position: change.position,
               };
             }
           });
           return updatedLocalNodes;
         });
-        
+
         // Update parent component
-        const updatedNodes = nodes.map(n => {
-          const positionChange = positionChanges.find(change => change.id === n.id);
+        const updatedNodes = nodes.map((n) => {
+          const positionChange = positionChanges.find(
+            (change) => change.id === n.id
+          );
           return positionChange && positionChange.position
-            ? { ...n, x: positionChange.position.x, y: positionChange.position.y }
+            ? {
+                ...n,
+                x: positionChange.position.x,
+                y: positionChange.position.y,
+              }
             : n;
         });
-        
+
         onNodeUpdate(updatedNodes);
       } else {
         // Apply other changes to local nodes
-        setLocalNodes(currentNodes => {
+        setLocalNodes((currentNodes) => {
           let updatedNodes = [...currentNodes];
-          changes.forEach(change => {
-            if (change.type === 'position' && change.position) {
-              const nodeIndex = updatedNodes.findIndex(n => n.id === change.id);
+          changes.forEach((change) => {
+            if (change.type === "position" && change.position) {
+              const nodeIndex = updatedNodes.findIndex(
+                (n) => n.id === change.id
+              );
               if (nodeIndex !== -1) {
                 updatedNodes[nodeIndex] = {
                   ...updatedNodes[nodeIndex],
-                  position: change.position
+                  position: change.position,
                 };
               }
             }
@@ -415,13 +471,11 @@ function ReactFlowCanvas({
 
   const handleEditSave = useCallback(() => {
     if (!editingNode) return;
-    
-    const updatedNodes = nodes.map(n => 
-      n.id === editingNode.id 
-        ? { ...n, ...editForm }
-        : n
+
+    const updatedNodes = nodes.map((n) =>
+      n.id === editingNode.id ? { ...n, ...editForm } : n
     );
-    
+
     onNodeUpdate(updatedNodes);
     setEditingNode(null);
   }, [editingNode, editForm, nodes, onNodeUpdate]);
@@ -429,37 +483,39 @@ function ReactFlowCanvas({
   const handleEditCancel = useCallback(() => {
     setEditingNode(null);
     setEditForm({
-      name: '',
-      model: '',
+      name: "",
+      model: "",
       tools: [],
       mcps: [],
-      description: ''
+      description: "",
     });
   }, []);
 
-  const handleToolAdd = useCallback((tool: string) => {
-    if (tool && !editForm.tools.includes(tool)) {
-      setEditForm(prev => ({
-        ...prev,
-        tools: [...prev.tools, tool]
-      }));
-    }
-  }, [editForm.tools]);
+  const handleToolAdd = useCallback(
+    (tool: string) => {
+      if (tool && !editForm.tools.includes(tool)) {
+        setEditForm((prev) => ({
+          ...prev,
+          tools: [...prev.tools, tool],
+        }));
+      }
+    },
+    [editForm.tools]
+  );
 
   const handleToolRemove = useCallback((tool: string) => {
-    setEditForm(prev => ({
+    setEditForm((prev) => ({
       ...prev,
-      tools: prev.tools.filter(t => t !== tool)
+      tools: prev.tools.filter((t) => t !== tool),
     }));
   }, []);
 
   const handleMcpRemoveFromForm = useCallback((mcp: string) => {
-    setEditForm(prev => ({
+    setEditForm((prev) => ({
       ...prev,
-      mcps: prev.mcps.filter(m => m !== mcp)
+      mcps: prev.mcps.filter((m) => m !== mcp),
     }));
   }, []);
-
 
   if (!ReactFlow) {
     return (
@@ -470,7 +526,7 @@ function ReactFlowCanvas({
   }
 
   return (
-    <div 
+    <div
       style={{ width: "100%", height: "100%" }}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -490,19 +546,24 @@ function ReactFlowCanvas({
         nodesConnectable={true}
         elementsSelectable={true}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+        proOptions={{
+          hideAttribution: true,
+        }}
       >
         {Controls && (
-          <Controls 
+          <Controls
             className="!bg-slate-800 !border-slate-700 rounded-lg"
-            style={{
-              backgroundColor: '#1e293b',
-              borderColor: '#475569',
-              '--xy-controls-button-background-color': '#334155',
-              '--xy-controls-button-background-color-hover': '#475569',
-              '--xy-controls-button-color': '#ffffff',
-              '--xy-controls-button-color-hover': '#ffffff',
-              '--xy-controls-button-border-color': '#475569'
-            } as any}
+            style={
+              {
+                backgroundColor: "#1e293b",
+                borderColor: "#475569",
+                "--xy-controls-button-background-color": "#334155",
+                "--xy-controls-button-background-color-hover": "#475569",
+                "--xy-controls-button-color": "#ffffff",
+                "--xy-controls-button-color-hover": "#ffffff",
+                "--xy-controls-button-border-color": "#475569",
+              } as any
+            }
           />
         )}
         {Background && <Background color="#1e293b" gap={20} variant="dots" />}
@@ -537,7 +598,9 @@ function ReactFlowCanvas({
                 <input
                   type="text"
                   value={editForm.name}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter agent name"
                 />
@@ -551,7 +614,9 @@ function ReactFlowCanvas({
                 </label>
                 <select
                   value={editForm.model}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, model: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, model: e.target.value }))
+                  }
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="sonnet">Claude 3.5 Sonnet</option>
@@ -567,7 +632,12 @@ function ReactFlowCanvas({
                 </label>
                 <textarea
                   value={editForm.description}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Describe what this agent does"
                   rows={3}
@@ -602,15 +672,16 @@ function ReactFlowCanvas({
                     placeholder="Add a tool (e.g., Read, Edit, Bash)"
                     className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         handleToolAdd(e.currentTarget.value);
-                        e.currentTarget.value = '';
+                        e.currentTarget.value = "";
                       }
                     }}
                   />
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
-                  Press Enter to add. Common tools: Read, Edit, Write, Bash, Grep, Glob
+                  Press Enter to add. Common tools: Read, Edit, Write, Bash,
+                  Grep, Glob
                 </div>
               </div>
 
@@ -636,11 +707,14 @@ function ReactFlowCanvas({
                     </span>
                   ))}
                   {editForm.mcps.length === 0 && (
-                    <span className="text-slate-400 text-sm">No MCP integrations</span>
+                    <span className="text-slate-400 text-sm">
+                      No MCP integrations
+                    </span>
                   )}
                 </div>
                 <div className="text-xs text-slate-400">
-                  Drag and drop MCP tools from the sidebar to add them, or click the × to remove them
+                  Drag and drop MCP tools from the sidebar to add them, or click
+                  the × to remove them
                 </div>
               </div>
             </div>
@@ -651,7 +725,12 @@ function ReactFlowCanvas({
                 {onDeleteNode && (
                   <button
                     onClick={() => {
-                      if (editingNode && confirm(`Are you sure you want to delete agent "${editingNode.name}"?`)) {
+                      if (
+                        editingNode &&
+                        confirm(
+                          `Are you sure you want to delete agent "${editingNode.name}"?`
+                        )
+                      ) {
                         onDeleteNode(editingNode.id);
                         setEditingNode(null);
                       }
@@ -702,7 +781,10 @@ export default function SwarmCanvas({
   }, []);
 
   return (
-    <div className="flex-1 bg-slate-950 relative overflow-hidden" style={{ height: '100%' }}>
+    <div
+      className="flex-1 bg-slate-950 relative overflow-hidden"
+      style={{ height: "100%" }}
+    >
       {/* Header */}
       <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-3 lg:px-6 border border-slate-700 max-w-sm lg:max-w-none">
         <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
@@ -718,14 +800,14 @@ export default function SwarmCanvas({
       </div>
 
       {/* ReactFlow Canvas */}
-      <div 
-        className="absolute w-full" 
+      <div
+        className="absolute w-full"
         style={{
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          height: 'calc(100% - 0px)'
+          height: "calc(100% - 0px)",
         }}
       >
         {isClient ? (

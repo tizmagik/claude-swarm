@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { Zap, Plus, Users, Settings, Wrench } from 'lucide-react';
+import { Zap, Plus, Users, X } from 'lucide-react';
 
 export interface SwarmSummary {
   filename: string;
@@ -18,6 +17,12 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
   const [swarms, setSwarms] = useState<SwarmSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showNewSwarmModal, setShowNewSwarmModal] = useState(false);
+  const [newSwarmForm, setNewSwarmForm] = useState({
+    filename: '',
+    name: '',
+    description: ''
+  });
 
   useEffect(() => {
     fetchSwarms();
@@ -37,19 +42,74 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
   };
 
   const handleNewSwarm = () => {
-    const filename = prompt('Enter filename for new swarm (e.g., my-swarm.yml):');
-    if (filename && !filename.endsWith('.yml')) {
-      alert('Filename must end with .yml');
+    setShowNewSwarmModal(true);
+    setNewSwarmForm({
+      filename: '',
+      name: '',
+      description: ''
+    });
+  };
+
+  const createNewSwarm = async () => {
+    if (!newSwarmForm.filename || !newSwarmForm.name) {
+      alert('Please fill in both filename and name');
       return;
     }
-    if (filename) {
+
+    let filename = newSwarmForm.filename;
+    if (!filename.endsWith('.yml')) {
+      filename += '.yml';
+    }
+
+    // Create the swarm configuration
+    const swarmConfig = {
+      version: 1,
+      swarm: {
+        name: newSwarmForm.name,
+        main: 'main_instance',
+        instances: {
+          main_instance: {
+            description: newSwarmForm.description || 'Main coordinator instance',
+            directory: '.',
+            model: 'sonnet',
+            prompt: 'You are the main coordinator for this swarm',
+            allowed_tools: ['Read', 'Edit', 'Write', 'Bash'],
+            tools: ['Read', 'Edit', 'Write', 'Bash'],
+            connections: [],
+            mcps: []
+          }
+        }
+      }
+    };
+
+    try {
+      // Save the new swarm
+      const response = await fetch(`/api/swarms/${filename}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: swarmConfig }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create swarm');
+      }
+
+      // Create swarm summary and select it
       const newSwarm: SwarmSummary = {
         filename,
-        name: 'New Swarm',
+        name: newSwarmForm.name,
         main: 'main_instance',
         instances: ['main_instance']
       };
+
+      // Update swarms list and select the new one
+      setSwarms(prev => [...prev, newSwarm]);
       onSwarmSelect(newSwarm);
+      setShowNewSwarmModal(false);
+    } catch (error) {
+      alert('Failed to create swarm: ' + (error as Error).message);
     }
   };
 
@@ -139,6 +199,84 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
         )}
       </div>
 
+      {/* New Swarm Modal */}
+      {showNewSwarmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md mx-4 border border-slate-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-blue-400" />
+                Create New Swarm
+              </h2>
+              <button
+                onClick={() => setShowNewSwarmModal(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Swarm Name
+                </label>
+                <input
+                  type="text"
+                  value={newSwarmForm.name}
+                  onChange={(e) => setNewSwarmForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="My Development Team"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Filename
+                </label>
+                <input
+                  type="text"
+                  value={newSwarmForm.filename}
+                  onChange={(e) => setNewSwarmForm(prev => ({ ...prev, filename: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="my-dev-team.yml"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  Will automatically add .yml extension if not provided
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Description (optional)
+                </label>
+                <textarea
+                  value={newSwarmForm.description}
+                  onChange={(e) => setNewSwarmForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="A collaborative development team for my project"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowNewSwarmModal(false)}
+                className="px-4 py-2 text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createNewSwarm}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+              >
+                Create Swarm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
