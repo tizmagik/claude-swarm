@@ -415,7 +415,7 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
             </button>
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            Try: help, status, agents, task &lt;description&gt;
+            Try: help, /instances, /config, /task &lt;instance&gt; &lt;description&gt;, /session-info
           </div>
         </div>
       )}
