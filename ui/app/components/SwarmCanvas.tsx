@@ -72,11 +72,13 @@ function ReactFlowCanvas({
   nodes,
   connections,
   onNodeUpdate,
+  onConnectionUpdate,
   onDeleteNode,
 }: {
   nodes: AgentNode[];
   connections: Connection[];
   onNodeUpdate: (nodes: AgentNode[]) => void;
+  onConnectionUpdate: (connections: Connection[]) => void;
   onDeleteNode?: (nodeId: string) => void;
 }) {
   const [ReactFlow, setReactFlow] = useState<any>(null);
@@ -185,6 +187,15 @@ function ReactFlowCanvas({
     }));
   }, [connections]);
 
+  const handleMcpAddToForm = useCallback((mcp: string) => {
+    if (mcp && !editForm.mcps.includes(mcp)) {
+      setEditForm(prev => ({
+        ...prev,
+        mcps: [...prev.mcps, mcp]
+      }));
+    }
+  }, [editForm.mcps]);
+
   // Auto-layout when nodes or connections change
   useEffect(() => {
     if (localNodes.length > 0 && reactFlowEdges.length >= 0 && reactFlowInstance) {
@@ -221,6 +232,31 @@ function ReactFlowCanvas({
   }, [localNodes.length, reactFlowEdges.length, reactFlowInstance]);
 
 
+  const onConnect = useCallback((connection: any) => {
+    const newConnection: Connection = {
+      from: connection.source,
+      to: connection.target
+    };
+    
+    // Add to connections array
+    const updatedConnections = [...connections, newConnection];
+    onConnectionUpdate(updatedConnections);
+    
+    // Update the source node's connections array
+    const updatedNodes = nodes.map(node => {
+      if (node.id === connection.source) {
+        return {
+          ...node,
+          connections: [...new Set([...node.connections, connection.target])]
+        };
+      }
+      return node;
+    });
+    onNodeUpdate(updatedNodes);
+    
+    console.log('Created connection:', newConnection);
+  }, [connections, nodes, onConnectionUpdate, onNodeUpdate]);
+
   const onNodeClick = useCallback((_event: any, node: any) => {
     const agentNode = nodes.find(n => n.id === node.id);
     if (agentNode) {
@@ -247,7 +283,37 @@ function ReactFlowCanvas({
       const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
       console.log('Drop event:', dragData);
       
-      if (dragData.type === 'mcp') {
+      if (dragData.type === 'agent') {
+        // Create new agent from template
+        const clientX = event.clientX;
+        const clientY = event.clientY;
+        const reactFlowBounds = (event.target as HTMLElement).closest('.react-flow')?.getBoundingClientRect();
+        
+        if (reactFlowBounds && reactFlowInstance) {
+          const position = reactFlowInstance.screenToFlowPosition({
+            x: clientX - reactFlowBounds.left,
+            y: clientY - reactFlowBounds.top,
+          });
+          
+          const agent = dragData.item;
+          const nodeId = `agent_${Date.now()}`;
+          const newNode: AgentNode = {
+            id: nodeId,
+            name: agent.name,
+            description: agent.description || 'A new agent in the swarm',
+            x: position.x,
+            y: position.y,
+            tools: agent.allowed_tools || ['Read', 'Edit', 'Write'],
+            mcps: agent.mcps?.map((mcp: any) => mcp.name) || [],
+            model: agent.model || 'sonnet',
+            connections: []
+          };
+          
+          const updatedNodes = [...nodes, newNode];
+          onNodeUpdate(updatedNodes);
+          console.log('Created new agent:', newNode);
+        }
+      } else if (dragData.type === 'mcp') {
         // Get the element that was dropped on
         const dropTarget = event.target as HTMLElement;
         const nodeElement = dropTarget.closest('.react-flow__node');
@@ -276,7 +342,7 @@ function ReactFlowCanvas({
     } catch (error) {
       console.error('Error parsing drop data:', error);
     }
-  }, [nodes, onNodeUpdate]);
+  }, [nodes, onNodeUpdate, reactFlowInstance, editingNode, handleMcpAddToForm]);
 
 
   const onNodesChange = useCallback(
@@ -371,15 +437,6 @@ function ReactFlowCanvas({
     }));
   }, []);
 
-  const handleMcpAddToForm = useCallback((mcp: string) => {
-    if (mcp && !editForm.mcps.includes(mcp)) {
-      setEditForm(prev => ({
-        ...prev,
-        mcps: [...prev.mcps, mcp]
-      }));
-    }
-  }, [editForm.mcps]);
-
   const handleMcpRemoveFromForm = useCallback((mcp: string) => {
     setEditForm(prev => ({
       ...prev,
@@ -407,6 +464,7 @@ function ReactFlowCanvas({
         edges={reactFlowEdges}
         onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
+        onConnect={onConnect}
         onInit={setReactFlowInstance}
         fitView
         fitViewOptions={{ padding: 0.2 }}
@@ -617,6 +675,7 @@ export default function SwarmCanvas({
   nodes,
   connections,
   onNodeUpdate,
+  onConnectionUpdate,
   onDeleteNode,
 }: SwarmCanvasProps) {
   console.log("SwarmCanvas rendered with nodes:", nodes);
@@ -658,6 +717,7 @@ export default function SwarmCanvas({
             nodes={nodes}
             connections={connections}
             onNodeUpdate={onNodeUpdate}
+            onConnectionUpdate={onConnectionUpdate}
             onDeleteNode={onDeleteNode}
           />
         ) : (
