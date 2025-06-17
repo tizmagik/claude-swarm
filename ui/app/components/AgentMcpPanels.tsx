@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { Bot, Settings, Wrench, Crown, Monitor, Server, Building, TestTube, Shield, BarChart3, Palette } from 'lucide-react';
+import { Bot, Settings, Wrench, Crown, Monitor, Server, Building, TestTube, Shield, BarChart3, Palette, X, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface AgentTemplate {
   id: string;
@@ -33,6 +32,10 @@ export default function AgentMcpPanels() {
   const [agents, setAgents] = useState<AgentTemplate[]>([]);
   const [mcps, setMcps] = useState<McpTool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [showMcpModal, setShowMcpModal] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<AgentTemplate | null>(null);
+  const [editingMcp, setEditingMcp] = useState<McpTool | null>(null);
 
   useEffect(() => {
     loadData();
@@ -197,14 +200,14 @@ export default function AgentMcpPanels() {
             <Bot className="w-5 h-5 mr-2 text-blue-400" />
             <span className="hidden sm:inline">Agents</span>
           </h2>
-          <Link
-            to="/agent-templates"
+          <button
+            onClick={() => setShowAgentModal(true)}
             className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200 border border-slate-600 hover:border-slate-500 rounded hover:bg-slate-700/50 transition-colors flex items-center"
             title="Manage Agent Templates"
           >
             <Settings className="w-3 h-3" />
             <span className="hidden lg:inline ml-1">Manage</span>
-          </Link>
+          </button>
         </div>
         <div className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4 hidden sm:block">
           Drag agents to add them to your swarm
@@ -254,14 +257,14 @@ export default function AgentMcpPanels() {
             <Wrench className="w-5 h-5 mr-2 text-purple-400" />
             <span className="hidden sm:inline">MCPs</span>
           </h2>
-          <Link
-            to="/mcp-tools"
+          <button
+            onClick={() => setShowMcpModal(true)}
             className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200 border border-slate-600 hover:border-slate-500 rounded hover:bg-slate-700/50 transition-colors flex items-center"
             title="Manage MCP Tools"
           >
             <Settings className="w-3 h-3" />
             <span className="hidden lg:inline ml-1">Manage</span>
-          </Link>
+          </button>
         </div>
         <div className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4 hidden sm:block">
           Available MCP tools and integrations
@@ -303,6 +306,401 @@ export default function AgentMcpPanels() {
           })}
         </div>
       </div>
+
+      {/* Agent Templates Management Modal */}
+      {showAgentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto border border-slate-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <Bot className="w-5 h-5 mr-2 text-blue-400" />
+                Manage Agent Templates
+              </h2>
+              <button
+                onClick={() => {
+                  setShowAgentModal(false);
+                  setEditingAgent(null);
+                }}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {!editingAgent ? (
+              <>
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      setEditingAgent({
+                        id: '',
+                        name: '',
+                        description: '',
+                        model: 'sonnet',
+                        allowed_tools: ['Read', 'Edit', 'Write']
+                      });
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add New Template
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {agents.map((agent) => (
+                    <div key={agent.id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{agent.name}</h3>
+                        <p className="text-sm text-slate-300">{agent.description}</p>
+                        <div className="flex gap-2 mt-2">
+                          {agent.model && (
+                            <span className="px-2 py-1 bg-slate-600 text-white text-xs rounded">{agent.model}</span>
+                          )}
+                          <span className="px-2 py-1 bg-slate-600 text-white text-xs rounded">
+                            {agent.allowed_tools?.length || 0} tools
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingAgent(agent)}
+                          className="p-2 text-slate-400 hover:text-white transition-colors"
+                          title="Edit template"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete template "${agent.name}"?`)) {
+                              setAgents(agents.filter(a => a.id !== agent.id));
+                            }
+                          }}
+                          className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                          title="Delete template"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white">
+                  {editingAgent.id ? 'Edit Agent Template' : 'Create New Agent Template'}
+                </h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={editingAgent.name}
+                    onChange={(e) => setEditingAgent({...editingAgent, name: e.target.value})}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    placeholder="Frontend Developer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                  <textarea
+                    value={editingAgent.description}
+                    onChange={(e) => setEditingAgent({...editingAgent, description: e.target.value})}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    placeholder="Specializes in React and modern web technologies"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Model</label>
+                  <select
+                    value={editingAgent.model}
+                    onChange={(e) => setEditingAgent({...editingAgent, model: e.target.value})}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="sonnet">Claude 3.5 Sonnet</option>
+                    <option value="opus">Claude 3 Opus</option>
+                    <option value="haiku">Claude 3 Haiku</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Tools</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(editingAgent.allowed_tools || []).map((tool, index) => (
+                      <span key={index} className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
+                        {tool}
+                        <button
+                          onClick={() => {
+                            const newTools = [...(editingAgent.allowed_tools || [])];
+                            newTools.splice(index, 1);
+                            setEditingAgent({...editingAgent, allowed_tools: newTools});
+                          }}
+                          className="ml-2 text-blue-200 hover:text-white"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Add tool (e.g., Read, Edit, Bash)"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const tool = e.currentTarget.value.trim();
+                        if (tool && !(editingAgent.allowed_tools || []).includes(tool)) {
+                          setEditingAgent({
+                            ...editingAgent, 
+                            allowed_tools: [...(editingAgent.allowed_tools || []), tool]
+                          });
+                          e.currentTarget.value = '';
+                        }
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => setEditingAgent(null)}
+                    className="px-4 py-2 text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!editingAgent.name) {
+                        alert('Please enter a name');
+                        return;
+                      }
+                      
+                      if (editingAgent.id) {
+                        // Update existing
+                        setAgents(agents.map(a => a.id === editingAgent.id ? editingAgent : a));
+                      } else {
+                        // Create new
+                        const newAgent = {
+                          ...editingAgent,
+                          id: editingAgent.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-')
+                        };
+                        setAgents([...agents, newAgent]);
+                      }
+                      setEditingAgent(null);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                  >
+                    {editingAgent.id ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MCP Tools Management Modal */}
+      {showMcpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto border border-slate-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <Wrench className="w-5 h-5 mr-2 text-purple-400" />
+                Manage MCP Tools
+              </h2>
+              <button
+                onClick={() => {
+                  setShowMcpModal(false);
+                  setEditingMcp(null);
+                }}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {!editingMcp ? (
+              <>
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      setEditingMcp({
+                        id: '',
+                        name: '',
+                        type: 'stdio',
+                        description: ''
+                      });
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors flex items-center"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add New MCP Tool
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {mcps.map((mcp) => (
+                    <div key={mcp.id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{mcp.name}</h3>
+                        {mcp.description && (
+                          <p className="text-sm text-slate-300">{mcp.description}</p>
+                        )}
+                        <div className="flex gap-2 mt-2">
+                          <span className="px-2 py-1 bg-slate-600 text-white text-xs rounded">{mcp.type}</span>
+                          {mcp.command && (
+                            <span className="px-2 py-1 bg-slate-600 text-white text-xs rounded">{mcp.command}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingMcp(mcp)}
+                          className="p-2 text-slate-400 hover:text-white transition-colors"
+                          title="Edit MCP tool"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete MCP tool "${mcp.name}"?`)) {
+                              setMcps(mcps.filter(m => m.id !== mcp.id));
+                            }
+                          }}
+                          className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                          title="Delete MCP tool"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white">
+                  {editingMcp.id ? 'Edit MCP Tool' : 'Create New MCP Tool'}
+                </h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={editingMcp.name}
+                    onChange={(e) => setEditingMcp({...editingMcp, name: e.target.value})}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    placeholder="Playwright MCP"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Type</label>
+                  <select
+                    value={editingMcp.type}
+                    onChange={(e) => setEditingMcp({...editingMcp, type: e.target.value as 'stdio' | 'sse'})}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="stdio">stdio</option>
+                    <option value="sse">sse</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                  <textarea
+                    value={editingMcp.description || ''}
+                    onChange={(e) => setEditingMcp({...editingMcp, description: e.target.value})}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    placeholder="Browser automation and testing tool"
+                    rows={3}
+                  />
+                </div>
+
+                {editingMcp.type === 'stdio' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Command</label>
+                      <input
+                        type="text"
+                        value={editingMcp.command || ''}
+                        onChange={(e) => setEditingMcp({...editingMcp, command: e.target.value})}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                        placeholder="npx"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Arguments</label>
+                      <input
+                        type="text"
+                        value={(editingMcp.args || []).join(' ')}
+                        onChange={(e) => setEditingMcp({
+                          ...editingMcp, 
+                          args: e.target.value.split(' ').filter(arg => arg.trim())
+                        })}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                        placeholder="@playwright/test"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Space-separated arguments</p>
+                    </div>
+                  </>
+                )}
+
+                {editingMcp.type === 'sse' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">URL</label>
+                    <input
+                      type="text"
+                      value={editingMcp.url || ''}
+                      onChange={(e) => setEditingMcp({...editingMcp, url: e.target.value})}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                      placeholder="http://localhost:3000/mcp"
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => setEditingMcp(null)}
+                    className="px-4 py-2 text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!editingMcp.name) {
+                        alert('Please enter a name');
+                        return;
+                      }
+                      
+                      if (editingMcp.id) {
+                        // Update existing
+                        setMcps(mcps.map(m => m.id === editingMcp.id ? editingMcp : m));
+                      } else {
+                        // Create new
+                        const newMcp = {
+                          ...editingMcp,
+                          id: editingMcp.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-')
+                        };
+                        setMcps([...mcps, newMcp]);
+                      }
+                      setEditingMcp(null);
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors"
+                  >
+                    {editingMcp.id ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
