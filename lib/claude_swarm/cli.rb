@@ -6,7 +6,6 @@ require_relative "configuration"
 require_relative "mcp_generator"
 require_relative "orchestrator"
 require_relative "claude_mcp_server"
-require_relative "permission_mcp_server"
 
 module ClaudeSwarm
   class CLI < Thor
@@ -78,10 +77,12 @@ module ClaudeSwarm
                            desc: "System prompt for the instance"
     method_option :description, type: :string,
                                 desc: "Description of the instance's role"
-    method_option :tools, aliases: "-t", type: :array,
-                          desc: "Allowed tools for the instance"
+    method_option :allowed_tools, aliases: "-t", type: :array,
+                                  desc: "Allowed tools for the instance"
     method_option :disallowed_tools, type: :array,
                                      desc: "Disallowed tools for the instance"
+    method_option :connections, type: :array,
+                                desc: "Connections to other instances"
     method_option :mcp_config_path, type: :string,
                                     desc: "Path to MCP configuration file"
     method_option :debug, type: :boolean, default: false,
@@ -103,8 +104,9 @@ module ClaudeSwarm
         model: options[:model],
         prompt: options[:prompt],
         description: options[:description],
-        tools: options[:tools] || [],
+        allowed_tools: options[:allowed_tools] || [],
         disallowed_tools: options[:disallowed_tools] || [],
+        connections: options[:connections] || [],
         mcp_config_path: options[:mcp_config_path],
         vibe: options[:vibe],
         instance_id: options[:instance_id],
@@ -263,22 +265,6 @@ module ClaudeSwarm
 
       say "\nTo resume a session, run:", :bold
       say "  claude-swarm --session-id <session-id>", :cyan
-    end
-
-    desc "tools-mcp", "Start a permission management MCP server for tool access control"
-    method_option :allowed_tools, aliases: "-t", type: :string,
-                                  desc: "Comma-separated list of allowed tool patterns (supports wildcards)"
-    method_option :disallowed_tools, type: :string,
-                                     desc: "Comma-separated list of disallowed tool patterns (supports wildcards)"
-    method_option :debug, type: :boolean, default: false,
-                          desc: "Enable debug output"
-    def tools_mcp
-      server = PermissionMcpServer.new(allowed_tools: options[:allowed_tools], disallowed_tools: options[:disallowed_tools])
-      server.start
-    rescue StandardError => e
-      error "Error starting permission MCP server: #{e.message}"
-      error e.backtrace.join("\n") if options[:debug]
-      exit 1
     end
 
     default_task :start

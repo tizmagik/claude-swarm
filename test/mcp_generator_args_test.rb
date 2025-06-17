@@ -79,10 +79,10 @@ class McpGeneratorArgsTest < Minitest::Test
         assert_includes args, "sonnet"
         assert_includes args, "--prompt"
         assert_includes args, "You are a backend dev"
-        assert_includes args, "--tools"
+        assert_includes args, "--allowed-tools"
 
-        # Tools should be after --tools flag as comma-separated
-        tools_index = args.index("--tools")
+        # Tools should be after --allowed-tools flag as comma-separated
+        tools_index = args.index("--allowed-tools")
 
         assert_equal "Bash,Grep", args[tools_index + 1]
 

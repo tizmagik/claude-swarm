@@ -20,7 +20,7 @@ class ClaudeMcpServerTest < Minitest::Test
       directory: @tmpdir,
       model: "sonnet",
       prompt: "Test prompt",
-      tools: %w[Read Edit],
+      allowed_tools: %w[Read Edit],
       mcp_config_path: nil
     }
 
@@ -269,7 +269,7 @@ class ClaudeMcpServerTest < Minitest::Test
 
   def test_instance_config_without_tools
     config = @instance_config.dup
-    config[:tools] = nil
+    config[:allowed_tools] = nil
 
     ClaudeSwarm::ClaudeMcpServer.new(config, calling_instance: "test_caller")
 

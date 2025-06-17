@@ -57,9 +57,9 @@ module Fixtures
               description: "Instance with pattern-based tool restrictions"
               tools:
                 - Read
-                - "Edit(*.js)"
-                - "Bash(npm:*)"
-                - "Grep(**/*.ts)"
+                - Edit
+                - Bash
+                - Grep
       YAML
     end
 
@@ -106,23 +106,23 @@ module Fixtures
               directory: ./backend
               model: sonnet
               connections: [database]
-              tools: ["Bash(python:*)", Edit, Read]
+              tools: [Bash, Edit, Read]
               prompt: "You handle API and backend logic"
             frontend:
               description: "Frontend developer building user interfaces"
               directory: ./frontend
               model: haiku
-              tools: ["Edit(*.{js,jsx,ts,tsx})", "Bash(npm:*)", Read]
+              tools: [Edit, Bash, Read]
               prompt: "You build user interfaces"
             database:
               description: "Database specialist managing data operations"
               directory: ./db
-              tools: ["Bash(psql:*,mysql:*)"]
+              tools: [Bash]
             tester:
               description: "Test engineer ensuring code quality"
               directory: ./tests
               model: sonnet
-              tools: ["Bash(jest:*,pytest:*)", Read, Edit]
+              tools: [Bash, Read, Edit]
               mcps:
                 - name: "test_reporter"
                   type: "sse"

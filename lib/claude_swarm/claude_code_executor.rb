@@ -278,10 +278,18 @@ module ClaudeSwarm
       if @vibe
         cmd_array << "--dangerously-skip-permissions"
       else
+        # Build allowed tools list including MCP connections
+        allowed_tools = options[:allowed_tools] ? Array(options[:allowed_tools]).dup : []
+
+        # Add mcp__instance_name for each connection if we have instance info
+        options[:connections]&.each do |connection_name|
+          allowed_tools << "mcp__#{connection_name}"
+        end
+
         # Add allowed tools if any
-        if options[:allowed_tools]
-          tools = Array(options[:allowed_tools]).join(",")
-          cmd_array += ["--allowedTools", tools]
+        if allowed_tools.any?
+          tools_str = allowed_tools.join(",")
+          cmd_array += ["--allowedTools", tools_str]
         end
 
         # Add disallowed tools if any
@@ -289,9 +297,6 @@ module ClaudeSwarm
           disallowed_tools = Array(options[:disallowed_tools]).join(",")
           cmd_array += ["--disallowedTools", disallowed_tools]
         end
-
-        # Add permission prompt tool if not in vibe mode
-        cmd_array += ["--permission-prompt-tool", "mcp__permissions__check_permission"]
       end
 
       cmd_array

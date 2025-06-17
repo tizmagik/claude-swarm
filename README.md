@@ -113,7 +113,7 @@ swarm:
       directory: ./web-frontend/src
       model: opus
       prompt: "You specialize in React components and state management"
-      allowed_tools: [Edit, Write, "Bash(npm:*)"]
+      allowed_tools: [Edit, Write, Bash]
     
     css_expert:
       description: "CSS specialist handling styling and responsive design"
@@ -142,7 +142,7 @@ swarm:
       directory: ./api-server/db
       model: opus
       prompt: "You handle database schema and migrations"
-      allowed_tools: [Edit, Write, "Bash(psql:*, migrate:*)"]
+      allowed_tools: [Edit, Write, Bash]
     
     mobile_lead:
       description: "Mobile team lead coordinating cross-platform development"
@@ -157,21 +157,21 @@ swarm:
       directory: ./mobile-app/ios
       model: opus
       prompt: "You develop the iOS application"
-      allowed_tools: [Edit, Write, "Bash(xcodebuild:*, pod:*)"]
+      allowed_tools: [Edit, Write, Bash]
     
     android_dev:
       description: "Android developer creating native Android apps"
       directory: ./mobile-app/android
       model: opus
       prompt: "You develop the Android application"
-      allowed_tools: [Edit, Write, "Bash(gradle:*, adb:*)"]
+      allowed_tools: [Edit, Write, Bash]
     
     devops:
       description: "DevOps engineer managing CI/CD and infrastructure"
       directory: ./infrastructure
       model: opus
       prompt: "You handle CI/CD and infrastructure"
-      allowed_tools: [Read, Edit, "Bash(docker:*, kubectl:*)"]
+      allowed_tools: [Read, Edit, Bash]
 ```
 
 In this setup:
@@ -179,6 +179,7 @@ In this setup:
 - Each team lead can work with their specialized developers
 - Each instance is independent - connections create separate MCP server instances
 - Teams work in isolated directories with role-appropriate tools
+- Connected instances are accessible via MCP tools like `mcp__frontend_lead__task`, `mcp__backend_lead__task`, etc.
 
 
 ### Configuration Format
@@ -272,23 +273,22 @@ allowed_tools:
   - WebFetch       # Fetch web content
   - WebSearch      # Search the web
 
-disallowed_tools:  # Optional: explicitly deny specific tools
-  - "Write(*.md)"  # Don't allow writing markdown files
-  - "Bash(rm:*)"   # Don't allow rm commands
+# Note: Pattern-based tool restrictions have been deprecated.
+# Use allowed_tools and disallowed_tools with tool names only.
 ```
 
 Tools are passed to Claude using the `--allowedTools` and `--disallowedTools` flags with comma-separated values. Disallowed tools take precedence over allowed tools.
 
-#### Tool Restrictions
-
-You can restrict tools with pattern-based filters:
+#### Available Tools
 
 ```yaml
 allowed_tools:
-  - Read                    # Unrestricted read access
-  - Edit                    # Unrestricted edit access
-  - "Bash(npm:*)"          # Only allow npm commands
-  - "Bash(git:*, make:*)"  # Only allow git and make commands
+  - Read          # File reading
+  - Edit          # File editing
+  - Write         # File creation
+  - Bash          # Command execution
+  - WebFetch      # Fetch web content
+  - WebSearch     # Search the web
 ```
 
 ### Examples
@@ -419,7 +419,7 @@ swarm:
       description: "Worker with restricted permissions"
       directory: ./sensitive
       model: sonnet
-      allowed_tools: [Read, "Bash(ls:*)"]  # Only allow read and ls commands
+      allowed_tools: [Read, Bash]  # Allow read and bash commands
       
     trusted_worker:
       description: "Trusted worker with more permissions"
@@ -457,9 +457,8 @@ claude-swarm list-sessions --limit 20
 # Show version
 claude-swarm version
 
-# Start permission MCP server (for testing/debugging)
-claude-swarm tools-mcp --allowed-tools 'mcp__frontend__*,mcp__backend__*'
-claude-swarm tools-mcp --allowed-tools 'Read,Edit' --disallowed-tools 'Edit(*.log)'
+# Note: The permission MCP server has been deprecated. 
+# Tool permissions are now handled through allowed_tools and disallowed_tools in your configuration.
 
 # Internal command for MCP server (used by connected instances)
 claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TIMESTAMP
@@ -477,7 +476,7 @@ All session files are organized in `~/.claude-swarm/sessions/{project}/{timestam
 - `{instance_name}.mcp.json`: MCP configuration files
 - `session.log`: Human-readable request/response tracking
 - `session.log.json`: All events in JSONL format (one JSON per line)
-- `permissions.log`: Permission checks and decisions
+# Note: permissions.log is no longer generated as the permission MCP server has been deprecated
 
 #### Listing Sessions
 View your previous Claude Swarm sessions:
@@ -535,15 +534,11 @@ This will:
 2. **MCP Generation**: For each instance, it generates an MCP configuration file that includes:
    - Any explicitly defined MCP servers
    - MCP servers for each connected instance (using `claude-swarm mcp-serve`)
-   - A permission MCP server (unless using `--vibe` mode)
-3. **Tool Permissions**: Claude Swarm automatically manages tool permissions:
-   - Each instance's configured tools are allowed via the permission MCP
-   - Supports wildcard patterns (e.g., `mcp__frontend__*` allows all frontend MCP tools)
+3. **Tool Permissions**: Claude Swarm manages tool permissions through configuration:
+   - Each instance's `allowed_tools` specifies which tools it can use
+   - Connected instances are accessible via `mcp__<instance_name>__*` pattern
    - Disallowed tools take precedence over allowed tools for fine-grained control
-   - Eliminates the need to manually accept each tool or use global `--vibe` mode
    - Per-instance `vibe: true` skips all permission checks for that specific instance
-   - The permission MCP uses `--permission-prompt-tool` to check tool access
-   - Permission decisions are logged to `~/.claude-swarm/sessions/{project}/{timestamp}/permissions.log`
 4. **Session Persistence**: Claude Swarm automatically tracks session state:
    - Generates a shared session path for all instances
    - Each instance's Claude session ID is captured and saved

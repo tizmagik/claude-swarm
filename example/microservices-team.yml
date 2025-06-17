@@ -58,7 +58,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(npm:*, yarn:*, jest:*)"
+        - Bash
     
     ui_designer:
       description: "UI/UX specialist creating responsive designs and managing design system"
@@ -91,7 +91,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(go:*, docker:*, make:*)"
+        - Bash
     
     api_gateway_dev:
       description: "API gateway developer managing request routing and rate limiting"
@@ -101,7 +101,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(go:*, docker:*, kong:*)"
+        - Bash
     
     core_service_dev:
       description: "Core business logic service developer"
@@ -111,7 +111,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(python:*, pip:*, pytest:*, docker:*)"
+        - Bash
     
     shared_lib_dev:
       description: "Shared libraries developer maintaining common code across services"
@@ -122,7 +122,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(npm:*, go:*, python:*)"
+        - Bash
     
     # Mobile Team
     mobile_lead:
@@ -143,7 +143,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(swift:*, xcodebuild:*, pod:*, fastlane:*)"
+        - Bash
     
     android_senior:
       description: "Senior Android developer creating Kotlin applications"
@@ -153,7 +153,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(gradle:*, adb:*, fastlane:*)"
+        - Bash
     
     # Data Team
     data_lead:
@@ -175,7 +175,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(python:*, airflow:*, spark:*, dbt:*)"
+        - Bash
     
     ml_engineer:
       description: "ML engineer developing and deploying machine learning models"
@@ -185,7 +185,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(python:*, jupyter:*, mlflow:*, docker:*)"
+        - Bash
     
     analytics_dev:
       description: "Analytics developer creating dashboards and reports"
@@ -195,7 +195,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(python:*, sql:*)"
+        - Bash
     
     # DevOps & Infrastructure
     devops_lead:
@@ -217,7 +217,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(kubectl:*, helm:*, prometheus:*, grafana:*)"
+        - Bash
     
     platform_engineer:
       description: "Platform engineer managing Kubernetes and container infrastructure"
@@ -227,7 +227,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(kubectl:*, helm:*, docker:*, istioctl:*)"
+        - Bash
     
     cloud_architect:
       description: "Cloud architect managing AWS/GCP infrastructure and costs"
@@ -237,7 +237,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(terraform:*, aws:*, gcloud:*)"
+        - Bash
     
     # Quality & Security
     qa_lead:
@@ -259,7 +259,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(npm:*, cypress:*, playwright:*)"
+        - Bash
     
     backend_qa:
       description: "Backend QA engineer creating API tests and integration tests"
@@ -269,7 +269,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(python:*, pytest:*, postman:*, k6:*)"
+        - Bash
     
     mobile_qa:
       description: "Mobile QA engineer testing iOS and Android applications"
@@ -279,7 +279,7 @@ swarm:
       allowed_tools:
         - Edit
         - Write
-        - "Bash(appium:*, xctest:*, espresso:*)"
+        - Bash
     
     security_lead:
       description: "Security lead ensuring application and infrastructure security"
@@ -290,4 +290,4 @@ swarm:
       allowed_tools:
         - Read
         - Edit
-        - "Bash(trivy:*, snyk:*, owasp:*)"
+        - Bash

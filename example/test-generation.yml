@@ -70,7 +70,7 @@ swarm:
         - Read
         - Edit
         - Write
-        - "Bash(bundle:*)"
+        - Bash
 
     integration_test_expert:
       description: "Integration test specialist for controllers, API endpoints, and request specs"
@@ -111,7 +111,7 @@ swarm:
         - Read
         - Edit
         - Write
-        - "Bash(bundle:*, rails:*)"
+        - Bash
 
     system_test_expert:
       description: "System test specialist for end-to-end user flows and JavaScript interactions"
@@ -154,7 +154,7 @@ swarm:
         - Read
         - Edit
         - Write
-        - "Bash(bundle:*)"
+        - Bash
 
     factory_specialist:
       description: "Test data specialist managing factories, traits, and test data generation"
@@ -198,7 +198,7 @@ swarm:
         - Read
         - Edit
         - Write
-        - "Bash(bundle:*)"
+        - Bash
 
     test_quality_reviewer:
       description: "Test quality assurance specialist ensuring best practices, coverage, and maintainability"
@@ -243,4 +243,4 @@ swarm:
         Provide actionable feedback to improve test quality and coverage.
       allowed_tools:
         - Read
-        - "Bash(bundle:*, rubocop:*)"
+        - Bash

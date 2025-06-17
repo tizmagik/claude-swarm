@@ -109,7 +109,7 @@ class McpGeneratorTest < Minitest::Test
       assert_includes args, "haiku"
       assert_includes args, "--prompt"
       assert_includes args, "Backend developer"
-      assert_includes args, "--tools"
+      assert_includes args, "--allowed-tools"
       assert_includes args, "Bash,Grep"
 
       # Check frontend connection
@@ -180,9 +180,8 @@ class McpGeneratorTest < Minitest::Test
 
       mcp_config = read_mcp_config("lead")
 
-      # Should only have the permissions MCP
-      assert_equal(1, mcp_config["mcpServers"].size)
-      assert mcp_config["mcpServers"].key?("permissions")
+      # Should have no MCP servers
+      assert_equal(0, mcp_config["mcpServers"].size)
     end
   end
 
@@ -218,11 +217,10 @@ class McpGeneratorTest < Minitest::Test
 
       assert backend_config["mcpServers"].key?("database")
 
-      # Check database config has only permissions MCP
+      # Check database config has no MCP servers
       database_config = read_mcp_config("database")
 
-      assert_equal(1, database_config["mcpServers"].size)
-      assert database_config["mcpServers"].key?("permissions")
+      assert_equal(0, database_config["mcpServers"].size)
     end
   end
 
@@ -293,7 +291,7 @@ class McpGeneratorTest < Minitest::Test
     end
   end
 
-  def test_vibe_mode_no_permissions_mcp
+  def test_vibe_mode_no_mcp_servers
     write_config(<<~YAML)
       version: 1
       swarm:
@@ -313,42 +311,8 @@ class McpGeneratorTest < Minitest::Test
 
       mcp_config = read_mcp_config("lead")
 
-      # In vibe mode, should have no MCPs (including no permissions MCP)
+      # In vibe mode, should have no MCPs
       assert_empty(mcp_config["mcpServers"])
-    end
-  end
-
-  def test_permissions_mcp_with_tools
-    write_config(<<~YAML)
-      version: 1
-      swarm:
-        name: "Test"
-        main: lead
-        instances:
-          lead:
-            description: "Lead instance"
-            tools: [Read, Edit, "mcp__frontend__*"]
-    YAML
-
-    config = ClaudeSwarm::Configuration.new(@config_path)
-    generator = ClaudeSwarm::McpGenerator.new(config)
-
-    Dir.chdir(@tmpdir) do
-      generator.generate_all
-
-      mcp_config = read_mcp_config("lead")
-
-      # Should have permissions MCP with tools
-      assert mcp_config["mcpServers"].key?("permissions")
-      permissions_mcp = mcp_config["mcpServers"]["permissions"]
-
-      assert_equal("claude-swarm", permissions_mcp["command"])
-      assert_includes(permissions_mcp["args"], "tools-mcp")
-      assert_includes(permissions_mcp["args"], "--allowed-tools")
-
-      tools_index = permissions_mcp["args"].index("--allowed-tools") + 1
-
-      assert_equal("Read,Edit,mcp__frontend__*", permissions_mcp["args"][tools_index])
     end
   end
 

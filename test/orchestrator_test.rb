@@ -141,7 +141,7 @@ class OrchestratorTest < Minitest::Test
     assert_includes expected_command, "--model"
     assert_includes expected_command, "opus"
     assert_includes expected_command, "--allowedTools"
-    assert_includes expected_command, "Read,Edit,Bash"
+    assert_includes expected_command, "Read,Edit,Bash,mcp__backend"
     assert_includes expected_command, "--append-system-prompt"
     assert_includes expected_command, "You are the lead developer"
     assert_includes expected_command, "--mcp-config"

@@ -54,7 +54,7 @@ The gem is fully implemented with the following components:
 
 1. **YAML Configuration**: Define swarms with instances, connections, tools, and MCP servers
 2. **Inter-Instance Communication**: Instances connect via MCP using `claude mcp serve` with `-p` flag
-3. **Tool Restrictions**: Support for pattern-based tool restrictions (e.g., `Bash(npm:*)`)
+3. **Tool Restrictions**: Support for tool restrictions using Claude's native pattern (connections are available as `mcp__instance_name`)
 4. **Multiple MCP Types**: Supports both stdio and SSE MCP server types
 5. **Automatic MCP Generation**: Creates `.claude-swarm/` directory with MCP configs
 6. **Custom System Prompts**: Each instance can have a custom prompt via `--append-system-prompt`
@@ -63,9 +63,10 @@ The gem is fully implemented with the following components:
 
 1. User creates a `claude-swarm.yml` file defining the swarm topology
 2. Running `claude-swarm` parses the configuration and validates it
-3. MCP configuration files are generated for each instance in `.claude-swarm/`
+3. MCP configuration files are generated for each instance in a session directory
 4. The main instance is launched with `exec`, replacing the current process
 5. Connected instances are available as MCP servers to the main instance
+6. When an instance has connections, those connections are automatically added to its allowed tools as `mcp__<connection_name>`
 
 ### Configuration Example
 
@@ -85,15 +86,18 @@ swarm:
       directory: ./frontend
       model: sonnet
       prompt: "You specialize in frontend development with React"
-      tools: [Edit, Write, "Bash(npm:*)"]
+      tools: [Edit, Write, Bash]
 ```
 
 ## Testing
 
-The gem includes basic tests for version number and CLI existence. Additional tests should be added for:
+The gem includes comprehensive tests covering:
 - Configuration parsing and validation
-- MCP generation logic
+- MCP generation logic with connections
 - Error handling scenarios
+- CLI command functionality
+- Session restoration
+- Vibe mode behavior
 
 ## Dependencies
 

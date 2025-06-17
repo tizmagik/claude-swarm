@@ -68,9 +68,6 @@ module ClaudeSwarm
         )
       end
 
-      # Add permission MCP server if not in vibe mode (global or instance-specific)
-      mcp_servers["permissions"] = build_permission_mcp_config(instance[:tools], instance[:disallowed_tools]) unless @vibe || instance[:vibe]
-
       config = {
         "instance_id" => @instance_ids[name],
         "instance_name" => name,
@@ -115,9 +112,11 @@ module ClaudeSwarm
 
       args.push("--description", instance[:description]) if instance[:description]
 
-      args.push("--tools", instance[:tools].join(",")) if instance[:tools] && !instance[:tools].empty?
+      args.push("--allowed-tools", instance[:allowed_tools].join(",")) if instance[:allowed_tools] && !instance[:allowed_tools].empty?
 
       args.push("--disallowed-tools", instance[:disallowed_tools].join(",")) if instance[:disallowed_tools] && !instance[:disallowed_tools].empty?
+
+      args.push("--connections", instance[:connections].join(",")) if instance[:connections] && !instance[:connections].empty?
 
       args.push("--mcp-config-path", mcp_config_path(name))
 
@@ -161,24 +160,6 @@ module ClaudeSwarm
       rescue StandardError
         # Skip invalid state files
       end
-    end
-
-    def build_permission_mcp_config(allowed_tools, disallowed_tools)
-      exe_path = "claude-swarm"
-
-      args = ["tools-mcp"]
-
-      # Add allowed tools if specified
-      args.push("--allowed-tools", allowed_tools.join(",")) if allowed_tools && !allowed_tools.empty?
-
-      # Add disallowed tools if specified
-      args.push("--disallowed-tools", disallowed_tools.join(",")) if disallowed_tools && !disallowed_tools.empty?
-
-      {
-        "type" => "stdio",
-        "command" => exe_path,
-        "args" => args
-      }
     end
   end
 end

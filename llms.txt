@@ -225,10 +225,10 @@ cat ~/.claude-swarm/sessions/PROJECT/TIMESTAMP/session.log.json
 - Check `main:` references valid instance key
 **"Circular dependency detected"**
 - Remove circular connections between instances
-**"Permission denied for tool X"**
+**"Tool not allowed"**
 - Check `allowed_tools` includes the tool
 - Check `disallowed_tools` doesn't block it
-- Use `--vibe` to skip permissions (dangerous)
+- Use `vibe: true` to skip all checks (dangerous)
 **"MCP server failed to start"**
 - Check the command/URL is correct
 - Verify MCP server is installed
@@ -362,12 +362,11 @@ bundle exec rake release
 - `CLAUDE_SWARM_HOME`: Override session storage location (default: ~/.claude-swarm)
 - `ANTHROPIC_MODEL`: Default Claude model if not specified
 ## Security Considerations
-- Tool restrictions enforced at permission layer
-- All permissions logged for audit
+- Tool restrictions enforced through configuration
 - Vibe mode bypasses ALL restrictions - use carefully
 - Session files may contain sensitive data
 - Each instance runs with its directory context
-- MCP servers inherit instance permissions
+- MCP servers inherit instance tool configurations
 ## Limitations
 - Tree hierarchy only (no circular dependencies)
 - Session restoration is experimental

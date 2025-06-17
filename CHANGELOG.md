@@ -1,3 +1,28 @@
+## [0.1.16]
+
+### Changed
+- **Breaking change**: Removed custom permission MCP server in favor of Claude's native `mcp__MCP_NAME` pattern
+- Connected instances are now automatically added to allowed tools as `mcp__<instance_name>`
+- CLI parameter `--tools` renamed to `--allowed-tools` for consistency with YAML configuration
+- MCP generator no longer creates permission MCP server configurations
+
+### Removed
+- Removed `PermissionMcpServer` and `PermissionTool` classes
+- Removed `tools-mcp` CLI command
+- Removed regex tool pattern syntax - use Claude Code patterns instead
+- Removed `--permission-prompt-tool` flag from orchestrator
+- Removed permission logging to `permissions.log`
+
+### Migration Guide
+- Replace custom tool patterns with Claude Code's native patterns in your YAML files:
+  - `"Bash(npm:*)"` → Use `Bash` and Claude Code's built-in command restrictions
+  - `"Edit(*.js)"` → Use `Edit` and Claude Code's built-in file restrictions
+- For fine-grained tool control, use Claude Code's native patterns:
+  - `mcp__<server_name>__<tool_name>` for specific tools from an MCP server
+  - `mcp__<server_name>` to allow all tools from an MCP server
+- Connected instances are automatically accessible via `mcp__<instance_name>` pattern
+- See Claude Code's documentation for full details on supported tool patterns
+
 ## [0.1.15]
 
 ### Changed

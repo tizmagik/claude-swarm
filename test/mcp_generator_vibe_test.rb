@@ -27,7 +27,7 @@ class McpGeneratorVibeTest < Minitest::Test
     JSON.parse(File.read(mcp_path))
   end
 
-  def test_instance_vibe_skips_permission_mcp
+  def test_instance_vibe_no_mcps
     write_config(<<~YAML)
       version: 1
       swarm:
@@ -47,13 +47,12 @@ class McpGeneratorVibeTest < Minitest::Test
       generator.generate_all
       mcp_config = read_mcp_config("leader")
 
-      # Should not have permissions MCP when instance has vibe: true
-      refute mcp_config["mcpServers"].key?("permissions")
+      # Should have no MCPs when instance has vibe: true
       assert_empty mcp_config["mcpServers"]
     end
   end
 
-  def test_global_vibe_skips_permission_mcp
+  def test_global_vibe_no_mcps
     write_config(<<~YAML)
       version: 1
       swarm:
@@ -73,8 +72,7 @@ class McpGeneratorVibeTest < Minitest::Test
       generator.generate_all
       mcp_config = read_mcp_config("leader")
 
-      # Should not have permissions MCP when global vibe is true
-      refute mcp_config["mcpServers"].key?("permissions")
+      # Should have no MCPs when global vibe is true
       assert_empty mcp_config["mcpServers"]
     end
   end
@@ -102,15 +100,15 @@ class McpGeneratorVibeTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      # Leader should have permissions MCP
+      # Leader should have worker MCP connection
       leader_config = read_mcp_config("leader")
 
-      assert leader_config["mcpServers"].key?("permissions")
+      assert leader_config["mcpServers"].key?("worker")
 
-      # Worker should not have permissions MCP
+      # Worker should have no MCPs
       worker_config = read_mcp_config("worker")
 
-      refute worker_config["mcpServers"].key?("permissions")
+      assert_empty worker_config["mcpServers"]
     end
   end
 

@@ -38,7 +38,7 @@ class ConfigurationTest < Minitest::Test
     assert_equal File.expand_path(".", @tmpdir), config.main_instance_config[:directory]
     assert_equal "sonnet", config.main_instance_config[:model]
     assert_empty config.main_instance_config[:connections]
-    assert_empty config.main_instance_config[:tools]
+    assert_empty config.main_instance_config[:allowed_tools]
   end
 
   def test_full_configuration
@@ -67,7 +67,7 @@ class ConfigurationTest < Minitest::Test
             description: "Backend developer instance"
             directory: ./backend
             model: haiku
-            tools: ["Bash(npm:*)", Grep]
+            tools: [Bash, Grep]
             prompt: "You handle backend tasks"
           frontend:
             description: "Frontend developer instance"
@@ -87,7 +87,7 @@ class ConfigurationTest < Minitest::Test
     assert_equal File.expand_path("src", @tmpdir), lead[:directory]
     assert_equal "opus", lead[:model]
     assert_equal %w[backend frontend], lead[:connections]
-    assert_equal %w[Read Edit Bash], lead[:tools]
+    assert_equal %w[Read Edit Bash], lead[:allowed_tools]
     assert_equal "You are the lead developer", lead[:prompt]
 
     # Test MCP servers
@@ -108,7 +108,7 @@ class ConfigurationTest < Minitest::Test
     # Test backend instance
     backend = config.instances["backend"]
 
-    assert_equal ["Bash(npm:*)", "Grep"], backend[:tools]
+    assert_equal %w[Bash Grep], backend[:allowed_tools]
 
     # Test connections
     assert_equal %w[backend frontend], config.connections_for("lead")
@@ -420,7 +420,7 @@ class ConfigurationTest < Minitest::Test
     assert_equal File.expand_path(".", @tmpdir), lead[:directory]
     assert_equal "sonnet", lead[:model]
     assert_empty lead[:connections]
-    assert_empty lead[:tools]
+    assert_empty lead[:allowed_tools]
     assert_empty lead[:mcps]
     assert_nil lead[:prompt]
   end
@@ -533,7 +533,7 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     lead = config.main_instance_config
 
-    assert_empty lead[:tools]
+    assert_empty lead[:allowed_tools]
     assert_empty lead[:allowed_tools]
     assert_empty lead[:disallowed_tools]
   end

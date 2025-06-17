@@ -131,7 +131,7 @@ class IntegrationRestorationTest < Minitest::Test
       model: options[:model],
       prompt: options[:prompt],
       description: options[:description],
-      tools: options[:tools] || [],
+      tools: options[:allowed_tools] || [],
       disallowed_tools: options[:disallowed_tools] || [],
       mcp_config_path: options[:mcp_config_path],
       vibe: options[:vibe],

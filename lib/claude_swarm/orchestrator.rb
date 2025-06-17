@@ -91,7 +91,7 @@ module ClaudeSwarm
         puts "🚀 Launching main instance: #{@config.main_instance}"
         puts "   Model: #{main_instance[:model]}"
         puts "   Directory: #{main_instance[:directory]}"
-        puts "   Allowed tools: #{main_instance[:tools].join(", ")}" if main_instance[:tools].any?
+        puts "   Allowed tools: #{main_instance[:allowed_tools].join(", ")}" if main_instance[:allowed_tools].any?
         puts "   Disallowed tools: #{main_instance[:disallowed_tools].join(", ")}" if main_instance[:disallowed_tools]&.any?
         puts "   Connections: #{main_instance[:connections].join(", ")}" if main_instance[:connections].any?
         puts "   😎 Vibe mode ON for this instance" if main_instance[:vibe]
@@ -208,9 +208,17 @@ module ClaudeSwarm
       if @vibe || instance[:vibe]
         parts << "--dangerously-skip-permissions"
       else
+        # Build allowed tools list including MCP connections
+        allowed_tools = instance[:allowed_tools].dup
+
+        # Add mcp__instance_name for each connection
+        instance[:connections].each do |connection_name|
+          allowed_tools << "mcp__#{connection_name}"
+        end
+
         # Add allowed tools if any
-        if instance[:tools].any?
-          tools_str = instance[:tools].join(",")
+        if allowed_tools.any?
+          tools_str = allowed_tools.join(",")
           parts << "--allowedTools"
           parts << tools_str
         end
@@ -221,10 +229,6 @@ module ClaudeSwarm
           parts << "--disallowedTools"
           parts << disallowed_tools_str
         end
-
-        # Add permission prompt tool unless in vibe mode
-        parts << "--permission-prompt-tool"
-        parts << "mcp__permissions__check_permission"
       end
 
       if instance[:prompt]

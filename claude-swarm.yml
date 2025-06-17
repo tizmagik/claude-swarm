@@ -18,7 +18,7 @@ swarm:
       directory: .
       model: sonnet
       prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
-      allowed_tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
+      allowed_tools: [Read, Edit, Write, Bash]
 
     backend_dev:
       description: "Backend developer focusing on APIs, databases, and server architecture"
@@ -32,7 +32,7 @@ swarm:
     #   directory: .
     #   model: sonnet
     #   prompt: "You specialize in infrastructure, CI/CD, containerization, and deployment"
-    #   allowed_tools: [Read, Edit, Write, "Bash(docker:*)", "Bash(kubectl:*)", "Bash(terraform:*)"]
+    #   allowed_tools: [Read, Edit, Write, Bash]
 
     # qa_engineer:
     #   description: "QA engineer ensuring quality through comprehensive testing"

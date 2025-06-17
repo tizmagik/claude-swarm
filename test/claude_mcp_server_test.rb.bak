@@ -301,7 +301,7 @@ class ClaudeMcpServerTest < Minitest::Test
 
   def test_instance_config_without_tools
     config = @instance_config.dup
-    config[:tools] = nil
+    config[:allowed_tools] = nil
 
     ClaudeSwarm::ClaudeMcpServer.new(config)
 
