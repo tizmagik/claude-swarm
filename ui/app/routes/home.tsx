@@ -3,6 +3,7 @@ import type { Route } from "./+types/home";
 import SwarmSidebar from '../components/SwarmSidebar';
 import SwarmCanvas from '../components/SwarmCanvas';
 import AgentMcpPanels from '../components/AgentMcpPanels';
+import SwarmTerminal from '../components/SwarmTerminal';
 import type { SwarmSummary } from '../components/SwarmSidebar';
 import { Zap, Play, Save, AlertCircle } from 'lucide-react';
 
@@ -307,16 +308,8 @@ export default function Home() {
               </div>
               
               {/* Terminal - Bottom portion */}
-              <div className="h-24 lg:h-32 border-t border-slate-700 bg-slate-950 text-emerald-400 font-mono text-sm flex-shrink-0">
-                <div className="p-3 lg:p-4 h-full flex flex-col">
-                  <div className="flex items-center mb-2">
-                    <Play className="w-3 h-3 text-emerald-400 mr-2 animate-pulse" />
-                    <div className="text-emerald-400 font-medium text-xs lg:text-sm">Running swarm...</div>
-                  </div>
-                  <div className="text-slate-500 text-xs flex-1 overflow-y-auto">
-                    claude-swarm output will be streamed here
-                  </div>
-                </div>
+              <div className="h-64 lg:h-80 border-t border-slate-700 flex-shrink-0">
+                <SwarmTerminal swarmFilename={selectedSwarm.filename} />
               </div>
             </>
           ) : (
