@@ -217,7 +217,7 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
     }
   };
 
-  const handleInputKeyPress = (e: React.KeyboardEvent) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       sendInput();
     }
@@ -398,7 +398,7 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleInputKeyPress}
+              onKeyDown={handleInputKeyDown}
               disabled={isSendingInput}
               placeholder="Type command and press Enter..."
               className="flex-1 bg-black text-green-400 font-mono text-sm px-2 py-1 rounded border border-slate-600 focus:border-green-500 focus:outline-none placeholder-slate-500"

@@ -124,17 +124,10 @@ async function startSwarmExecution(filename: string) {
     const baseDir = path.resolve(process.cwd(), '../');
     const swarmPath = path.join(baseDir, filename);
 
-    // Start the actual claude-swarm process
-    const testCommand = spawn('claude-swarm', [swarmPath], { 
-      stdio: ['pipe', 'pipe', 'pipe'],
-      cwd: baseDir 
-    });
-
-    // If claude-swarm is not available, fall back to simulation
-    testCommand.on('error', (error) => {
-      console.log('claude-swarm not available, using simulation mode:', error.message);
-      // We'll handle this in the error handler below
-    });
+    // Create an interactive shell session - don't run claude-swarm yet
+    const testCommand = process.platform === 'win32' 
+      ? spawn('cmd', [], { stdio: ['pipe', 'pipe', 'pipe'], cwd: baseDir })
+      : spawn('bash', [], { stdio: ['pipe', 'pipe', 'pipe'], cwd: baseDir });
 
     // Initialize execution state with claude-swarm startup sequence
     const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'') + '_' + new Date().toTimeString().slice(0,8).replace(/:/g,'');
@@ -143,14 +136,11 @@ async function startSwarmExecution(filename: string) {
       status: 'running',
       startTime: new Date(),
       logs: [
-        `[CLAUDE-SWARM] Starting swarm from ${filename}`,
-        `[CLAUDE-SWARM] Session directory: ~/.claude-swarm/sessions/ui/${timestamp}/`,
-        `[CLAUDE-SWARM] Configuration validated successfully`,
-        `[CLAUDE-SWARM] Generating MCP configurations for instances...`,
-        `[CLAUDE-SWARM] Starting main instance: lead_developer (opus)`,
-        `[CLAUDE-SWARM] Connected instances: frontend_dev, backend_dev`,
-        `[CLAUDE-SWARM] Swarm initialization complete`,
-        `[CLAUDE-SWARM] Type 'help' for available commands`
+        `[SYSTEM] Interactive shell session started`,
+        `[SYSTEM] Working directory: ${baseDir}`,
+        `[SYSTEM] Claude Swarm configuration: ${filename}`,
+        `[SYSTEM] Ready to execute commands`,
+        `[SYSTEM] Type 'claude-swarm' to start the swarm, or 'help' for available commands`
       ],
       pid: testCommand.pid,
       memory: 0,
@@ -361,30 +351,44 @@ async function sendInputToProcess(filename: string, input: string) {
     // Log the user input
     state.logs.push(`[INPUT] ${input}`);
 
-    // Send input to the process
-    state.process.stdin?.write(`${input}\n`);
-
-    // Check if we have a real claude-swarm process or need to simulate
-    const isRealProcess = state.process && state.process.pid;
-    
-    if (isRealProcess) {
-      // Send input directly to real claude-swarm process
-      // The real process will handle the command and generate output
-      // No additional simulation needed here
+    // Handle special commands first
+    if (input.toLowerCase().trim() === 'claude-swarm' || input.toLowerCase().trim().startsWith('claude-swarm ')) {
+      // Execute the real claude-swarm command
+      const args = input.trim().split(' ').slice(1); // Remove 'claude-swarm' from args
+      const swarmArgs = args.length > 0 ? args : [path.basename(filename)];
+      
+      try {
+        state.logs.push(`[SYSTEM] Executing: claude-swarm ${swarmArgs.join(' ')}`);
+        state.process.stdin?.write(`claude-swarm ${swarmArgs.join(' ')}\n`);
+      } catch (error) {
+        state.logs.push(`[ERROR] Failed to execute claude-swarm: ${error}`);
+      }
     } else {
-      // Simulate claude-swarm command responses based on README
-      setTimeout(() => {
-        if (executionStates[filename]) {
-          switch (input.toLowerCase().trim()) {
+      // Send other commands to the shell
+      state.process.stdin?.write(`${input}\n`);
+    }
+
+    // Provide helpful responses for common commands
+    setTimeout(() => {
+      if (executionStates[filename]) {
+        const cmd = input.toLowerCase().trim();
+        
+        if (cmd === 'claude-swarm' || cmd.startsWith('claude-swarm ')) {
+          // Don't add simulation - let the real output come through
+          return;
+        }
+        
+        switch (cmd) {
             case 'help':
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] Available commands:`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - /list-sessions: List previous sessions`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - /session-info: Show current session information`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - /instances: Show connected instances`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - /task <instance> <description>: Delegate task to specific instance`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - /reset <instance>: Reset instance session`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - /config: Show swarm configuration`);
-              executionStates[filename].logs.push(`[CLAUDE-SWARM] - exit: Stop swarm execution`);
+              executionStates[filename].logs.push(`[HELP] Available commands:`);
+              executionStates[filename].logs.push(`[HELP] - claude-swarm: Start the swarm with default config`);
+              executionStates[filename].logs.push(`[HELP] - claude-swarm --config ${filename}: Start with specific config`);
+              executionStates[filename].logs.push(`[HELP] - claude-swarm --vibe: Start with all permissions enabled`);
+              executionStates[filename].logs.push(`[HELP] - claude-swarm list-sessions: List previous sessions`);
+              executionStates[filename].logs.push(`[HELP] - claude-swarm version: Show version information`);
+              executionStates[filename].logs.push(`[HELP] - ls: List files in current directory`);
+              executionStates[filename].logs.push(`[HELP] - pwd: Show current working directory`);
+              executionStates[filename].logs.push(`[HELP] - exit: Close this session`);
               break;
               
             case '/session-info':
@@ -467,7 +471,6 @@ async function sendInputToProcess(filename: string, input: string) {
           }
         }
       }, 500);
-    }
 
     return Response.json({ 
       success: true, 
