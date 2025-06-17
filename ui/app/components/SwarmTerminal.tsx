@@ -21,7 +21,10 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isSendingInput, setIsSendingInput] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll terminal to bottom when new logs arrive
@@ -30,6 +33,15 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [executionStatus.logs]);
+
+  // Auto-focus input when execution starts
+  useEffect(() => {
+    if (executionStatus.status === 'running' && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [executionStatus.status]);
 
   // Poll for execution status and logs when running
   useEffect(() => {
@@ -167,6 +179,47 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
       setError(err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const sendInput = async () => {
+    if (!inputValue.trim() || isSendingInput) return;
+    
+    setIsSendingInput(true);
+    setError(null);
+    
+    try {
+      const encodedFilename = encodeURIComponent(swarmFilename);
+      const response = await fetch(`/api/swarms/${encodedFilename}?action=execution`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'input', input: inputValue }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send input');
+      }
+
+      setInputValue('');
+      
+      // Focus back to input field
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSendingInput(false);
+    }
+  };
+
+  const handleInputKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      sendInput();
     }
   };
 
@@ -335,9 +388,41 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
         )}
       </div>
 
+      {/* Input Area - Only show when running */}
+      {executionStatus.status === 'running' && (
+        <div className="p-3 border-t border-slate-700 bg-slate-900 rounded-b-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-green-400 font-mono text-sm">$</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleInputKeyPress}
+              disabled={isSendingInput}
+              placeholder="Type command and press Enter..."
+              className="flex-1 bg-black text-green-400 font-mono text-sm px-2 py-1 rounded border border-slate-600 focus:border-green-500 focus:outline-none placeholder-slate-500"
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+              }}
+            />
+            <button
+              onClick={sendInput}
+              disabled={!inputValue.trim() || isSendingInput}
+              className="px-3 py-1 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:opacity-50 text-white text-sm rounded transition-colors"
+            >
+              {isSendingInput ? 'Sending...' : 'Send'}
+            </button>
+          </div>
+          <div className="mt-1 text-xs text-slate-500">
+            Try: help, status, agents, task &lt;description&gt;
+          </div>
+        </div>
+      )}
+
       {/* Terminal Footer */}
       {executionStatus.startTime && (
-        <div className="px-4 py-2 border-t border-slate-700 bg-slate-800 text-xs text-slate-400 rounded-b-lg">
+        <div className="px-4 py-2 border-t border-slate-700 bg-slate-800 text-xs text-slate-400">
           Started: {new Date(executionStatus.startTime).toLocaleString()}
         </div>
       )}
