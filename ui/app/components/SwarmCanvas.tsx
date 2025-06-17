@@ -24,9 +24,48 @@ interface SwarmCanvasProps {
   connections: Connection[];
   onNodeUpdate: (nodes: AgentNode[]) => void;
   onConnectionUpdate: (connections: Connection[]) => void;
-  onAddNode?: () => void;
   onDeleteNode?: (nodeId: string) => void;
 }
+
+const nodeWidth = 180;
+const nodeHeight = 120;
+
+// Automatic layout using dagre - dynamic import for client-side
+const getLayoutedElements = async (nodes: any[], edges: any[], direction = 'TB') => {
+  const dagre = await import('@dagrejs/dagre');
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  const isHorizontal = direction === 'LR';
+  dagreGraph.setGraph({ rankdir: direction });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  nodes.forEach((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    node.targetPosition = isHorizontal ? 'left' : 'top';
+    node.sourcePosition = isHorizontal ? 'right' : 'bottom';
+
+    // We are shifting the dagre node position (anchor=center center) to the top left
+    // so it matches the React Flow node anchor point (top left).
+    node.position = {
+      x: nodeWithPosition.x - nodeWidth / 2,
+      y: nodeWithPosition.y - nodeHeight / 2,
+    };
+
+    return node;
+  });
+
+  return { nodes, edges };
+};
 
 // Client-side only ReactFlow component
 function ReactFlowCanvas({
@@ -52,6 +91,7 @@ function ReactFlowCanvas({
     mcps: [] as string[],
     description: ''
   });
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   useEffect(() => {
     // Import ReactFlow only on client-side
     import("@xyflow/react").then((module) => {
@@ -106,9 +146,9 @@ function ReactFlowCanvas({
         border: "2px solid #64748b",
         borderRadius: "12px",
         padding: "12px",
-        width: "160px",
+        width: `${nodeWidth}px`,
         height: "auto",
-        minHeight: "80px",
+        minHeight: `${nodeHeight}px`,
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       },
     }));
@@ -127,6 +167,58 @@ function ReactFlowCanvas({
       });
     });
   }, [nodes]);
+
+  const reactFlowEdges = useMemo(() => {
+    return connections.map((conn) => ({
+      id: `${conn.from}-${conn.to}`,
+      source: conn.from,
+      target: conn.to,
+      type: "smoothstep",
+      style: {
+        stroke: "#64748b",
+        strokeWidth: 2,
+      },
+      markerEnd: {
+        type: "arrowclosed",
+        color: "#64748b",
+      },
+    }));
+  }, [connections]);
+
+  // Auto-layout when nodes or connections change
+  useEffect(() => {
+    if (localNodes.length > 0 && reactFlowEdges.length >= 0 && reactFlowInstance) {
+      const applyAutoLayout = async () => {
+        try {
+          const { nodes: layoutedNodes } = await getLayoutedElements(
+            localNodes,
+            reactFlowEdges,
+            'TB' // Always use vertical layout
+          );
+
+          setLocalNodes([...layoutedNodes]);
+
+          // Update parent component with new positions
+          const updatedNodes = nodes.map(n => {
+            const layoutedNode = layoutedNodes.find(ln => ln.id === n.id);
+            return layoutedNode 
+              ? { ...n, x: layoutedNode.position.x, y: layoutedNode.position.y }
+              : n;
+          });
+          onNodeUpdate(updatedNodes);
+
+          // Center the view after layout
+          setTimeout(() => {
+            reactFlowInstance.fitView({ padding: 0.2, duration: 800 });
+          }, 100);
+        } catch (error) {
+          console.error('Auto-layout failed:', error);
+        }
+      };
+
+      applyAutoLayout();
+    }
+  }, [localNodes.length, reactFlowEdges.length, reactFlowInstance]);
 
 
   const onNodeClick = useCallback((_event: any, node: any) => {
@@ -296,23 +388,6 @@ function ReactFlowCanvas({
   }, []);
 
 
-  const reactFlowEdges = useMemo(() => {
-    return connections.map((conn) => ({
-      id: `${conn.from}-${conn.to}`,
-      source: conn.from,
-      target: conn.to,
-      type: "smoothstep",
-      style: {
-        stroke: "#64748b",
-        strokeWidth: 2,
-      },
-      markerEnd: {
-        type: "arrowclosed",
-        color: "#64748b",
-      },
-    }));
-  }, [connections]);
-
   if (!ReactFlow) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-900">
@@ -332,6 +407,7 @@ function ReactFlowCanvas({
         edges={reactFlowEdges}
         onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
+        onInit={setReactFlowInstance}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         className="bg-slate-950"
@@ -342,7 +418,18 @@ function ReactFlowCanvas({
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
       >
         {Controls && (
-          <Controls className="bg-slate-800 border border-slate-700 rounded-lg" />
+          <Controls 
+            className="!bg-slate-800 !border-slate-700 rounded-lg"
+            style={{
+              backgroundColor: '#1e293b',
+              borderColor: '#475569',
+              '--xy-controls-button-background-color': '#334155',
+              '--xy-controls-button-background-color-hover': '#475569',
+              '--xy-controls-button-color': '#ffffff',
+              '--xy-controls-button-color-hover': '#ffffff',
+              '--xy-controls-button-border-color': '#475569'
+            } as any}
+          />
         )}
         {Background && <Background color="#1e293b" gap={20} variant="dots" />}
       </ReactFlow>
@@ -530,7 +617,6 @@ export default function SwarmCanvas({
   nodes,
   connections,
   onNodeUpdate,
-  onAddNode,
   onDeleteNode,
 }: SwarmCanvasProps) {
   console.log("SwarmCanvas rendered with nodes:", nodes);
@@ -544,28 +630,15 @@ export default function SwarmCanvas({
     <div className="flex-1 bg-slate-950 relative overflow-hidden" style={{ height: '100%' }}>
       {/* Header */}
       <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-3 lg:px-6 border border-slate-700 max-w-sm lg:max-w-none">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
-              <Zap className="w-5 h-5 lg:w-6 lg:h-6 mr-2 lg:mr-3 text-blue-400" />
-              <span className="truncate">{swarmName}</span>
-            </h1>
-            <div className="text-slate-400 text-xs lg:text-sm mt-1 flex items-center">
-              <Users className="w-3 h-3 mr-1" />
-              {nodes.length} agents
-              <ArrowRight className="w-3 h-3 mx-2" />
-              {connections.length} connections
-            </div>
-          </div>
-          {onAddNode && (
-            <button
-              onClick={onAddNode}
-              className="ml-4 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 text-sm font-medium transition-colors flex items-center"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Agent
-            </button>
-          )}
+        <h1 className="text-lg lg:text-2xl font-bold text-white flex items-center">
+          <Zap className="w-5 h-5 lg:w-6 lg:h-6 mr-2 lg:mr-3 text-blue-400" />
+          <span className="truncate">{swarmName}</span>
+        </h1>
+        <div className="text-slate-400 text-xs lg:text-sm mt-1 flex items-center">
+          <Users className="w-3 h-3 mr-1" />
+          {nodes.length} agents
+          <ArrowRight className="w-3 h-3 mx-2" />
+          {connections.length} connections
         </div>
       </div>
 
