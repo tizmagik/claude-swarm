@@ -85,7 +85,7 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
           </h2>
           <button
             onClick={handleNewSwarm}
-            className="px-3 py-2 lg:px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
+            className="px-3 py-2 text-sm text-slate-400 hover:text-slate-200 border border-slate-600 hover:border-slate-500 rounded-lg hover:bg-slate-700/50 transition-colors flex items-center"
           >
             <Plus className="w-4 h-4 mr-1" />
             <span className="hidden sm:inline">New</span>
@@ -139,24 +139,6 @@ export default function SwarmSidebar({ onSwarmSelect, selectedSwarm }: SwarmSide
         )}
       </div>
 
-      <div className="p-3 lg:p-4 border-t border-slate-700 space-y-2 lg:space-y-3 flex-shrink-0">
-        <Link
-          to="/agent-templates"
-          className="block w-full px-3 py-2 lg:px-4 lg:py-3 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 text-center font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          <span className="hidden sm:inline">Manage Agent Templates</span>
-          <span className="sm:hidden">Agents</span>
-        </Link>
-        <Link
-          to="/mcp-tools"
-          className="block w-full px-3 py-2 lg:px-4 lg:py-3 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-500 text-center font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
-        >
-          <Wrench className="w-4 h-4 mr-2" />
-          <span className="hidden sm:inline">Manage MCP Tools</span>
-          <span className="sm:hidden">MCPs</span>
-        </Link>
-      </div>
     </div>
   );
 }

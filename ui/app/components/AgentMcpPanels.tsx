@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import { Bot, Settings, Wrench, Crown, Monitor, Server, Building, TestTube, Shield, BarChart3, Palette } from 'lucide-react';
 
 interface AgentTemplate {
@@ -191,11 +192,19 @@ export default function AgentMcpPanels() {
     <div className="w-80 lg:w-80 md:w-72 sm:w-64 bg-slate-900 border-l border-slate-700 flex flex-col h-full">
       {/* Agents Section */}
       <div className="flex-1 p-3 lg:p-4 border-b border-slate-700 min-h-0">
-        <div className="flex items-center mb-3 lg:mb-4">
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
           <h2 className="text-lg lg:text-xl font-bold text-white flex items-center">
             <Bot className="w-5 h-5 mr-2 text-blue-400" />
             <span className="hidden sm:inline">Agents</span>
           </h2>
+          <Link
+            to="/agent-templates"
+            className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200 border border-slate-600 hover:border-slate-500 rounded hover:bg-slate-700/50 transition-colors flex items-center"
+            title="Manage Agent Templates"
+          >
+            <Settings className="w-3 h-3" />
+            <span className="hidden lg:inline ml-1">Manage</span>
+          </Link>
         </div>
         <div className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4 hidden sm:block">
           Drag agents to add them to your swarm
@@ -240,11 +249,19 @@ export default function AgentMcpPanels() {
 
       {/* MCPs Section */}
       <div className="flex-1 p-3 lg:p-4 min-h-0">
-        <div className="flex items-center mb-3 lg:mb-4">
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
           <h2 className="text-lg lg:text-xl font-bold text-white flex items-center">
             <Wrench className="w-5 h-5 mr-2 text-purple-400" />
             <span className="hidden sm:inline">MCPs</span>
           </h2>
+          <Link
+            to="/mcp-tools"
+            className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200 border border-slate-600 hover:border-slate-500 rounded hover:bg-slate-700/50 transition-colors flex items-center"
+            title="Manage MCP Tools"
+          >
+            <Settings className="w-3 h-3" />
+            <span className="hidden lg:inline ml-1">Manage</span>
+          </Link>
         </div>
         <div className="text-slate-300 text-xs lg:text-sm mb-3 lg:mb-4 hidden sm:block">
           Available MCP tools and integrations
