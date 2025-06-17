@@ -11,16 +11,16 @@ This document outlines the remaining functionality to be implemented in the Clau
 - [ ] **Connection validation**: No checks for circular dependencies or invalid connections
 
 ### **2. Node/Agent Management**
-- [ ] **Add new agents**: Can't create new agent nodes from scratch
-- [ ] **Delete agents**: No way to remove agents from the swarm
+- [x] **Add new agents**: Can create new agent nodes by dragging from templates
+- [x] **Delete agents**: Can remove agents via edit modal
 - [ ] **Clone/duplicate agents**: No way to copy existing agent configurations
-- [ ] **Agent templates**: Can't apply pre-defined agent templates to nodes
+- [x] **Agent templates**: Can apply pre-defined agent templates to nodes via drag and drop
 - [ ] **Directory assignment**: Can't set working directories for agents
 - [ ] **Custom prompts**: No UI to set agent-specific system prompts
 
 ### **3. Swarm Configuration Management** 
-- [ ] **Create new swarms**: The "New" button creates an empty placeholder, not a real swarm
-- [ ] **Save swarm changes**: Node/connection changes aren't persisted to YAML files
+- [x] **Create new swarms**: Can create new swarms with proper configuration via modal
+- [x] **Save swarm changes**: Node/connection changes are persisted to YAML files
 - [ ] **Delete swarms**: No way to remove swarm configurations
 - [ ] **Export swarms**: No way to download/backup swarm configurations
 - [ ] **Import swarms**: No way to upload existing swarm YAML files
@@ -35,8 +35,8 @@ This document outlines the remaining functionality to be implemented in the Clau
 - [ ] **Restart functionality**: No way to restart failed agents
 
 ### **5. Advanced Configuration**
-- [ ] **Tool restrictions**: No UI for pattern-based tool restrictions (e.g., `Bash(npm:*)`)
-- [ ] **MCP server configuration**: No way to configure MCP server details (stdio vs SSE, commands, args)
+- [x] **Tool restrictions**: UI supports pattern-based tool restrictions (e.g., `Bash(npm:*)`)
+- [x] **MCP server configuration**: Can configure MCP server details (stdio vs SSE, commands, args)
 - [ ] **Environment variables**: No way to set environment variables for agents
 - [ ] **Resource limits**: No way to set memory/CPU limits for agents
 - [ ] **Networking configuration**: No way to configure ports or networking
@@ -79,15 +79,15 @@ This document outlines the remaining functionality to be implemented in the Clau
 ## 📊 Implementation Priority
 
 ### **High Priority (Core functionality)**
-1. [ ] **Save swarm changes** to YAML files
-2. [ ] **Add/delete agents** functionality  
+1. [x] **Save swarm changes** to YAML files
+2. [x] **Add/delete agents** functionality  
 3. [ ] **Create/manage connections** between agents
 4. [ ] **Start/stop swarm execution**
 5. [ ] **Real-time terminal output**
 
 ### **Medium Priority (Enhanced UX)**
-6. [ ] **Create new swarms** properly
-7. [ ] **Agent template application**
+6. [x] **Create new swarms** properly
+7. [x] **Agent template application**
 8. [ ] **Configuration validation**
 9. [ ] **Error handling & notifications**
 10. [ ] **Tool restrictions UI**
@@ -110,18 +110,28 @@ This document outlines the remaining functionality to be implemented in the Clau
 - [x] **Professional UI**: Dark theme, responsive design, proper loading states
 - [x] **Agent templates sidebar**: Browse and view available agent templates
 - [x] **MCP tools sidebar**: Browse and view available MCP integrations
+- [x] **Save swarm changes**: All changes persist to YAML files automatically
+- [x] **Add/delete agents**: Drag from templates to create, delete via edit modal
+- [x] **Create new swarms**: Full modal-based swarm creation workflow
+- [x] **Agent template management**: Full CRUD operations for agent templates
+- [x] **MCP tool management**: Full CRUD operations for MCP configurations
+- [x] **Auto-layout**: Automatic graph layout using dagre.js with proper centering
+- [x] **Swarm name editing**: Inline editing of swarm names with live updates
+- [x] **Human-readable IDs**: Generates clean IDs from template names instead of random strings
 
 ## 📝 Notes
 
-The current implementation provides a solid foundation for **viewing and basic editing** of swarm configurations, but lacks most of the **core orchestration and persistence functionality** needed for a complete swarm management system.
+The current implementation provides a comprehensive swarm management system with full **persistence, agent management, and configuration functionality**. The main missing pieces are **execution orchestration** and **connection management**.
 
 ### Current State
 - ✅ **Visualization**: Excellent visual representation of swarms
-- ✅ **Basic editing**: Node properties and MCP assignments work well
-- ✅ **User experience**: Professional, responsive design
-- ❌ **Persistence**: Changes are not saved to files
+- ✅ **Agent management**: Full CRUD operations for agents and templates
+- ✅ **User experience**: Professional, responsive design with modal workflows
+- ✅ **Persistence**: All changes are automatically saved to YAML files
+- ✅ **Configuration**: Complete MCP and tool configuration support
+- ❌ **Connection management**: Cannot create/delete connections between agents
 - ❌ **Execution**: Cannot actually run swarms
-- ❌ **Advanced features**: Missing most advanced configuration options
+- ❌ **Real-time monitoring**: No execution output or process monitoring
 
 ### Next Steps
-Focus should be on implementing the **High Priority** items first to make the UI functional for actual swarm orchestration, then move to **Medium Priority** items for better user experience, and finally **Low Priority** items for polish and advanced features.
+The next priority should be implementing **connection management** (creating/deleting connections between agents) followed by **swarm execution** (start/stop functionality with real-time terminal output) to complete the core orchestration capabilities.
