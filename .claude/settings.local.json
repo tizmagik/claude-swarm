@@ -15,7 +15,10 @@
       "WebFetch(domain:reactflow.dev)",
       "Bash(curl:*)",
       "WebFetch(domain:vite.dev)",
-      "mcp__playwright__playwright_get_visible_html"
+      "mcp__playwright__playwright_get_visible_html",
+      "mcp__playwright__playwright_fill",
+      "mcp__playwright__playwright_press_key",
+      "mcp__playwright__playwright_select"
     ],
     "deny": []
   }

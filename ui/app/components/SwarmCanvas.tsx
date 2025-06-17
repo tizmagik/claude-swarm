@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Zap, Users, ArrowRight } from "lucide-react";
+import { Zap, Users, ArrowRight, Edit3, X, Save, Bot, Settings, Wrench, Minus } from "lucide-react";
 
 interface AgentNode {
   id: string;
@@ -40,6 +40,14 @@ function ReactFlowCanvas({
   const [Controls, setControls] = useState<any>(null);
   const [Background, setBackground] = useState<any>(null);
   const [localNodes, setLocalNodes] = useState<any[]>([]);
+  const [editingNode, setEditingNode] = useState<AgentNode | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    model: '',
+    tools: [] as string[],
+    mcps: [] as string[],
+    description: ''
+  });
   useEffect(() => {
     // Import ReactFlow only on client-side
     import("@xyflow/react").then((module) => {
@@ -67,6 +75,24 @@ function ReactFlowCanvas({
             <div className="text-slate-200 text-xs mt-1">
               {node.tools.length} tools
             </div>
+            {node.mcps.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {node.mcps.slice(0, 3).map((mcp, index) => (
+                  <div
+                    key={index}
+                    className="inline-flex items-center bg-purple-600 text-white text-xs px-2 py-1 rounded-full mx-1"
+                    title={`${mcp} - Click node to edit`}
+                  >
+                    <span className="truncate max-w-[100px]">{mcp}</span>
+                  </div>
+                ))}
+                {node.mcps.length > 3 && (
+                  <div className="text-purple-300 text-xs">
+                    +{node.mcps.length - 3} more
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ),
       },
@@ -77,7 +103,8 @@ function ReactFlowCanvas({
         borderRadius: "12px",
         padding: "12px",
         width: "160px",
-        height: "80px",
+        height: "auto",
+        minHeight: "80px",
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       },
     }));
@@ -96,6 +123,64 @@ function ReactFlowCanvas({
       });
     });
   }, [nodes]);
+
+
+  const onNodeClick = useCallback((_event: any, node: any) => {
+    const agentNode = nodes.find(n => n.id === node.id);
+    if (agentNode) {
+      setEditingNode(agentNode);
+      setEditForm({
+        name: agentNode.name,
+        model: agentNode.model,
+        tools: [...agentNode.tools],
+        mcps: [...agentNode.mcps],
+        description: agentNode.description
+      });
+    }
+  }, [nodes]);
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    
+    try {
+      const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+      console.log('Drop event:', dragData);
+      
+      if (dragData.type === 'mcp') {
+        // Get the element that was dropped on
+        const dropTarget = event.target as HTMLElement;
+        const nodeElement = dropTarget.closest('.react-flow__node');
+        
+        if (nodeElement) {
+          const nodeId = nodeElement.getAttribute('data-id');
+          if (nodeId) {
+            // Add MCP to the node
+            const updatedNodes = nodes.map(n => 
+              n.id === nodeId 
+                ? { ...n, mcps: [...new Set([...n.mcps, dragData.item.name])] }
+                : n
+            );
+            
+            // If we're editing this node, update the form state instead of the node directly
+            if (editingNode && editingNode.id === nodeId) {
+              handleMcpAddToForm(dragData.item.name);
+              return; // Don't update the node directly, just the form
+            }
+            
+            console.log('Adding MCP', dragData.item.name, 'to node', nodeId);
+            onNodeUpdate(updatedNodes);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing drop data:', error);
+    }
+  }, [nodes, onNodeUpdate]);
 
 
   const onNodesChange = useCallback(
@@ -150,6 +235,63 @@ function ReactFlowCanvas({
     [nodes, onNodeUpdate]
   );
 
+  const handleEditSave = useCallback(() => {
+    if (!editingNode) return;
+    
+    const updatedNodes = nodes.map(n => 
+      n.id === editingNode.id 
+        ? { ...n, ...editForm }
+        : n
+    );
+    
+    onNodeUpdate(updatedNodes);
+    setEditingNode(null);
+  }, [editingNode, editForm, nodes, onNodeUpdate]);
+
+  const handleEditCancel = useCallback(() => {
+    setEditingNode(null);
+    setEditForm({
+      name: '',
+      model: '',
+      tools: [],
+      mcps: [],
+      description: ''
+    });
+  }, []);
+
+  const handleToolAdd = useCallback((tool: string) => {
+    if (tool && !editForm.tools.includes(tool)) {
+      setEditForm(prev => ({
+        ...prev,
+        tools: [...prev.tools, tool]
+      }));
+    }
+  }, [editForm.tools]);
+
+  const handleToolRemove = useCallback((tool: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      tools: prev.tools.filter(t => t !== tool)
+    }));
+  }, []);
+
+  const handleMcpAddToForm = useCallback((mcp: string) => {
+    if (mcp && !editForm.mcps.includes(mcp)) {
+      setEditForm(prev => ({
+        ...prev,
+        mcps: [...prev.mcps, mcp]
+      }));
+    }
+  }, [editForm.mcps]);
+
+  const handleMcpRemoveFromForm = useCallback((mcp: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      mcps: prev.mcps.filter(m => m !== mcp)
+    }));
+  }, []);
+
+
   const reactFlowEdges = useMemo(() => {
     return connections.map((conn) => ({
       id: `${conn.from}-${conn.to}`,
@@ -176,11 +318,16 @@ function ReactFlowCanvas({
   }
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div 
+      style={{ width: "100%", height: "100%" }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       <ReactFlow
         nodes={localNodes}
         edges={reactFlowEdges}
         onNodesChange={onNodesChange}
+        onNodeClick={onNodeClick}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         className="bg-slate-950"
@@ -195,6 +342,163 @@ function ReactFlowCanvas({
         )}
         {Background && <Background color="#1e293b" gap={20} variant="dots" />}
       </ReactFlow>
+
+      {/* Edit Node Modal */}
+      {editingNode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border border-slate-700">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <Edit3 className="w-5 h-5 mr-2 text-blue-400" />
+                Edit Agent: {editingNode.name}
+              </h2>
+              <button
+                onClick={handleEditCancel}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-6">
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <Bot className="w-4 h-4 inline mr-1" />
+                  Agent Name
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter agent name"
+                />
+              </div>
+
+              {/* Model */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <Settings className="w-4 h-4 inline mr-1" />
+                  Model
+                </label>
+                <select
+                  value={editForm.model}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, model: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="sonnet">Claude 3.5 Sonnet</option>
+                  <option value="opus">Claude 3 Opus</option>
+                  <option value="haiku">Claude 3 Haiku</option>
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe what this agent does"
+                  rows={3}
+                />
+              </div>
+
+              {/* Tools */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <Wrench className="w-4 h-4 inline mr-1" />
+                  Tools
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {editForm.tools.map((tool, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-full"
+                    >
+                      {tool}
+                      <button
+                        onClick={() => handleToolRemove(tool)}
+                        className="ml-2 text-blue-200 hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a tool (e.g., Read, Edit, Bash)"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleToolAdd(e.currentTarget.value);
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Press Enter to add. Common tools: Read, Edit, Write, Bash, Grep, Glob
+                </div>
+              </div>
+
+              {/* Current MCPs Display */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <Wrench className="w-4 h-4 inline mr-1" />
+                  MCP Integrations
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {editForm.mcps.map((mcp, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-purple-600 text-white text-sm rounded-full"
+                    >
+                      {mcp}
+                      <button
+                        onClick={() => handleMcpRemoveFromForm(mcp)}
+                        className="ml-2 text-purple-200 hover:text-white transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {editForm.mcps.length === 0 && (
+                    <span className="text-slate-400 text-sm">No MCP integrations</span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-400">
+                  Drag and drop MCP tools from the sidebar to add them, or click the × to remove them
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 mt-8">
+              <button
+                onClick={handleEditCancel}
+                className="px-4 py-2 text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
