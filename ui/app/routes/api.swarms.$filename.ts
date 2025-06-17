@@ -80,7 +80,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   if (isExecutionRequest && request.method === 'POST') {
     // Handle execution control request
-    const { action: execAction } = await request.json();
+    const { action: execAction, input } = await request.json();
 
     if (execAction === 'start') {
       return startSwarmExecution(filename);
@@ -89,6 +89,8 @@ export async function action({ params, request }: Route.ActionArgs) {
     } else if (execAction === 'restart') {
       await stopSwarmExecution(filename);
       return startSwarmExecution(filename);
+    } else if (execAction === 'input') {
+      return sendInputToProcess(filename, input);
     } else if (execAction === 'logs') {
       return getSwarmLogs(filename);
     }
@@ -122,11 +124,25 @@ async function startSwarmExecution(filename: string) {
     const baseDir = path.resolve(process.cwd(), '../');
     const swarmPath = path.join(baseDir, filename);
 
-    // For testing, use a simple echo command that simulates swarm execution
+    // For testing, use an interactive command that simulates swarm execution
     // In production, this would be: spawn('claude-swarm', [swarmPath])
     const testCommand = process.platform === 'win32' 
-      ? spawn('cmd', ['/c', `echo Starting swarm ${filename} && timeout /t 2 && echo Agent 1 starting... && timeout /t 1 && echo Agent 2 connecting... && timeout /t 1 && echo Swarm running successfully && timeout /t 5 && echo Swarm completed`])
-      : spawn('sh', ['-c', `echo "Starting swarm ${filename}" && sleep 2 && echo "Agent 1 starting..." && sleep 1 && echo "Agent 2 connecting..." && sleep 1 && echo "Swarm running successfully" && sleep 5 && echo "Swarm completed"`]);
+      ? spawn('cmd', [], { stdio: ['pipe', 'pipe', 'pipe'] })
+      : spawn('sh', [], { stdio: ['pipe', 'pipe', 'pipe'] });
+
+    // Send initial startup sequence for the interactive shell
+    if (process.platform === 'win32') {
+      testCommand.stdin?.write(`echo Starting swarm ${filename}\n`);
+      testCommand.stdin?.write(`echo Agent initialization complete\n`);
+      testCommand.stdin?.write(`echo Ready for commands. Type 'help' for available commands:\n`);
+    } else {
+      testCommand.stdin?.write(`echo "Starting swarm ${filename}"\n`);
+      testCommand.stdin?.write(`echo "Agent 1: Lead Developer - ONLINE"\n`);
+      testCommand.stdin?.write(`echo "Agent 2: Frontend Developer - ONLINE"\n`);
+      testCommand.stdin?.write(`echo "Agent 3: Backend Developer - ONLINE"\n`);
+      testCommand.stdin?.write(`echo "Swarm initialization complete"\n`);
+      testCommand.stdin?.write(`echo "Ready for commands. Type 'help' for available commands:"\n`);
+    }
 
     // Initialize execution state
     executionStates[filename] = {
@@ -327,5 +343,70 @@ async function getProcessStats(pid: number | undefined): Promise<{ memory: numbe
     }
   } catch (error) {
     return null;
+  }
+}
+
+async function sendInputToProcess(filename: string, input: string) {
+  try {
+    const state = executionStates[filename];
+    
+    if (!state?.process) {
+      return Response.json({ 
+        error: 'No running process to send input to' 
+      }, { status: 400 });
+    }
+
+    // Log the user input
+    state.logs.push(`[INPUT] ${input}`);
+
+    // Send input to the process
+    state.process.stdin?.write(`${input}\n`);
+
+    // Simulate command processing responses
+    setTimeout(() => {
+      if (executionStates[filename]) {
+        switch (input.toLowerCase().trim()) {
+          case 'help':
+            executionStates[filename].logs.push(`[SWARM] Available commands:`);
+            executionStates[filename].logs.push(`[SWARM] - status: Show swarm status`);
+            executionStates[filename].logs.push(`[SWARM] - agents: List all agents`);
+            executionStates[filename].logs.push(`[SWARM] - task <description>: Assign task to swarm`);
+            executionStates[filename].logs.push(`[SWARM] - stop: Stop swarm execution`);
+            break;
+          case 'status':
+            executionStates[filename].logs.push(`[SWARM] Swarm Status: RUNNING`);
+            executionStates[filename].logs.push(`[SWARM] Active Agents: 3/3`);
+            executionStates[filename].logs.push(`[SWARM] Tasks Completed: ${Math.floor(Math.random() * 10) + 1}`);
+            executionStates[filename].logs.push(`[SWARM] Uptime: ${Math.floor(Math.random() * 60) + 1} minutes`);
+            break;
+          case 'agents':
+            executionStates[filename].logs.push(`[SWARM] Agent List:`);
+            executionStates[filename].logs.push(`[SWARM] 1. Lead Developer (opus) - Coordinating team`);
+            executionStates[filename].logs.push(`[SWARM] 2. Frontend Developer (sonnet) - Working on UI components`);
+            executionStates[filename].logs.push(`[SWARM] 3. Backend Developer (sonnet) - Implementing APIs`);
+            break;
+          default:
+            if (input.toLowerCase().startsWith('task ')) {
+              const taskDescription = input.slice(5);
+              executionStates[filename].logs.push(`[SWARM] Task received: "${taskDescription}"`);
+              executionStates[filename].logs.push(`[SWARM] Distributing task to available agents...`);
+              executionStates[filename].logs.push(`[SWARM] Task assigned successfully`);
+            } else {
+              executionStates[filename].logs.push(`[SWARM] Unknown command: "${input}"`);
+              executionStates[filename].logs.push(`[SWARM] Type 'help' for available commands`);
+            }
+            break;
+        }
+        executionStates[filename].logs.push(`[SWARM] Ready for next command:`);
+      }
+    }, 500); // Small delay to simulate processing
+
+    return Response.json({ 
+      success: true, 
+      message: 'Input sent to process' 
+    });
+
+  } catch (error: any) {
+    return Response.json({ error: error.message }, { status: 500 });
   }
 }
