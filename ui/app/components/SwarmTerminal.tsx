@@ -32,8 +32,8 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
   useEffect(() => {
     if (terminalRef.current && executionStatus.logs.length > prevLogCount.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-      prevLogCount.current = executionStatus.logs.length;
     }
+    prevLogCount.current = executionStatus.logs.length;
   }, [executionStatus.logs]);
 
   // Auto-focus input when execution starts
