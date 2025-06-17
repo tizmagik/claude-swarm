@@ -27,10 +27,12 @@ export default function SwarmTerminal({ swarmFilename }: SwarmTerminalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-scroll terminal to bottom when new logs arrive
+  // Auto-scroll terminal to bottom when new logs arrive (only when log count actually increases)
+  const prevLogCount = useRef(0);
   useEffect(() => {
-    if (terminalRef.current) {
+    if (terminalRef.current && executionStatus.logs.length > prevLogCount.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      prevLogCount.current = executionStatus.logs.length;
     }
   }, [executionStatus.logs]);
 

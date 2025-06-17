@@ -360,13 +360,21 @@ async function sendInputToProcess(filename: string, input: string) {
 
     // Handle special commands first
     if (input.toLowerCase().trim() === 'claude-swarm' || input.toLowerCase().trim().startsWith('claude-swarm ')) {
-      // Execute the real claude-swarm command
+      // Execute the real claude-swarm command (it's in PATH)
       const args = input.trim().split(' ').slice(1); // Remove 'claude-swarm' from args
-      const swarmArgs = args.length > 0 ? args : [path.basename(filename)];
+      const swarmArgs = args.length > 0 ? args : [filename]; // Use full filename
       
       try {
-        state.logs.push(`[SYSTEM] Executing: claude-swarm ${swarmArgs.join(' ')}`);
-        state.process.stdin?.write(`claude-swarm ${swarmArgs.join(' ')}\n`);
+        // Use the correct claude-swarm start command format
+        const fullCommand = args.length > 0 
+          ? `claude-swarm ${args.join(' ')}`  // User provided specific args
+          : `claude-swarm start ${filename}`;  // Default to start command
+        
+        state.logs.push(`[SYSTEM] Executing: ${fullCommand}`);
+        state.logs.push(`[SYSTEM] Working directory: ${path.resolve(process.cwd(), '../')}`);
+        state.logs.push(`[SYSTEM] Configuration file: ${filename}`);
+        
+        state.process.stdin?.write(`${fullCommand}\n`);
       } catch (error) {
         state.logs.push(`[ERROR] Failed to execute claude-swarm: ${error}`);
       }
