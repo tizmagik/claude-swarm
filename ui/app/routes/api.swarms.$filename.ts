@@ -185,8 +185,15 @@ async function startSwarmExecution(filename: string) {
     // Handle process completion
     testCommand.on('close', (code: number | null) => {
       if (executionStates[filename]) {
-        executionStates[filename].status = code === 0 ? 'stopped' : 'error';
-        executionStates[filename].logs.push(`Process exited with code ${code}`);
+        // Treat code 0 or null as clean exit, anything else as error
+        const isCleanExit = code === 0 || code === null;
+        executionStates[filename].status = isCleanExit ? 'stopped' : 'error';
+        
+        if (isCleanExit) {
+          executionStates[filename].logs.push(`Process exited cleanly${code !== null ? ` with code ${code}` : ''}`);
+        } else {
+          executionStates[filename].logs.push(`Process exited with error code ${code}`);
+        }
         
         // Clear monitoring interval
         if (executionStates[filename].monitorInterval) {
