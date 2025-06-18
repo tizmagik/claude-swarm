@@ -111,7 +111,7 @@ module Fixtures
             frontend:
               description: "Frontend developer building user interfaces"
               directory: ./frontend
-              model: haiku
+              model: claude-3-5-haiku-20241022
               tools: [Edit, Bash, Read]
               prompt: "You build user interfaces"
             database:

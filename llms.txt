@@ -57,7 +57,7 @@ A collection of Claude instances (agents) working together. One instance is desi
 An individual Claude Code agent with:
 - **description** (required): Role and responsibilities
 - **directory**: Working directory context
-- **model**: Claude model (opus/sonnet/haiku)
+- **model**: Claude model (opus/sonnet/claude-3-5-haiku-20241022)
 - **connections**: Other instances it can delegate to
 - **allowed_tools**: Tools this instance can use
 - **disallowed_tools**: Explicitly denied tools (override allowed)
@@ -79,7 +79,7 @@ swarm:
     instance_name:
       description: "Agent role description"  # REQUIRED
       directory: ~/path/to/dir              # Working directory
-      model: opus                           # opus/sonnet/haiku
+      model: opus                           # opus/sonnet/claude-3-5-haiku-20241022
       connections: [other1, other2]         # Connected instances
       prompt: "Custom system prompt"        # Additional instructions
       vibe: false                          # Skip permissions (default: false)

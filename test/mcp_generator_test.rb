@@ -64,7 +64,7 @@ class McpGeneratorTest < Minitest::Test
           backend:
             description: "Backend instance"
             directory: ./backend
-            model: haiku
+            model: claude-3-5-haiku-20241022
             tools: [Bash, Grep]
             prompt: "Backend developer"
           frontend:
@@ -106,7 +106,7 @@ class McpGeneratorTest < Minitest::Test
       assert dir_index, "Should have --directory flag"
       assert args[dir_index + 1].end_with?("backend"), "Directory should end with 'backend'"
       assert_includes args, "--model"
-      assert_includes args, "haiku"
+      assert_includes args, "claude-3-5-haiku-20241022"
       assert_includes args, "--prompt"
       assert_includes args, "Backend developer"
       assert_includes args, "--allowed-tools"
