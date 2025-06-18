@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.1.17]
 
 ### Added
 - **Multi-directory support**: Instances can now access multiple directories
