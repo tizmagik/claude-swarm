@@ -66,7 +66,7 @@ class ConfigurationTest < Minitest::Test
           backend:
             description: "Backend developer instance"
             directory: ./backend
-            model: haiku
+            model: claude-3-5-haiku-20241022
             tools: [Bash, Grep]
             prompt: "You handle backend tasks"
           frontend:
