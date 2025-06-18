@@ -717,4 +717,72 @@ class ConfigurationTest < Minitest::Test
     assert_equal "Complex Hierarchy", config.swarm_name
     assert_equal 8, config.instances.size
   end
+
+  def test_multi_directory_support
+    # Create test directories
+    dir1 = File.join(@tmpdir, "dir1")
+    dir2 = File.join(@tmpdir, "dir2")
+    dir3 = File.join(@tmpdir, "dir3")
+    FileUtils.mkdir_p([dir1, dir2, dir3])
+
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            directory: ["#{dir1}", "#{dir2}", "#{dir3}"]
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    lead = config.main_instance_config
+
+    assert_equal 3, lead[:directories].size
+    assert_equal dir1, lead[:directory] # First directory for backward compatibility
+    assert_equal [dir1, dir2, dir3], lead[:directories]
+  end
+
+  def test_single_directory_as_string
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            directory: "#{@tmpdir}"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    lead = config.main_instance_config
+
+    assert_equal 1, lead[:directories].size
+    assert_equal @tmpdir, lead[:directory]
+    assert_equal [@tmpdir], lead[:directories]
+  end
+
+  def test_multi_directory_validation_error
+    # Create only one test directory
+    dir1 = File.join(@tmpdir, "dir1")
+    FileUtils.mkdir_p(dir1)
+
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            directory: ["#{dir1}", "/nonexistent/path"]
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_match(%r{Directory '/nonexistent/path' for instance 'lead' does not exist}, error.message)
+  end
 end

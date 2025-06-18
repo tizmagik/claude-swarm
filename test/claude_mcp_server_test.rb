@@ -18,6 +18,7 @@ class ClaudeMcpServerTest < Minitest::Test
     @instance_config = {
       name: "test_instance",
       directory: @tmpdir,
+      directories: [@tmpdir],
       model: "sonnet",
       prompt: "Test prompt",
       allowed_tools: %w[Read Edit],

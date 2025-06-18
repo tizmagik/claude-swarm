@@ -199,6 +199,7 @@ class CLITest < Minitest::Test
     expected_config = {
       name: "test_instance",
       directory: "/test/dir",
+      directories: ["/test/dir"],
       model: "opus",
       prompt: "Test prompt",
       description: nil,
@@ -206,7 +207,7 @@ class CLITest < Minitest::Test
       disallowed_tools: [],
       connections: [],
       mcp_config_path: "/path/to/mcp.json",
-      vibe: nil,
+      vibe: false,
       instance_id: nil,
       claude_session_id: nil
     }
@@ -236,6 +237,7 @@ class CLITest < Minitest::Test
     expected_config = {
       name: "minimal",
       directory: ".",
+      directories: ["."],
       model: "sonnet",
       prompt: nil,
       description: nil,
@@ -243,7 +245,7 @@ class CLITest < Minitest::Test
       disallowed_tools: [],
       connections: [],
       mcp_config_path: nil,
-      vibe: nil,
+      vibe: false,
       instance_id: nil,
       claude_session_id: nil
     }

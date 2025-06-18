@@ -1,42 +1,26 @@
 version: 1
 swarm:
   name: "Swarm Name"
-  main: lead_developer
+  main: claude_swarm_architect
   instances:
-    lead_developer:
-      description: "Lead developer who coordinates the team and makes architectural decisions"
-      directory: .
-      model: sonnet
-      prompt: "You are the lead developer coordinating the team"
-      allowed_tools: [Read, Edit, Bash, Write]
-      connections: [frontend_dev, backend_dev]
+    claude_swarm_architect:
+      description: "Lead architect"
+      directory:
+        - .
+        - /Users/paulo/src/github.com/shopify-playground/claudeception
+      model: opus
+      prompt: "You are an expert in Claude swarm architecture"
+      vibe: true
+      connections: [claudeception_architect]
 
     # Example instances (uncomment and modify as needed):
 
-    frontend_dev:
-      description: "Frontend developer specializing in React and modern web technologies"
-      directory: .
-      model: sonnet
-      prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
-      allowed_tools: [Read, Edit, Write, Bash]
+    claudeception_architect:
+      description: "You are an expert in Claudeception architecture"
+      directory:
+        - .
+        - /Users/paulo/src/github.com/shopify-playground/claudeception
+      model: opus
+      prompt: "You are an expert in Claudeception architecture"
+      vibe: true
 
-    backend_dev:
-      description: "Backend developer focusing on APIs, databases, and server architecture"
-      directory: .
-      model: sonnet
-      prompt: "You specialize in backend development, APIs, databases, and server architecture"
-      allowed_tools: [Read, Edit, Write, Bash]
-
-    # devops_engineer:
-    #   description: "DevOps engineer managing infrastructure, CI/CD, and deployments"
-    #   directory: .
-    #   model: sonnet
-    #   prompt: "You specialize in infrastructure, CI/CD, containerization, and deployment"
-    #   allowed_tools: [Read, Edit, Write, Bash]
-
-    # qa_engineer:
-    #   description: "QA engineer ensuring quality through comprehensive testing"
-    #   directory: ./tests
-    #   model: sonnet
-    #   prompt: "You specialize in testing, quality assurance, and test automation"
-    #   allowed_tools: [Read, Edit, Write, Bash]

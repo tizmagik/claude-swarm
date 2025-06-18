@@ -90,7 +90,12 @@ module ClaudeSwarm
       unless @prompt
         puts "🚀 Launching main instance: #{@config.main_instance}"
         puts "   Model: #{main_instance[:model]}"
-        puts "   Directory: #{main_instance[:directory]}"
+        if main_instance[:directories].size == 1
+          puts "   Directory: #{main_instance[:directory]}"
+        else
+          puts "   Directories:"
+          main_instance[:directories].each { |dir| puts "     - #{dir}" }
+        end
         puts "   Allowed tools: #{main_instance[:allowed_tools].join(", ")}" if main_instance[:allowed_tools].any?
         puts "   Disallowed tools: #{main_instance[:disallowed_tools].join(", ")}" if main_instance[:disallowed_tools]&.any?
         puts "   Connections: #{main_instance[:connections].join(", ")}" if main_instance[:connections].any?
@@ -237,6 +242,14 @@ module ClaudeSwarm
       end
 
       parts << "--debug" if @debug
+
+      # Add additional directories with --add-dir
+      if instance[:directories].size > 1
+        instance[:directories][1..].each do |additional_dir|
+          parts << "--add-dir"
+          parts << additional_dir
+        end
+      end
 
       mcp_config_path = @generator.mcp_config_path(@config.main_instance)
       parts << "--mcp-config"

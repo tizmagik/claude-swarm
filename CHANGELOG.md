@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Added
+- **Multi-directory support**: Instances can now access multiple directories
+  - The `directory` field in YAML configuration now accepts either a string (single directory) or an array of strings (multiple directories)
+  - Additional directories are passed to Claude using the `--add-dir` flag
+  - The first directory in the array serves as the primary working directory
+  - All specified directories must exist or validation will fail
+  - Example: `directory: [./frontend, ./backend, ./shared]`
+
 ## [0.1.16]
 
 ### Changed

@@ -71,6 +71,8 @@ module ClaudeSwarm
                          desc: "Instance name"
     method_option :directory, aliases: "-d", type: :string, required: true,
                               desc: "Working directory for the instance"
+    method_option :directories, type: :array,
+                                desc: "All directories (including main directory) for the instance"
     method_option :model, aliases: "-m", type: :string, required: true,
                           desc: "Claude model to use (e.g., opus, sonnet)"
     method_option :prompt, aliases: "-p", type: :string,
@@ -101,6 +103,7 @@ module ClaudeSwarm
       instance_config = {
         name: options[:name],
         directory: options[:directory],
+        directories: options[:directories] || [options[:directory]],
         model: options[:model],
         prompt: options[:prompt],
         description: options[:description],
@@ -108,7 +111,7 @@ module ClaudeSwarm
         disallowed_tools: options[:disallowed_tools] || [],
         connections: options[:connections] || [],
         mcp_config_path: options[:mcp_config_path],
-        vibe: options[:vibe],
+        vibe: options[:vibe] || false,
         instance_id: options[:instance_id],
         claude_session_id: options[:claude_session_id]
       }

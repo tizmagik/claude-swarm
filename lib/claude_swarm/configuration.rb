@@ -86,9 +86,13 @@ module ClaudeSwarm
       # Support both 'tools' (deprecated) and 'allowed_tools' for backward compatibility
       allowed_tools = config["allowed_tools"] || config["tools"] || []
 
+      # Parse directory field - support both string and array
+      directories = parse_directories(config["directory"])
+
       {
         name: name,
-        directory: expand_path(config["directory"] || "."),
+        directory: directories.first, # Keep single directory for backward compatibility
+        directories: directories, # New field with all directories
         model: config["model"] || "sonnet",
         connections: Array(config["connections"]),
         tools: Array(allowed_tools), # Keep as 'tools' internally for compatibility
@@ -156,8 +160,10 @@ module ClaudeSwarm
 
     def validate_directories
       @instances.each do |name, instance|
-        directory = instance[:directory]
-        raise Error, "Directory '#{directory}' for instance '#{name}' does not exist" unless File.directory?(directory)
+        # Validate all directories in the directories array
+        instance[:directories].each do |directory|
+          raise Error, "Directory '#{directory}' for instance '#{name}' does not exist" unless File.directory?(directory)
+        end
       end
     end
 
@@ -166,6 +172,17 @@ module ClaudeSwarm
 
       field_value = config[field_name]
       raise Error, "Instance '#{instance_name}' field '#{field_name}' must be an array, got #{field_value.class.name}" unless field_value.is_a?(Array)
+    end
+
+    def parse_directories(directory_config)
+      # Default to current directory if not specified
+      directory_config ||= "."
+
+      # Convert to array and expand paths
+      directories = Array(directory_config).map { |dir| expand_path(dir) }
+
+      # Ensure at least one directory
+      directories.empty? ? [expand_path(".")] : directories
     end
 
     def expand_path(path)

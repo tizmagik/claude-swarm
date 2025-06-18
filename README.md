@@ -203,7 +203,7 @@ Each instance must have:
 
 Each instance can have:
 
-- **directory**: Working directory for this instance (can use ~ for home)
+- **directory**: Working directory for this instance (can use ~ for home). Can be a string for a single directory or an array of strings for multiple directories
 - **model**: Claude model to use (opus, sonnet, haiku)
 - **connections**: Array of other instances this one can communicate with
 - **allowed_tools**: Array of tools this instance can use (backward compatible with `tools`)
@@ -397,6 +397,36 @@ swarm:
         - Write
         - Read
 ```
+
+#### Multi-Directory Support
+
+Instances can have access to multiple directories using an array (uses `claude --add-dir`):
+
+```yaml
+version: 1
+swarm:
+  name: "Multi-Module Project"
+  main: fullstack_dev
+  instances:
+    fullstack_dev:
+      description: "Full-stack developer working across multiple modules"
+      directory: [./frontend, ./backend, ./shared]  # Access to multiple directories
+      model: opus
+      allowed_tools: [Read, Edit, Write, Bash]
+      prompt: "You work across frontend, backend, and shared code modules"
+      
+    documentation_writer:
+      description: "Documentation specialist with access to code and docs"
+      directory: ["./docs", "./src", "./examples"]  # Multiple directories as array
+      model: sonnet
+      allowed_tools: [Read, Write, Edit]
+      prompt: "You maintain documentation based on code and examples"
+```
+
+When using multiple directories:
+- The first directory in the array is the primary working directory
+- Additional directories are accessible via the `--add-dir` flag in Claude
+- All directories must exist or the configuration will fail validation
 
 #### Mixed Permission Modes
 

@@ -12,8 +12,9 @@ module ClaudeSwarm
 
     def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false,
                    instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil,
-                   claude_session_id: nil)
+                   claude_session_id: nil, additional_directories: [])
       @working_directory = working_directory
+      @additional_directories = additional_directories
       @model = model
       @mcp_config = mcp_config
       @vibe = vibe
@@ -258,6 +259,12 @@ module ClaudeSwarm
       cmd_array += ["--model", @model]
 
       cmd_array << "--verbose"
+
+      # Add additional directories with --add-dir
+      cmd_array << "--add-dir" if @additional_directories.any?
+      @additional_directories.each do |additional_dir|
+        cmd_array << additional_dir
+      end
 
       # Add MCP config if specified
       cmd_array += ["--mcp-config", @mcp_config] if @mcp_config

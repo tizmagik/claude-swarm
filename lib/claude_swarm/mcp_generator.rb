@@ -107,6 +107,9 @@ module ClaudeSwarm
         "--model", instance[:model]
       ]
 
+      # Add directories array if we have multiple directories
+      args.push("--directories", *instance[:directories]) if instance[:directories] && instance[:directories].size > 1
+
       # Add optional arguments
       args.push("--prompt", instance[:prompt]) if instance[:prompt]
 
