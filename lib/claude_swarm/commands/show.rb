@@ -1,0 +1,158 @@
+# frozen_string_literal: true
+
+require "yaml"
+require "json"
+
+module ClaudeSwarm
+  module Commands
+    class Show
+      def execute(session_id)
+        session_path = find_session_path(session_id)
+        unless session_path
+          puts "Session not found: #{session_id}"
+          exit 1
+        end
+
+        # Load config to get main instance name
+        config = YAML.load_file(File.join(session_path, "config.yml"))
+        main_instance_name = config.dig("swarm", "main")
+
+        # Parse all events to build instance data
+        instances = parse_instance_hierarchy(session_path, main_instance_name)
+
+        # Calculate total cost (excluding main if not available)
+        total_cost = instances.values.sum { |i| i[:cost] }
+        cost_display = if instances[main_instance_name] && instances[main_instance_name][:has_cost_data]
+                         format("$%.4f", total_cost)
+                       else
+                         "#{format("$%.4f", total_cost)} (excluding main instance)"
+                       end
+
+        # Display session info
+        puts "Session: #{session_id}"
+        puts "Swarm: #{config.dig("swarm", "name")}"
+        puts "Total Cost: #{cost_display}"
+
+        # Try to read start directory
+        start_dir_file = File.join(session_path, "start_directory")
+        puts "Start Directory: #{File.read(start_dir_file).strip}" if File.exist?(start_dir_file)
+
+        puts
+        puts "Instance Hierarchy:"
+        puts "-" * 50
+
+        # Find root instances
+        roots = instances.values.select { |i| i[:called_by].empty? }
+        roots.each do |instance|
+          display_instance_tree(instance, instances, 0, main_instance_name)
+        end
+
+        # Add note about interactive main instance
+        return if instances[main_instance_name]&.dig(:has_cost_data)
+
+        puts
+        puts "Note: Main instance (#{main_instance_name}) cost is not tracked in interactive mode."
+        puts "      View costs directly in the Claude interface."
+      end
+
+      private
+
+      def find_session_path(session_id)
+        # First check the run directory
+        run_symlink = File.join(File.expand_path("~/.claude-swarm/run"), session_id)
+        if File.symlink?(run_symlink)
+          target = File.readlink(run_symlink)
+          return target if Dir.exist?(target)
+        end
+
+        # Fall back to searching all sessions
+        Dir.glob(File.expand_path("~/.claude-swarm/sessions/*/*")).find do |path|
+          File.basename(path) == session_id
+        end
+      end
+
+      def parse_instance_hierarchy(session_path, _main_instance_name)
+        log_file = File.join(session_path, "session.log.json")
+        instances = {}
+
+        return instances unless File.exist?(log_file)
+
+        File.foreach(log_file) do |line|
+          data = JSON.parse(line)
+          instance_name = data["instance"]
+          instance_id = data["instance_id"]
+          calling_instance = data["calling_instance"]
+
+          # Initialize instance data
+          instances[instance_name] ||= {
+            name: instance_name,
+            id: instance_id,
+            cost: 0.0,
+            calls: 0,
+            called_by: Set.new,
+            calls_to: Set.new,
+            has_cost_data: false
+          }
+
+          # Track relationships
+          if calling_instance && calling_instance != instance_name
+            instances[instance_name][:called_by] << calling_instance
+
+            instances[calling_instance] ||= {
+              name: calling_instance,
+              id: data["calling_instance_id"],
+              cost: 0.0,
+              calls: 0,
+              called_by: Set.new,
+              calls_to: Set.new,
+              has_cost_data: false
+            }
+            instances[calling_instance][:calls_to] << instance_name
+          end
+
+          # Track costs and calls
+          if data.dig("event", "type") == "result"
+            instances[instance_name][:calls] += 1
+            if (cost = data.dig("event", "total_cost_usd"))
+              instances[instance_name][:cost] += cost
+              instances[instance_name][:has_cost_data] = true
+            end
+          end
+        rescue JSON::ParserError
+          next
+        end
+
+        instances
+      end
+
+      def display_instance_tree(instance, all_instances, level, main_instance_name)
+        indent = "  " * level
+        prefix = level.zero? ? "├─" : "└─"
+
+        # Display instance name with special marker for main
+        instance_display = instance[:name]
+        instance_display += " [main]" if instance[:name] == main_instance_name
+
+        puts "#{indent}#{prefix} #{instance_display} (#{instance[:id]})"
+
+        # Display cost - show n/a for main instance without cost data
+        cost_display = if instance[:name] == main_instance_name && !instance[:has_cost_data]
+                         "n/a (interactive)"
+                       else
+                         format("$%.4f", instance[:cost])
+                       end
+
+        puts "#{indent}   Cost: #{cost_display} | Calls: #{instance[:calls]}"
+
+        # Display children
+        children = instance[:calls_to].map { |name| all_instances[name] }.compact
+        children.each do |child|
+          # Don't recurse if we've already shown this instance (avoid cycles)
+          next if level.positive? && child[:called_by].size > 1
+
+          display_instance_tree(child, all_instances, level + 1, main_instance_name)
+        end
+      end
+    end
+  end
+end

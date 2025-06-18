@@ -7,6 +7,14 @@
   - The first directory in the array serves as the primary working directory
   - All specified directories must exist or validation will fail
   - Example: `directory: [./frontend, ./backend, ./shared]`
+- **Session monitoring commands**: New commands for monitoring and managing active Claude Swarm sessions
+  - `claude-swarm ps`: List all active sessions with properly aligned columns showing session ID, swarm name, total cost, uptime, and directories
+  - `claude-swarm show SESSION_ID`: Display detailed session information including instance hierarchy and individual costs
+  - `claude-swarm watch SESSION_ID`: Tail session logs in real-time (uses native `tail -f`)
+  - `claude-swarm clean`: Remove stale session symlinks with optional age filtering (`--days N`)
+  - Active sessions are tracked via symlinks in `~/.claude-swarm/run/` for efficient monitoring
+  - Cost tracking aggregates data from `session.log.json` for accurate reporting
+  - Interactive main instance shows "n/a (interactive)" for cost when not available
 
 ## [0.1.16]
 

@@ -197,6 +197,82 @@ module ClaudeSwarm
       say "Claude Swarm #{VERSION}"
     end
 
+    desc "ps", "List running Claude Swarm sessions"
+    def ps
+      require_relative "commands/ps"
+      Commands::Ps.new.execute
+    end
+
+    desc "show SESSION_ID", "Show detailed session information"
+    def show(session_id)
+      require_relative "commands/show"
+      Commands::Show.new.execute(session_id)
+    end
+
+    desc "clean", "Remove stale session symlinks"
+    method_option :days, aliases: "-d", type: :numeric, default: 7,
+                         desc: "Remove sessions older than N days"
+    def clean
+      run_dir = File.expand_path("~/.claude-swarm/run")
+      unless Dir.exist?(run_dir)
+        say "No run directory found", :yellow
+        return
+      end
+
+      cleaned = 0
+      Dir.glob("#{run_dir}/*").each do |symlink|
+        next unless File.symlink?(symlink)
+
+        begin
+          # Remove if target doesn't exist (stale)
+          unless File.exist?(File.readlink(symlink))
+            File.unlink(symlink)
+            cleaned += 1
+            next
+          end
+
+          # Remove if older than specified days
+          if File.stat(symlink).mtime < Time.now - (options[:days] * 86_400)
+            File.unlink(symlink)
+            cleaned += 1
+          end
+        rescue StandardError
+          # Skip problematic symlinks
+        end
+      end
+
+      say "Cleaned #{cleaned} stale session#{cleaned == 1 ? "" : "s"}", :green
+    end
+
+    desc "watch SESSION_ID", "Watch session logs"
+    method_option :lines, aliases: "-n", type: :numeric, default: 100,
+                          desc: "Number of lines to show initially"
+    def watch(session_id)
+      # Find session path
+      run_symlink = File.join(File.expand_path("~/.claude-swarm/run"), session_id)
+      session_path = if File.symlink?(run_symlink)
+                       File.readlink(run_symlink)
+                     else
+                       # Search in sessions directory
+                       Dir.glob(File.expand_path("~/.claude-swarm/sessions/*/*")).find do |path|
+                         File.basename(path) == session_id
+                       end
+                     end
+
+      unless session_path && Dir.exist?(session_path)
+        error "Session not found: #{session_id}"
+        exit 1
+      end
+
+      log_file = File.join(session_path, "session.log")
+      unless File.exist?(log_file)
+        error "Log file not found for session: #{session_id}"
+        exit 1
+      end
+
+      exec("tail", "-f", "-n", options[:lines].to_s, log_file)
+    end
+
     desc "list-sessions", "List all available Claude Swarm sessions"
     method_option :limit, aliases: "-l", type: :numeric, default: 10,
                           desc: "Maximum number of sessions to display"

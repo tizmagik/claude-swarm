@@ -204,7 +204,7 @@ Each instance must have:
 Each instance can have:
 
 - **directory**: Working directory for this instance (can use ~ for home). Can be a string for a single directory or an array of strings for multiple directories
-- **model**: Claude model to use (opus, sonnet, haiku)
+- **model**: Claude model to use (opus, sonnet)
 - **connections**: Array of other instances this one can communicate with
 - **allowed_tools**: Array of tools this instance can use (backward compatible with `tools`)
 - **disallowed_tools**: Array of tools to explicitly deny (takes precedence over allowed_tools)
@@ -336,7 +336,7 @@ swarm:
     database:
       description: "Database administrator managing data persistence"
       directory: ./db
-      model: haiku
+      model: sonnet
       allowed_tools:
         - Read
         - Bash
@@ -480,10 +480,6 @@ claude-swarm --prompt "Fix the bug in the payment module"
 claude-swarm --session-id 20241206_143022
 claude-swarm --session-id ~/path/to/session
 
-# List available sessions
-claude-swarm list-sessions
-claude-swarm list-sessions --limit 20
-
 # Show version
 claude-swarm version
 
@@ -492,6 +488,67 @@ claude-swarm version
 
 # Internal command for MCP server (used by connected instances)
 claude-swarm mcp-serve INSTANCE_NAME --config CONFIG_FILE --session-timestamp TIMESTAMP
+```
+
+### Session Monitoring
+
+Claude Swarm provides commands to monitor and inspect running sessions:
+
+```bash
+# List running swarm sessions with costs and uptime
+claude-swarm ps
+
+# Show detailed information about a session including instance hierarchy
+claude-swarm show 20250617_235233
+
+# Watch live logs from a session
+claude-swarm watch 20250617_235233
+
+# Watch logs starting from the last 50 lines
+claude-swarm watch 20250617_235233 -n 50
+
+# List all available sessions (including completed ones)
+claude-swarm list-sessions
+claude-swarm list-sessions --limit 20
+
+# Clean up stale session symlinks
+claude-swarm clean
+
+# Remove sessions older than 30 days
+claude-swarm clean --days 30
+```
+
+Example output from `claude-swarm ps`:
+```
+⚠️  Total cost does not include the cost of the main instance
+
+SESSION_ID       SWARM_NAME                 TOTAL_COST    UPTIME      DIRECTORY
+-------------------------------------------------------------------------------
+20250617_235233  Feature Development        $0.3847       15m         .
+20250617_143022  Bug Investigation          $1.2156       1h          ./shopify
+20250617_091547  Multi-Module Dev           $0.8932       30m         ./frontend, ./backend, ./shared
+```
+
+Note: The total cost shown reflects only the costs of connected instances called via MCP. The main instance cost is not tracked when running interactively.
+
+Example output from `claude-swarm show`:
+```
+Session: 20250617_235233
+Swarm: Feature Development
+Total Cost: $0.3847 (excluding main instance)
+Start Directory: /Users/paulo/project
+
+Instance Hierarchy:
+--------------------------------------------------
+├─ orchestrator [main] (orchestrator_e85036fc)
+   Cost: n/a (interactive) | Calls: 0
+   └─ test_archaeologist (test_archaeologist_c504ca5f)
+      Cost: $0.1925 | Calls: 1
+   └─ pr_analyst (pr_analyst_bfbefe56)
+      Cost: $0.1922 | Calls: 1
+
+Note: Main instance (orchestrator) cost is not tracked in interactive mode.
+      View costs directly in the Claude interface.
 ```
 
 ### Session Management and Restoration (Experimental)
@@ -532,10 +589,10 @@ Resume a previous session with all instances restored to their Claude session st
 
 ```bash
 # Resume by session ID
-claude-swarm --session-id 20241206_143022
+claude-swarm --session-id 20250617_143022
 
 # Resume by full path
-claude-swarm --session-id ~/.claude-swarm/sessions/my-project/20241206_143022
+claude-swarm --session-id ~/.claude-swarm/sessions/my-project/20250617_143022
 ```
 
 This will:

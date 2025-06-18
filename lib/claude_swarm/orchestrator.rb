@@ -8,6 +8,8 @@ require_relative "process_tracker"
 
 module ClaudeSwarm
   class Orchestrator
+    RUN_DIR = File.expand_path("~/.claude-swarm/run")
+
     def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false,
                    restore_session_path: nil)
       @config = configuration
@@ -17,6 +19,7 @@ module ClaudeSwarm
       @stream_logs = stream_logs
       @debug = debug
       @restore_session_path = restore_session_path
+      @session_path = nil
     end
 
     def start
@@ -29,8 +32,12 @@ module ClaudeSwarm
 
         # Use existing session path
         session_path = @restore_session_path
+        @session_path = session_path
         ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
         ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
+
+        # Create run symlink for restored session
+        create_run_symlink
 
         unless @prompt
           puts "📝 Using existing session: #{session_path}/"
@@ -59,9 +66,13 @@ module ClaudeSwarm
         # Generate and set session path for all instances
         session_path = SessionPath.generate(working_dir: Dir.pwd)
         SessionPath.ensure_directory(session_path)
+        @session_path = session_path
 
         ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
         ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
+
+        # Create run symlink for new session
+        create_run_symlink
 
         unless @prompt
           puts "📝 Session files will be saved to: #{session_path}/"
@@ -124,8 +135,9 @@ module ClaudeSwarm
         log_thread.join
       end
 
-      # Clean up child processes
+      # Clean up child processes and run symlink
       cleanup_processes
+      cleanup_run_symlink
     end
 
     private
@@ -145,6 +157,7 @@ module ClaudeSwarm
         Signal.trap(signal) do
           puts "\n🛑 Received #{signal} signal, cleaning up..."
           cleanup_processes
+          cleanup_run_symlink
           exit
         end
       end
@@ -155,6 +168,35 @@ module ClaudeSwarm
       puts "✓ Cleanup complete"
     rescue StandardError => e
       puts "⚠️  Error during cleanup: #{e.message}"
+    end
+
+    def create_run_symlink
+      return unless @session_path
+
+      FileUtils.mkdir_p(RUN_DIR)
+
+      # Session ID is the last part of the session path
+      session_id = File.basename(@session_path)
+      symlink_path = File.join(RUN_DIR, session_id)
+
+      # Remove stale symlink if exists
+      File.unlink(symlink_path) if File.symlink?(symlink_path)
+
+      # Create new symlink
+      File.symlink(@session_path, symlink_path)
+    rescue StandardError => e
+      # Don't fail the process if symlink creation fails
+      puts "⚠️  Warning: Could not create run symlink: #{e.message}" unless @prompt
+    end
+
+    def cleanup_run_symlink
+      return unless @session_path
+
+      session_id = File.basename(@session_path)
+      symlink_path = File.join(RUN_DIR, session_id)
+      File.unlink(symlink_path) if File.symlink?(symlink_path)
+    rescue StandardError
+      # Ignore errors during cleanup
     end
 
     def start_log_streaming
