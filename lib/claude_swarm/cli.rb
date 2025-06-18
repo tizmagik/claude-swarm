@@ -147,6 +147,10 @@ module ClaudeSwarm
         swarm:
           name: "Swarm Name"
           main: lead_developer
+          # before:  # Optional: commands to run before launching swarm (executed in sequence)
+          #   - "echo 'Setting up environment...'"
+          #   - "npm install"
+          #   - "docker-compose up -d"
           instances:
             lead_developer:
               description: "Lead developer who coordinates the team and makes architectural decisions"
@@ -241,7 +245,7 @@ module ClaudeSwarm
         end
       end
 
-      say "Cleaned #{cleaned} stale session#{cleaned == 1 ? "" : "s"}", :green
+      say "Cleaned #{cleaned} stale session#{"s" unless cleaned == 1}", :green
     end
 
     desc "watch SESSION_ID", "Watch session logs"

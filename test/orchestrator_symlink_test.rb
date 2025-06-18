@@ -212,6 +212,10 @@ module ClaudeSwarm
           }
         }
       end
+
+      def before_commands
+        []
+      end
     end
 
     class MockGenerator

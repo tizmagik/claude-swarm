@@ -191,6 +191,10 @@ version: 1  # Required, currently only version 1 is supported
 swarm:
   name: "Swarm Name"  # Display name for your swarm
   main: instance_key  # Which instance to launch as the main interface
+  before:  # Optional: commands to run before launching the swarm
+    - "echo 'Setting up environment...'"
+    - "npm install"
+    - "docker-compose up -d"
   instances:
     # Instance definitions...
 ```
@@ -427,6 +431,42 @@ When using multiple directories:
 - The first directory in the array is the primary working directory
 - Additional directories are accessible via the `--add-dir` flag in Claude
 - All directories must exist or the configuration will fail validation
+
+#### Before Commands
+
+You can specify commands to run before launching the swarm using the `before` field:
+
+```yaml
+version: 1
+swarm:
+  name: "Development Environment"
+  main: lead_developer
+  before:
+    - "echo '🚀 Setting up development environment...'"
+    - "npm install"
+    - "docker-compose up -d"
+    - "bundle install"
+  instances:
+    lead_developer:
+      description: "Lead developer coordinating the team"
+      directory: .
+      model: opus
+      allowed_tools: [Read, Edit, Write, Bash]
+```
+
+The `before` commands:
+- Are executed in sequence before launching any Claude instances
+- Must all succeed for the swarm to launch (exit code 0)
+- Are only executed on initial swarm launch, not when restoring sessions
+- Have their output logged to the session log file
+- Will abort the swarm launch if any command fails
+
+This is useful for:
+- Installing dependencies
+- Starting required services (databases, Docker containers, etc.)
+- Setting up the development environment
+- Running any prerequisite setup scripts
+
 
 #### Mixed Permission Modes
 

@@ -1,3 +1,15 @@
+## [Unreleased]
+
+### Added
+- **Before commands**: Execute setup commands before launching the swarm
+  - New `before` field in swarm configuration accepts an array of commands
+  - Commands are executed in sequence before any Claude instances are launched
+  - All commands must succeed (exit code 0) for the swarm to launch
+  - Commands are only executed on initial launch, not when restoring sessions
+  - Output is logged to the session log file
+  - Useful for installing dependencies, starting services, or running setup scripts
+  - Example: `before: ["npm install", "docker-compose up -d"]`
+
 ## [0.1.17]
 
 ### Added

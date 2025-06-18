@@ -785,4 +785,57 @@ class ConfigurationTest < Minitest::Test
     end
     assert_match(%r{Directory '/nonexistent/path' for instance 'lead' does not exist}, error.message)
   end
+
+  def test_configuration_with_before_commands
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        before:
+          - "echo 'First command'"
+          - "npm install"
+          - "docker-compose up -d"
+        instances:
+          lead:
+            description: "Lead instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_equal ["echo 'First command'", "npm install", "docker-compose up -d"], config.before_commands
+  end
+
+  def test_configuration_without_before_commands
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_empty config.before_commands
+  end
+
+  def test_configuration_with_empty_before_commands
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        before: []
+        instances:
+          lead:
+            description: "Lead instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_empty config.before_commands
+  end
 end

@@ -522,4 +522,95 @@ class OrchestratorTest < Minitest::Test
 
     assert_equal "\n\nNow just say 'I am ready to start'", last_arg
   end
+
+  def test_before_commands_feature_exists
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        before:
+          - "echo 'test'"
+        instances:
+          lead:
+            description: "Test instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    # Test that configuration reads before commands correctly
+    assert_equal ["echo 'test'"], config.before_commands
+
+    # Verify orchestrator can be created with before commands config
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
+
+    assert_instance_of ClaudeSwarm::Orchestrator, orchestrator
+  end
+
+  def test_before_commands_not_executed_on_restore
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        before:
+          - "echo 'Should not run on restore'"
+        instances:
+          lead:
+            description: "Test instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    generator = ClaudeSwarm::McpGenerator.new(config)
+
+    # Simulate restoration
+    restore_session_path = File.join(@tmpdir, "session")
+    FileUtils.mkdir_p(restore_session_path)
+
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, restore_session_path: restore_session_path)
+
+    command_executed = false
+    orchestrator.stub :`, lambda { |_cmd|
+      command_executed = true
+      "Should not see this\n"
+    } do
+      orchestrator.stub :system, true do
+        output = capture_io { orchestrator.start }[0]
+
+        refute command_executed, "Before commands should not execute during session restoration"
+        refute_match(/Executing before commands/, output)
+      end
+    end
+  end
+
+  def test_before_commands_with_empty_array
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test"
+        main: lead
+        before: []
+        instances:
+          lead:
+            description: "Test instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    generator = ClaudeSwarm::McpGenerator.new(config)
+    orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
+
+    command_executed = false
+    orchestrator.stub :`, lambda { |_cmd|
+      command_executed = true
+      "Should not execute\n"
+    } do
+      orchestrator.stub :system, true do
+        output = capture_io { orchestrator.start }[0]
+
+        refute command_executed, "No commands should be executed with empty before array"
+        refute_match(/Executing before commands/, output)
+      end
+    end
+  end
 end

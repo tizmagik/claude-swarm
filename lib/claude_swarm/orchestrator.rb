@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "English"
 require "shellwords"
 require "json"
 require "fileutils"
@@ -96,6 +97,28 @@ module ClaudeSwarm
         save_swarm_config_path(session_path)
       end
 
+      # Execute before commands if specified
+      before_commands = @config.before_commands
+      if before_commands.any? && !@restore_session_path
+        unless @prompt
+          puts "⚙️  Executing before commands..."
+          puts
+        end
+
+        success = execute_before_commands(before_commands)
+        unless success
+          puts "❌ Before commands failed. Aborting swarm launch." unless @prompt
+          cleanup_processes
+          cleanup_run_symlink
+          exit 1
+        end
+
+        unless @prompt
+          puts "✓ Before commands completed successfully"
+          puts
+        end
+      end
+
       # Launch the main instance
       main_instance = @config.main_instance_config
       unless @prompt
@@ -141,6 +164,61 @@ module ClaudeSwarm
     end
 
     private
+
+    def execute_before_commands(commands)
+      log_file = File.join(@session_path, "session.log") if @session_path
+
+      commands.each_with_index do |command, index|
+        # Log the command execution to session log
+        if @session_path
+          File.open(log_file, "a") do |f|
+            f.puts "[#{Time.now.strftime("%Y-%m-%d %H:%M:%S")}] Executing before command #{index + 1}/#{commands.size}: #{command}"
+          end
+        end
+
+        # Execute the command and capture output
+        begin
+          puts "Debug: Executing command #{index + 1}/#{commands.size}: #{command}" if @debug && !@prompt
+
+          # Use system with output capture
+          output = `#{command} 2>&1`
+          success = $CHILD_STATUS.success?
+
+          # Log the output
+          if @session_path
+            File.open(log_file, "a") do |f|
+              f.puts "Command output:"
+              f.puts output
+              f.puts "Exit status: #{$CHILD_STATUS.exitstatus}"
+              f.puts "-" * 80
+            end
+          end
+
+          # Show output if in debug mode or if command failed
+          if (@debug || !success) && !@prompt
+            puts "Command #{index + 1} output:"
+            puts output
+            puts "Exit status: #{$CHILD_STATUS.exitstatus}"
+          end
+
+          unless success
+            puts "❌ Before command #{index + 1} failed: #{command}" unless @prompt
+            return false
+          end
+        rescue StandardError => e
+          puts "Error executing before command #{index + 1}: #{e.message}" unless @prompt
+          if @session_path
+            File.open(log_file, "a") do |f|
+              f.puts "Error: #{e.message}"
+              f.puts "-" * 80
+            end
+          end
+          return false
+        end
+      end
+
+      true
+    end
 
     def save_swarm_config_path(session_path)
       # Copy the YAML config file to the session directory

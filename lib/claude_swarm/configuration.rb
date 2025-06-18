@@ -26,6 +26,10 @@ module ClaudeSwarm
       instances[instance_name][:connections] || []
     end
 
+    def before_commands
+      @swarm["before"] || []
+    end
+
     private
 
     def load_and_validate
