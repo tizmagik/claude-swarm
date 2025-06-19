@@ -179,8 +179,16 @@ class WorktreeManagerTest < Minitest::Test
     # Create a branch first
     branch_name = "existing-branch"
     Dir.chdir(@repo_dir) do
-      system("git", "checkout", "-b", branch_name, out: File::NULL, err: File::NULL)
-      system("git", "checkout", "main", out: File::NULL, err: File::NULL)
+      # Get current branch
+      current_branch = `git rev-parse --abbrev-ref HEAD`.strip
+
+      # Create a new branch from current position
+      system("git", "branch", branch_name, out: File::NULL, err: File::NULL)
+
+      # Only checkout if we're not already on that branch
+      if current_branch != branch_name
+        # Stay on current branch - don't need to switch
+      end
     end
 
     manager = ClaudeSwarm::WorktreeManager.new(branch_name)

@@ -303,8 +303,21 @@ module ClaudeSwarm
 
       # If no upstream, check if there are any commits on this branch
       unless upstream_status.success?
-        # Check if this branch has any commits not on the main branch
-        commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^main")
+        # Get the base branch (usually main or master)
+        base_branch = find_base_branch(worktree_path)
+
+        # If we can't find a base branch or this IS the base branch, check if there are any commits at all
+        if base_branch.nil? || current_branch == base_branch
+          # Check if this branch has any commits
+          commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "--count", "HEAD")
+          return false unless commits_status.success?
+
+          # If there's more than 0 commits and no upstream, they're unpushed
+          return commits_output.strip.to_i.positive?
+        end
+
+        # Check if this branch has any commits not on the base branch
+        commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{base_branch}")
         return false unless commits_status.success?
 
         # If there are commits, they're unpushed (no upstream set)
@@ -317,6 +330,24 @@ module ClaudeSwarm
 
       # If output is not empty, there are unpushed commits
       !unpushed_output.strip.empty?
+    end
+
+    def find_base_branch(repo_path)
+      # Try to find the base branch - check for main, master, or the default branch
+      %w[main master].each do |branch|
+        _, status = Open3.capture2e("git", "-C", repo_path, "rev-parse", "--verify", "refs/heads/#{branch}")
+        return branch if status.success?
+      end
+
+      # Try to get the default branch from HEAD
+      output, status = Open3.capture2e("git", "-C", repo_path, "symbolic-ref", "refs/remotes/origin/HEAD")
+      if status.success?
+        # Extract branch name from refs/remotes/origin/main
+        branch_match = output.strip.match(%r{refs/remotes/origin/(.+)$})
+        return branch_match[1] if branch_match
+      end
+
+      nil
     end
   end
 end
