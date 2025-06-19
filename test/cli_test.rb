@@ -395,7 +395,7 @@ class CLITest < Minitest::Test
         # Prevent actual exec
         nil
       } do
-        @cli.options = { output: "claude-swarm.yml", model: "sonnet" }
+        @cli.options = { model: "sonnet" }
         @cli.generate
 
         assert exec_called, "exec should have been called"
@@ -403,6 +403,25 @@ class CLITest < Minitest::Test
         assert_equal "--model", exec_args[1]
         assert_equal "sonnet", exec_args[2]
         assert_match(/You are a Claude Swarm configuration generator assistant/, exec_args[3])
+      end
+    end
+  end
+
+  def test_generate_without_output_file_includes_naming_instructions
+    @cli.stub :system, true do
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_args = args
+        nil
+      } do
+        @cli.options = { model: "sonnet" }
+        @cli.generate
+        
+        # Check that the prompt includes instructions to name based on function
+        assert_match(/name the file based on the swarm's function/, exec_args[3])
+        assert_match(/web-dev-swarm\.yml/, exec_args[3])
+        assert_match(/data-pipeline-swarm\.yml/, exec_args[3])
       end
     end
   end
@@ -456,7 +475,7 @@ class CLITest < Minitest::Test
             exec_args = args
             nil
           } do
-            @cli.options = { output: "claude-swarm.yml", model: "sonnet" }
+            @cli.options = { model: "sonnet" }
             @cli.generate
 
             # The prompt should include overview content
@@ -467,7 +486,7 @@ class CLITest < Minitest::Test
     end
   end
 
-  def test_build_generation_prompt
+  def test_build_generation_prompt_with_output_file
     prompt = @cli.send(:build_generation_prompt, "Test README content", "output.yml")
 
     # Test key sections are present
@@ -476,10 +495,22 @@ class CLITest < Minitest::Test
     assert_match(/Your Task/, prompt)
     assert_match(/Configuration Structure/, prompt)
     assert_match(/Best Practices to Follow/, prompt)
-    assert_match(/Common Swarm Patterns/, prompt)
     assert_match(/Interactive Questions to Ask/, prompt)
     assert_match(/save it to: output\.yml/, prompt)
+    assert_match(/The user has specified the output file: output\.yml/, prompt)
     assert_match(/What kind of project would you like to create a Claude Swarm for\?/, prompt)
     assert_match(/Now just say: I am ready to start/, prompt)
+  end
+
+  def test_build_generation_prompt_without_output_file
+    prompt = @cli.send(:build_generation_prompt, "Test README content", nil)
+    
+    # Test that it includes file naming instructions
+    assert_match(/name the file based on the swarm's function/, prompt)
+    assert_match(/web-dev-swarm\.yml/, prompt)
+    assert_match(/data-pipeline-swarm\.yml/, prompt)
+    assert_match(/microservices-swarm\.yml/, prompt)
+    assert_match(/Use descriptive names that clearly indicate the swarm's purpose/, prompt)
+    refute_match(/The user has specified the output file/, prompt)
   end
 end

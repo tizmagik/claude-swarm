@@ -617,7 +617,7 @@ claude-swarm init
 claude-swarm init --force  # Overwrite existing file
 
 # Generate configuration interactively with Claude's help
-claude-swarm generate
+claude-swarm generate                       # Claude names file based on swarm function
 claude-swarm generate -o my-swarm.yml       # Custom output file
 claude-swarm generate --model opus          # Use a specific model
 

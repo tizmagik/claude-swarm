@@ -201,7 +201,7 @@ module ClaudeSwarm
     end
 
     desc "generate", "Launch Claude to help generate a swarm configuration interactively"
-    method_option :output, aliases: "-o", type: :string, default: "claude-swarm.yml",
+    method_option :output, aliases: "-o", type: :string,
                            desc: "Output file path for the generated configuration"
     method_option :model, aliases: "-m", type: :string, default: "sonnet",
                           desc: "Claude model to use for generation"
@@ -498,7 +498,10 @@ module ClaudeSwarm
         3. Suggest an appropriate swarm topology based on their needs
         4. Help them refine and customize the configuration
         5. Generate the final claude-swarm.yml content
-        6. When the configuration is complete, save it to: #{output_file}
+        6. When the configuration is complete, save it to: #{output_file || "a descriptive filename based on the swarm's function"}
+
+        ## File Naming Convention
+        #{output_file ? "The user has specified the output file: #{output_file}" : "Since no output file was specified, name the file based on the swarm's function. Examples:\n        - web-dev-swarm.yml for full-stack web development teams\n        - data-pipeline-swarm.yml for data processing teams\n        - microservices-swarm.yml for microservice architectures\n        - mobile-app-swarm.yml for mobile development teams\n        - ml-research-swarm.yml for machine learning teams\n        - devops-swarm.yml for infrastructure and deployment teams\n        Use descriptive names that clearly indicate the swarm's purpose."}
 
         ## Configuration Structure
         ```yaml
@@ -519,8 +522,8 @@ module ClaudeSwarm
         ## Best Practices to Follow
         - Use descriptive, role-based instance names (e.g., frontend_dev, api_architect)
         - Write clear descriptions explaining each instance's responsibilities
-        - Choose opus model for complex architectural or algorithmic tasks
-        - Choose sonnet model for routine development and simpler tasks
+        - Choose opus model for complex architectural or algorithmic tasks and routine development.
+        - Choose sonnet model for simpler tasks
         - Set up logical connections (e.g., lead → team members, architect → implementers)
         - Select tools based on each instance's actual needs:
           - Read: For code review and analysis roles
@@ -530,23 +533,6 @@ module ClaudeSwarm
           - Tool restrictions like "Bash(npm:*)" for specific commands
         - Use custom prompts to specialize each instance's expertise
         - Organize directories to match project structure
-
-        ## Common Swarm Patterns
-        1. **Full-stack Web App**:
-           - lead_developer → [frontend_dev, backend_dev, database_engineer]
-           - Each instance works in their respective directories
-
-        2. **Microservices Architecture**:
-           - system_architect → [api_gateway_dev → [service_devs...]]
-           - Hierarchical structure matching service dependencies
-
-        3. **Research & Documentation**:
-           - lead_researcher → [data_analyst, technical_writer]
-           - Focused on analysis and documentation generation
-
-        4. **Testing & QA**:
-           - qa_lead → [unit_tester, integration_tester, e2e_tester]
-           - Specialized testing roles with appropriate tool access
 
         ## Interactive Questions to Ask
         - What type of project are you working on?
