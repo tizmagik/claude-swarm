@@ -5,6 +5,26 @@
 
 Claude Swarm orchestrates multiple Claude Code instances as a collaborative AI development team. It enables running AI agents with specialized roles, tools, and directory contexts, communicating via MCP (Model Context Protocol) in a tree-like hierarchy. Define your swarm topology in simple YAML and let Claude instances delegate tasks through connected instances. Perfect for complex projects requiring specialized AI agents for frontend, backend, testing, DevOps, or research tasks.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Prerequisites](#prerequisites)
+- [Usage](#usage)
+  - [Quick Start](#quick-start)
+  - [Configuration Format](#configuration-format)
+  - [MCP Server Types](#mcp-server-types)
+  - [Tools](#tools)
+  - [Examples](#examples)
+  - [Command Line Options](#command-line-options)
+  - [Session Monitoring](#session-monitoring)
+  - [Session Management and Restoration](#session-management-and-restoration-experimental)
+- [How It Works](#how-it-works)
+- [Troubleshooting](#troubleshooting)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Installation
 
 Install the gem by executing:
