@@ -4,6 +4,7 @@ require "test_helper"
 require "claude_swarm/commands/ps"
 require "fileutils"
 require "yaml"
+require "json"
 
 module ClaudeSwarm
   module Commands
@@ -193,6 +194,157 @@ module ClaudeSwarm
         # Session 2 should appear first (newer)
         assert data_lines[0].include?("session-2") && data_lines[0].include?("Swarm 2")
         assert data_lines[1].include?("session-1") && data_lines[1].include?("Swarm 1")
+      end
+
+      def test_execute_with_expanded_paths
+        # Create a session with relative directory
+        start_dir = "/Users/test/projects/myapp"
+        File.write(File.join(@test_session_dir, "start_directory"), start_dir)
+
+        config = {
+          "swarm" => {
+            "name" => "Test Swarm",
+            "main" => "leader",
+            "instances" => {
+              "leader" => {
+                "directory" => "."
+              }
+            }
+          }
+        }
+        File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
+        File.write(File.join(@test_session_dir, "session.log.json"), "")
+        File.symlink(@test_session_dir, File.join(@run_dir, "test-session-123"))
+
+        output = capture_io { Commands::Ps.new.execute }.first
+
+        # Should show expanded path, not "."
+        assert_match start_dir, output
+        refute_match(/DIRECTORY\s+\.$/, output)
+      end
+
+      def test_execute_with_worktree_paths
+        # Create a session with worktree metadata
+        start_dir = "/Users/test/projects/myapp"
+        File.write(File.join(@test_session_dir, "start_directory"), start_dir)
+
+        config = {
+          "swarm" => {
+            "name" => "Worktree Swarm",
+            "main" => "leader",
+            "instances" => {
+              "leader" => {
+                "directory" => "."
+              }
+            }
+          }
+        }
+        File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
+        File.write(File.join(@test_session_dir, "session.log.json"), "")
+
+        # Create session metadata with worktree info
+        metadata = {
+          "worktree" => {
+            "enabled" => true,
+            "shared_name" => "feature-branch",
+            "created_paths" => {
+              "#{start_dir}:feature-branch" => "#{start_dir}/.worktrees/feature-branch"
+            }
+          }
+        }
+        File.write(File.join(@test_session_dir, "session_metadata.json"), JSON.pretty_generate(metadata))
+
+        File.symlink(@test_session_dir, File.join(@run_dir, "test-session-123"))
+
+        # Mock find_git_root to return the start_dir as if it's a git repo
+        ps_instance = Commands::Ps.new
+        ps_instance.stub :find_git_root, start_dir do
+          output = capture_io { ps_instance.execute }.first
+
+          # Should show worktree path
+          assert_match "#{start_dir}/.worktrees/feature-branch", output
+          refute_match(/DIRECTORY\s+#{Regexp.escape(start_dir)}$/, output)
+        end
+      end
+
+      def test_execute_with_multiple_worktree_paths
+        # Create a session with multiple directories and worktrees
+        start_dir = "/Users/test/projects"
+        File.write(File.join(@test_session_dir, "start_directory"), start_dir)
+
+        config = {
+          "swarm" => {
+            "name" => "Multi Worktree",
+            "main" => "leader",
+            "instances" => {
+              "leader" => {
+                "directory" => ["./app1", "./app2"]
+              }
+            }
+          }
+        }
+        File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
+        File.write(File.join(@test_session_dir, "session.log.json"), "")
+
+        # Create session metadata with worktree info for both repos
+        metadata = {
+          "worktree" => {
+            "enabled" => true,
+            "shared_name" => "feature-x",
+            "created_paths" => {
+              "#{start_dir}/app1:feature-x" => "#{start_dir}/app1/.worktrees/feature-x",
+              "#{start_dir}/app2:feature-x" => "#{start_dir}/app2/.worktrees/feature-x"
+            }
+          }
+        }
+        File.write(File.join(@test_session_dir, "session_metadata.json"), JSON.pretty_generate(metadata))
+
+        File.symlink(@test_session_dir, File.join(@run_dir, "test-session-123"))
+
+        # Mock find_git_root to return appropriate git roots
+        ps_instance = Commands::Ps.new
+        def ps_instance.find_git_root(dir)
+          case dir
+          when %r{/app1}
+            "/Users/test/projects/app1"
+          when %r{/app2}
+            "/Users/test/projects/app2"
+          end
+        end
+
+        output = capture_io { ps_instance.execute }.first
+
+        # Should show both worktree paths
+        assert_match "#{start_dir}/app1/.worktrees/feature-x, #{start_dir}/app2/.worktrees/feature-x", output
+      end
+
+      def test_execute_without_worktree_metadata
+        # Test that sessions without worktree metadata still work
+        start_dir = "/Users/test/projects/myapp"
+        File.write(File.join(@test_session_dir, "start_directory"), start_dir)
+
+        config = {
+          "swarm" => {
+            "name" => "No Worktree",
+            "main" => "leader",
+            "instances" => {
+              "leader" => {
+                "directory" => "./src"
+              }
+            }
+          }
+        }
+        File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
+        File.write(File.join(@test_session_dir, "session.log.json"), "")
+
+        # No session_metadata.json file
+
+        File.symlink(@test_session_dir, File.join(@run_dir, "test-session-123"))
+
+        output = capture_io { Commands::Ps.new.execute }.first
+
+        # Should show expanded path without worktree
+        assert_match "#{start_dir}/src", output
       end
     end
   end
