@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.1.19]
 
 ### Added
 - **Interactive configuration generator**: New `claude-swarm generate` command launches Claude to help create swarm configurations
