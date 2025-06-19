@@ -55,7 +55,7 @@ bundle install
 
 ### Quick Start
 
-1. Run `claude-swarm init` or create a `claude-swarm.yml` file in your project:
+1. Run `claude-swarm init` to create a basic template, or use `claude-swarm generate` for an interactive configuration experience with Claude's help. You can also manually create a `claude-swarm.yml` file in your project:
 
 ```yaml
 version: 1
@@ -611,6 +611,15 @@ claude-swarm --session-id ~/path/to/session
 claude-swarm --worktree                  # Auto-generated name (worktree-SESSION_ID)
 claude-swarm --worktree feature-branch   # Custom worktree name
 claude-swarm -w                          # Short form
+
+# Initialize a new configuration file
+claude-swarm init
+claude-swarm init --force  # Overwrite existing file
+
+# Generate configuration interactively with Claude's help
+claude-swarm generate                       # Claude names file based on swarm function
+claude-swarm generate -o my-swarm.yml       # Custom output file
+claude-swarm generate --model opus          # Use a specific model
 
 # Show version
 claude-swarm version

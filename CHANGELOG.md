@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+### Added
+- **Interactive configuration generator**: New `claude-swarm generate` command launches Claude to help create swarm configurations
+  - Runs Claude in interactive mode with an initial prompt to guide configuration creation
+  - Customizable output file with `-o/--output` option
+  - When no output file is specified, Claude names the file based on the swarm's function (e.g., web-dev-swarm.yml, data-pipeline-swarm.yml)
+  - Model selection with `-m/--model` option (default: sonnet)
+  - Checks for Claude CLI installation and provides helpful error message if not found
+  - Includes comprehensive initial prompt with Claude Swarm overview, best practices, and common patterns
+  - Full README content is included in the prompt within `<full_readme>` tags for complete context
+  - Examples: 
+    - `claude-swarm generate` - Claude names file based on swarm function
+    - `claude-swarm generate -o my-team.yml --model opus` - Custom file and model
+
 ### Fixed
 - **ps command path display**: The `claude-swarm ps` command now shows expanded absolute paths instead of raw YAML values
   - Relative paths like `.` are expanded to their full absolute paths (e.g., `/Users/paulo/project`)

@@ -369,4 +369,157 @@ class CLITest < Minitest::Test
     # Skip these tests as they depend on the executable being in the PATH
     skip "Skipping executable tests"
   end
+
+  def test_generate_without_claude_installed
+    # Mock system call to simulate Claude not being installed
+    @cli.stub :system, false do
+      out, = capture_cli_output do
+        assert_raises(SystemExit) { @cli.generate }
+      end
+
+      assert_match(/Claude CLI is not installed or not in PATH/, out)
+      assert_match(/To install Claude CLI, visit:/, out)
+    end
+  end
+
+  def test_generate_with_claude_installed
+    # Mock system call to simulate Claude being installed
+    @cli.stub :system, true do
+      # Mock File operations for README
+      File.stub :exist?, ->(path) { path.include?("README.md") } do
+        File.stub :read, lambda { |path|
+          path.include?("README.md") ? "Mock README content" : ""
+        } do
+          # Stub exec to prevent actual execution and capture the command
+          exec_called = false
+          exec_args = nil
+
+          @cli.stub :exec, lambda { |*args|
+            exec_called = true
+            exec_args = args
+            # Prevent actual exec
+            nil
+          } do
+            @cli.options = { model: "sonnet" }
+            @cli.generate
+
+            assert exec_called, "exec should have been called"
+            assert_equal "claude", exec_args[0]
+            assert_equal "--model", exec_args[1]
+            assert_equal "sonnet", exec_args[2]
+            # Test that the prompt includes README content
+            assert_match(%r{<full_readme>.*Mock README content.*</full_readme>}m, exec_args[3])
+          end
+        end
+      end
+    end
+  end
+
+  def test_generate_without_output_file_includes_naming_instructions
+    @cli.stub :system, true do
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_args = args
+        nil
+      } do
+        @cli.options = { model: "sonnet" }
+        @cli.generate
+
+        # Check that the prompt includes instructions to name based on function
+        assert_match(/name the file based on the swarm's function/, exec_args[3])
+        assert_match(/web-dev-swarm\.yml/, exec_args[3])
+        assert_match(/data-pipeline-swarm\.yml/, exec_args[3])
+      end
+    end
+  end
+
+  def test_generate_with_custom_output_file
+    @cli.stub :system, true do
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_args = args
+        nil
+      } do
+        @cli.options = { output: "my-custom-config.yml", model: "sonnet" }
+        @cli.generate
+
+        # Check that the custom output file is mentioned in the prompt
+        assert_match(/save it to: my-custom-config\.yml/, exec_args[3])
+      end
+    end
+  end
+
+  def test_generate_with_custom_model
+    @cli.stub :system, true do
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_args = args
+        nil
+      } do
+        @cli.options = { output: "claude-swarm.yml", model: "opus" }
+        @cli.generate
+
+        assert_equal "opus", exec_args[2]
+      end
+    end
+  end
+
+  def test_generate_includes_readme_content_if_exists
+    # Create a mock README file
+    readme_content = "# Claude Swarm\nThis is a test README content."
+
+    File.stub :exist?, ->(path) { path.include?("README.md") } do
+      File.stub :read, lambda { |path|
+        path.include?("README.md") ? readme_content : ""
+      } do
+        @cli.stub :system, true do
+          exec_args = nil
+
+          @cli.stub :exec, lambda { |*args|
+            exec_args = args
+            nil
+          } do
+            @cli.options = { model: "sonnet" }
+            @cli.generate
+
+            # The prompt should include the README content in full_readme tags
+            assert_match(%r{<full_readme>.*# Claude Swarm.*This is a test README content.*</full_readme>}m, exec_args[3])
+          end
+        end
+      end
+    end
+  end
+
+  def test_build_generation_prompt_with_output_file
+    readme_content = "Test README content for Claude Swarm"
+    prompt = @cli.send(:build_generation_prompt, readme_content, "output.yml")
+
+    # Test that a prompt is generated
+    assert_kind_of String, prompt
+    assert_operator prompt.length, :>, 100
+
+    # Test that output file is mentioned
+    assert_match(/output\.yml/, prompt)
+
+    # Test that README content is included
+    assert_match(%r{<full_readme>.*Test README content for Claude Swarm.*</full_readme>}m, prompt)
+  end
+
+  def test_build_generation_prompt_without_output_file
+    readme_content = "Test README content"
+    prompt = @cli.send(:build_generation_prompt, readme_content, nil)
+
+    # Test that a prompt is generated
+    assert_kind_of String, prompt
+    assert_operator prompt.length, :>, 100
+
+    # Test that it includes file naming instructions when no output specified
+    assert_match(/name the file based on the swarm's function/, prompt)
+
+    # Test that README content is included
+    assert_match(%r{<full_readme>.*Test README content.*</full_readme>}m, prompt)
+  end
 end
