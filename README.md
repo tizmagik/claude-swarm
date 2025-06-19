@@ -55,7 +55,7 @@ bundle install
 
 ### Quick Start
 
-1. Run `claude-swarm init` to create a basic template, or use `claude-swarm generate` for an interactive configuration experience with Claude's help. You can also manually create a `claude-swarm.yml` file in your project:
+1. Run `claude-swarm init` to create a basic template, or use `claude-swarm generate` to have Claude help you create a configuration file. You can also manually create a `claude-swarm.yml` file in your project:
 
 ```yaml
 version: 1
@@ -616,7 +616,7 @@ claude-swarm -w                          # Short form
 claude-swarm init
 claude-swarm init --force  # Overwrite existing file
 
-# Generate configuration interactively with Claude's help
+# Generate configuration with Claude's help (non-interactive)
 claude-swarm generate
 claude-swarm generate -o my-swarm.yml       # Custom output file
 claude-swarm generate --model opus          # Use a specific model

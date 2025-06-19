@@ -220,11 +220,11 @@ module ClaudeSwarm
       # Build the pre-prompt
       preprompt = build_generation_prompt(readme_content, options[:output])
 
-      # Launch Claude with the pre-prompt
+      # Launch Claude in non-interactive mode with the prompt
       cmd = [
         "claude",
         "--model", options[:model],
-        "--append-system-prompt", preprompt
+        "-p", preprompt
       ]
 
       # Execute and let the user take over
@@ -558,6 +558,8 @@ module ClaudeSwarm
         - Do you have multiple repositories or services to coordinate?
 
         Start the conversation by greeting the user and asking: "What kind of project would you like to create a Claude Swarm for?"
+
+        Now just say: I am ready to start
       PROMPT
     end
   end

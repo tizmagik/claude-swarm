@@ -402,7 +402,7 @@ class CLITest < Minitest::Test
         assert_equal "claude", exec_args[0]
         assert_equal "--model", exec_args[1]
         assert_equal "sonnet", exec_args[2]
-        assert_equal "--append-system-prompt", exec_args[3]
+        assert_equal "-p", exec_args[3]
         assert_match(/You are a Claude Swarm configuration generator assistant/, exec_args[4])
       end
     end
@@ -481,5 +481,6 @@ class CLITest < Minitest::Test
     assert_match(/Interactive Questions to Ask/, prompt)
     assert_match(/save it to: output\.yml/, prompt)
     assert_match(/What kind of project would you like to create a Claude Swarm for\?/, prompt)
+    assert_match(/Now just say: I am ready to start/, prompt)
   end
 end
