@@ -105,7 +105,8 @@ module ClaudeSwarm
         mcps: parse_mcps(config["mcps"] || []),
         prompt: config["prompt"],
         description: config["description"],
-        vibe: config["vibe"] || false
+        vibe: config["vibe"] || false,
+        worktree: parse_worktree_value(config["worktree"])
       }
     end
 
@@ -191,6 +192,14 @@ module ClaudeSwarm
 
     def expand_path(path)
       Pathname.new(path).expand_path(@base_dir).to_s
+    end
+
+    def parse_worktree_value(value)
+      return nil if value.nil? # Omitted means follow CLI behavior
+      return value if value.is_a?(TrueClass) || value.is_a?(FalseClass)
+      return value.to_s if value.is_a?(String) && !value.empty?
+
+      raise Error, "Invalid worktree value: #{value.inspect}. Must be true, false, or a non-empty string"
     end
   end
 end

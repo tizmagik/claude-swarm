@@ -26,6 +26,9 @@ module ClaudeSwarm
                           desc: "Enable debug output"
     method_option :session_id, type: :string,
                                desc: "Resume a previous session by ID or path"
+    method_option :worktree, type: :string, aliases: "-w",
+                             desc: "Create instances in Git worktrees with the given name (auto-generated if true)",
+                             banner: "[NAME]"
     def start(config_file = nil)
       # Handle session restoration
       if options[:session_id]
@@ -54,7 +57,8 @@ module ClaudeSwarm
                                         vibe: options[:vibe],
                                         prompt: options[:prompt],
                                         stream_logs: options[:stream_logs],
-                                        debug: options[:debug])
+                                        debug: options[:debug],
+                                        worktree: options[:worktree])
         orchestrator.start
       rescue Error => e
         error e.message
@@ -399,6 +403,17 @@ module ClaudeSwarm
 
         config = Configuration.new(config_file, base_dir: Dir.pwd)
 
+        # Load session metadata if it exists to check for worktree info
+        session_metadata_file = File.join(session_path, "session_metadata.json")
+        worktree_name = nil
+        if File.exist?(session_metadata_file)
+          metadata = JSON.parse(File.read(session_metadata_file))
+          if metadata["worktree"] && metadata["worktree"]["enabled"]
+            worktree_name = metadata["worktree"]["name"]
+            say "Restoring with worktree: #{worktree_name}", :green unless options[:prompt]
+          end
+        end
+
         # Create orchestrator with restoration mode
         generator = McpGenerator.new(config, vibe: options[:vibe], restore_session_path: session_path)
         orchestrator = Orchestrator.new(config, generator,
@@ -406,7 +421,8 @@ module ClaudeSwarm
                                         prompt: options[:prompt],
                                         stream_logs: options[:stream_logs],
                                         debug: options[:debug],
-                                        restore_session_path: session_path)
+                                        restore_session_path: session_path,
+                                        worktree: worktree_name)
         orchestrator.start
       rescue StandardError => e
         error "Failed to restore session: #{e.message}"

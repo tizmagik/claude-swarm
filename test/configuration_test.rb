@@ -838,4 +838,107 @@ class ConfigurationTest < Minitest::Test
 
     assert_empty config.before_commands
   end
+
+  def test_instance_worktree_configuration_true
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            worktree: true
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert config.main_instance_config[:worktree]
+  end
+
+  def test_instance_worktree_configuration_false
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            worktree: false
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    refute config.main_instance_config[:worktree]
+  end
+
+  def test_instance_worktree_configuration_string
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            worktree: "feature-branch"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_equal "feature-branch", config.main_instance_config[:worktree]
+  end
+
+  def test_instance_worktree_configuration_nil
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+    YAML
+
+    config = ClaudeSwarm::Configuration.new(@config_path)
+
+    assert_nil config.main_instance_config[:worktree]
+  end
+
+  def test_instance_worktree_configuration_invalid
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            worktree: 123
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_match(/Invalid worktree value/, error.message)
+  end
+
+  def test_instance_worktree_configuration_empty_string
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: lead
+        instances:
+          lead:
+            description: "Lead instance"
+            worktree: ""
+    YAML
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_match(/Invalid worktree value/, error.message)
+  end
 end

@@ -5,22 +5,10 @@ swarm:
   instances:
     claude_swarm_architect:
       description: "Lead architect"
-      directory:
-        - .
-        - /Users/paulo/src/github.com/shopify-playground/claudeception
+      directory: .
       model: opus
       prompt: "You are an expert in Claude swarm architecture"
       vibe: true
       connections: [claudeception_architect]
 
-    # Example instances (uncomment and modify as needed):
-
-    claudeception_architect:
-      description: "You are an expert in Claudeception architecture"
-      directory:
-        - .
-        - /Users/paulo/src/github.com/shopify-playground/claudeception
-      model: opus
-      prompt: "You are an expert in Claudeception architecture"
-      vibe: true
-
+    

@@ -215,6 +215,7 @@ Each instance can have:
 - **mcps**: Array of additional MCP servers to connect
 - **prompt**: Custom system prompt to append to the instance
 - **vibe**: Enable vibe mode (--dangerously-skip-permissions) for this instance (default: false)
+- **worktree**: Configure Git worktree usage for this instance (true/false/string)
 
 ```yaml
 instance_name:
@@ -499,6 +500,72 @@ swarm:
       allowed_tools: []  # Tools list ignored when vibe: true
 ```
 
+#### Git Worktrees
+
+Claude Swarm supports running instances in Git worktrees, allowing isolated work without affecting your main repository state. Worktrees are created inside each repository in a `.worktrees/` directory following Git best practices.
+
+**Example Structure:**
+```
+my-repo/
+├── .git/
+├── .worktrees/        (created by Claude Swarm)
+│   ├── .gitignore     (auto-created, contains "*")
+│   └── feature-x/     (worktree for feature-x branch)
+├── src/
+└── tests/
+```
+
+**CLI Option:**
+```bash
+# Create worktrees with auto-generated name (worktree-SESSION_ID)
+claude-swarm --worktree
+
+# Create worktrees with custom name
+claude-swarm --worktree feature-branch
+
+# Short form
+claude-swarm -w
+```
+
+**Per-Instance Configuration:**
+```yaml
+version: 1
+swarm:
+  name: "Worktree Example"
+  main: lead
+  instances:
+    lead:
+      description: "Lead developer"
+      directory: .
+      worktree: true  # Use shared worktree name from CLI (or auto-generate)
+      
+    testing:
+      description: "Test developer"  
+      directory: ./tests
+      worktree: false  # Don't use worktree for this instance
+      
+    feature_dev:
+      description: "Feature developer"
+      directory: ./features
+      worktree: "feature-x"  # Use specific worktree name
+```
+
+**Worktree Behavior:**
+- `worktree: true` - Uses the shared worktree name (from CLI or auto-generated)
+- `worktree: false` - Disables worktree for this instance
+- `worktree: "name"` - Uses a specific worktree name
+- Omitted - Follows CLI behavior (use worktree if `--worktree` is specified)
+
+**Notes:**
+- Worktrees are created inside each repository in a `.worktrees/` directory
+- Auto-generated worktree names use the session ID (e.g., `worktree-20241206_143022`)
+- This makes it easy to correlate worktrees with their Claude Swarm sessions
+- A `.gitignore` file is automatically created inside `.worktrees/` to ignore all worktree contents
+- All worktrees are automatically cleaned up when the swarm exits
+- Worktrees with the same name across different repositories share that name
+- Non-Git directories are unaffected by worktree settings
+- Existing worktrees with the same name are reused
+
 ### Command Line Options
 
 ```bash
@@ -519,6 +586,11 @@ claude-swarm --prompt "Fix the bug in the payment module"
 # Resume a previous session by ID
 claude-swarm --session-id 20241206_143022
 claude-swarm --session-id ~/path/to/session
+
+# Run all instances in Git worktrees
+claude-swarm --worktree                  # Auto-generated name (worktree-SESSION_ID)
+claude-swarm --worktree feature-branch   # Custom worktree name
+claude-swarm -w                          # Short form
 
 # Show version
 claude-swarm version

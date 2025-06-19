@@ -6,13 +6,14 @@ require "json"
 require "fileutils"
 require_relative "session_path"
 require_relative "process_tracker"
+require_relative "worktree_manager"
 
 module ClaudeSwarm
   class Orchestrator
     RUN_DIR = File.expand_path("~/.claude-swarm/run")
 
     def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false,
-                   restore_session_path: nil)
+                   restore_session_path: nil, worktree: nil)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
@@ -21,6 +22,15 @@ module ClaudeSwarm
       @debug = debug
       @restore_session_path = restore_session_path
       @session_path = nil
+      # Store worktree option for later use
+      @worktree_option = worktree
+      @needs_worktree_manager = worktree.is_a?(String) || worktree == "" ||
+                                configuration.instances.values.any? { |inst| !inst[:worktree].nil? }
+      # Store modified instances after worktree setup
+      @modified_instances = nil
+
+      # Set environment variable for prompt mode to suppress output
+      ENV["CLAUDE_SWARM_PROMPT"] = "1" if @prompt
     end
 
     def start
@@ -51,6 +61,9 @@ module ClaudeSwarm
         # Set up signal handlers to clean up child processes
         setup_signal_handlers
 
+        # Check if the original session used worktrees
+        restore_worktrees_if_needed(session_path)
+
         # Regenerate MCP configurations with session IDs for restoration
         @generator.generate_all
         unless @prompt
@@ -69,6 +82,9 @@ module ClaudeSwarm
         SessionPath.ensure_directory(session_path)
         @session_path = session_path
 
+        # Extract session ID from path (the timestamp part)
+        @session_id = File.basename(session_path)
+
         ENV["CLAUDE_SWARM_SESSION_PATH"] = session_path
         ENV["CLAUDE_SWARM_START_DIR"] = Dir.pwd
 
@@ -85,6 +101,24 @@ module ClaudeSwarm
 
         # Set up signal handlers to clean up child processes
         setup_signal_handlers
+
+        # Create WorktreeManager if needed with session ID
+        if @needs_worktree_manager
+          cli_option = @worktree_option.is_a?(String) && !@worktree_option.empty? ? @worktree_option : nil
+          @worktree_manager = WorktreeManager.new(cli_option, session_id: @session_id)
+          puts "🌳 Setting up Git worktrees..." unless @prompt
+
+          # Get all instances for worktree setup
+          # Note: instances.values already includes the main instance
+          all_instances = @config.instances.values
+
+          @worktree_manager.setup_worktrees(all_instances)
+
+          unless @prompt
+            puts "✓ Worktrees created with branch: #{@worktree_manager.worktree_name}"
+            puts
+          end
+        end
 
         # Generate all MCP configuration files
         @generator.generate_all
@@ -110,6 +144,7 @@ module ClaudeSwarm
           puts "❌ Before commands failed. Aborting swarm launch." unless @prompt
           cleanup_processes
           cleanup_run_symlink
+          cleanup_worktrees
           exit 1
         end
 
@@ -119,7 +154,7 @@ module ClaudeSwarm
         end
       end
 
-      # Launch the main instance
+      # Launch the main instance (fetch after worktree setup to get modified paths)
       main_instance = @config.main_instance_config
       unless @prompt
         puts "🚀 Launching main instance: #{@config.main_instance}"
@@ -161,6 +196,7 @@ module ClaudeSwarm
       # Clean up child processes and run symlink
       cleanup_processes
       cleanup_run_symlink
+      cleanup_worktrees
     end
 
     private
@@ -228,6 +264,20 @@ module ClaudeSwarm
       # Save the original working directory
       start_dir_file = File.join(session_path, "start_directory")
       File.write(start_dir_file, Dir.pwd)
+
+      # Save session metadata
+      metadata = {
+        "start_directory" => Dir.pwd,
+        "timestamp" => Time.now.utc.iso8601,
+        "swarm_name" => @config.swarm_name,
+        "claude_swarm_version" => VERSION
+      }
+
+      # Add worktree info if applicable
+      metadata["worktree"] = @worktree_manager.session_metadata if @worktree_manager
+
+      metadata_file = File.join(session_path, "session_metadata.json")
+      File.write(metadata_file, JSON.pretty_generate(metadata))
     end
 
     def setup_signal_handlers
@@ -236,6 +286,7 @@ module ClaudeSwarm
           puts "\n🛑 Received #{signal} signal, cleaning up..."
           cleanup_processes
           cleanup_run_symlink
+          cleanup_worktrees
           exit
         end
       end
@@ -246,6 +297,14 @@ module ClaudeSwarm
       puts "✓ Cleanup complete"
     rescue StandardError => e
       puts "⚠️  Error during cleanup: #{e.message}"
+    end
+
+    def cleanup_worktrees
+      return unless @worktree_manager
+
+      @worktree_manager.cleanup_worktrees
+    rescue StandardError => e
+      puts "⚠️  Error during worktree cleanup: #{e.message}"
     end
 
     def create_run_symlink
@@ -381,6 +440,32 @@ module ClaudeSwarm
       else
         parts << "#{instance[:prompt]}\n\nNow just say 'I am ready to start'"
       end
+    end
+
+    def restore_worktrees_if_needed(session_path)
+      metadata_file = File.join(session_path, "session_metadata.json")
+      return unless File.exist?(metadata_file)
+
+      metadata = JSON.parse(File.read(metadata_file))
+      worktree_data = metadata["worktree"]
+      return unless worktree_data && worktree_data["enabled"]
+
+      unless @prompt
+        puts "🌳 Restoring Git worktrees..."
+        puts
+      end
+
+      # Restore worktrees using the saved configuration
+      @worktree_manager = WorktreeManager.new(worktree_data["shared_name"])
+
+      # Get all instances and restore their worktree paths
+      all_instances = @config.instances.values
+      @worktree_manager.setup_worktrees(all_instances)
+
+      return if @prompt
+
+      puts "✓ Worktrees restored with branch: #{@worktree_manager.worktree_name}"
+      puts
     end
   end
 end

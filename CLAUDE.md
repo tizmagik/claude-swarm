@@ -39,6 +39,47 @@ bundle exec rake release    # Release gem to RubyGems.org
 rake                  # Runs both tests and RuboCop
 ```
 
+## Git Worktree Support
+
+Claude Swarm supports launching instances in Git worktrees to isolate changes:
+
+### CLI Usage
+```bash
+# Create worktrees with custom name
+claude-swarm --worktree feature-branch
+
+# Create worktrees with auto-generated name (worktree-SESSION_ID)
+claude-swarm --worktree
+
+# Short form
+claude-swarm -w feature-x
+```
+
+### Per-Instance Configuration
+Instances can have individual worktree settings that override CLI behavior:
+
+```yaml
+instances:
+  main:
+    worktree: true         # Use shared worktree name (from CLI or auto-generated)
+  testing:
+    worktree: false        # Don't use worktree for this instance
+  feature:
+    worktree: "feature-x"  # Use specific worktree name
+  default:
+    # No worktree field - follows CLI behavior
+```
+
+### Worktree Behavior
+- Worktrees are created inside each repository in a `.worktrees/` directory
+- A `.gitignore` file is automatically created inside `.worktrees/` to ignore all contents
+- Each unique Git repository gets its own worktree with the same name
+- All instance directories are mapped to their worktree equivalents
+- Worktrees are automatically cleaned up when the swarm exits
+- Session metadata tracks worktree information for restoration
+- Non-Git directories are used as-is without creating worktrees
+- Existing worktrees with the same name are reused
+
 ## Architecture
 
 The gem is fully implemented with the following components:
@@ -49,6 +90,7 @@ The gem is fully implemented with the following components:
 - **ClaudeSwarm::Configuration** (`lib/claude_swarm/configuration.rb`): YAML parser and validator for swarm configurations
 - **ClaudeSwarm::McpGenerator** (`lib/claude_swarm/mcp_generator.rb`): Generates MCP JSON configurations for each instance
 - **ClaudeSwarm::Orchestrator** (`lib/claude_swarm/orchestrator.rb`): Launches the main Claude instance with proper configuration
+- **ClaudeSwarm::WorktreeManager** (`lib/claude_swarm/worktree_manager.rb`): Manages Git worktrees for isolated development
 
 ### Key Features
 
@@ -58,6 +100,7 @@ The gem is fully implemented with the following components:
 4. **Multiple MCP Types**: Supports both stdio and SSE MCP server types
 5. **Automatic MCP Generation**: Creates `.claude-swarm/` directory with MCP configs
 6. **Custom System Prompts**: Each instance can have a custom prompt via `--append-system-prompt`
+7. **Git Worktree Support**: Run instances in isolated Git worktrees with per-instance configuration
 
 ### How It Works
 
@@ -77,16 +120,20 @@ swarm:
   main: lead
   instances:
     lead:
+      description: "Lead developer coordinating the team"
       directory: .
       model: opus
       connections: [frontend, backend]
       prompt: "You are the lead developer coordinating the team"
       tools: [Read, Edit, Bash]
+      worktree: true  # Optional: use worktree for this instance
     frontend:
+      description: "Frontend developer specializing in React"
       directory: ./frontend
       model: sonnet
       prompt: "You specialize in frontend development with React"
       tools: [Edit, Write, Bash]
+      worktree: false  # Optional: disable worktree for this instance
 ```
 
 ## Testing
@@ -98,6 +145,7 @@ The gem includes comprehensive tests covering:
 - CLI command functionality
 - Session restoration
 - Vibe mode behavior
+- Worktree management and per-instance configuration
 
 ## Dependencies
 

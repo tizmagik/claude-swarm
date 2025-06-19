@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.1.18]
 
 ### Added
 - **Before commands**: Execute setup commands before launching the swarm
@@ -9,6 +9,22 @@
   - Output is logged to the session log file
   - Useful for installing dependencies, starting services, or running setup scripts
   - Example: `before: ["npm install", "docker-compose up -d"]`
+
+- **Git worktree support**: Run instances in isolated Git worktrees
+  - New `--worktree [NAME]` CLI option creates worktrees for all instances
+  - Worktrees are created inside each repository at `.worktrees/NAME`
+  - Each worktree gets its own branch (not detached HEAD) for proper Git operations
+  - Auto-generated names use session ID: `worktree-SESSION_ID`
+  - Per-instance worktree configuration in YAML:
+    - `worktree: true` - Use shared worktree name
+    - `worktree: false` - Disable worktree for this instance
+    - `worktree: "branch-name"` - Use custom worktree name
+  - Session restoration automatically restores worktrees
+  - Cleanup preserves worktrees with uncommitted changes or unpushed commits
+  - Warnings displayed when worktrees are preserved: "⚠️ Warning: Worktree has uncommitted changes"
+  - Multiple directories per instance work seamlessly with worktrees
+  - `.gitignore` automatically created in `.worktrees/` directory
+  - Example: `claude-swarm --worktree feature-branch`
 
 ## [0.1.17]
 
