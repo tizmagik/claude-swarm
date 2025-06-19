@@ -86,6 +86,11 @@ module ClaudeSwarm
         swarm_name = config.dig("swarm", "name") || "Unknown"
         main_instance = config.dig("swarm", "main")
 
+        # Get base directory from session metadata or start_directory file
+        base_dir = Dir.pwd
+        start_dir_file = File.join(session_dir, "start_directory")
+        base_dir = File.read(start_dir_file).strip if File.exist?(start_dir_file)
+
         # Get all directories - handle both string and array formats
         dir_config = config.dig("swarm", "instances", main_instance, "directory")
         directories = if dir_config.is_a?(Array)
@@ -93,7 +98,16 @@ module ClaudeSwarm
                       else
                         [dir_config || "."]
                       end
-        directories_str = directories.join(", ")
+
+        # Expand paths relative to the base directory
+        expanded_directories = directories.map do |dir|
+          File.expand_path(dir, base_dir)
+        end
+
+        # Check for worktree information in session metadata
+        expanded_directories = apply_worktree_paths(expanded_directories, session_dir)
+
+        directories_str = expanded_directories.join(", ")
 
         # Calculate total cost from JSON log
         total_cost = calculate_total_cost(session_dir)
@@ -142,6 +156,44 @@ module ClaudeSwarm
 
       def truncate(str, length)
         str.length > length ? "#{str[0...length - 2]}.." : str
+      end
+
+      def apply_worktree_paths(directories, session_dir)
+        session_metadata_file = File.join(session_dir, "session_metadata.json")
+        return directories unless File.exist?(session_metadata_file)
+
+        metadata = JSON.parse(File.read(session_metadata_file))
+        worktree_info = metadata["worktree"]
+        return directories unless worktree_info && worktree_info["enabled"]
+
+        # Get the created worktree paths
+        created_paths = worktree_info["created_paths"] || {}
+
+        # For each directory, find the appropriate worktree path
+        directories.map do |dir|
+          # Find if this directory has a worktree created
+          repo_root = find_git_root(dir)
+          next dir unless repo_root
+
+          # Look for a worktree with this repo root
+          worktree_key = created_paths.keys.find { |key| key.start_with?("#{repo_root}:") }
+          worktree_key ? created_paths[worktree_key] : dir
+        end
+      end
+
+      def worktree_path_for(dir, worktree_name)
+        git_root = find_git_root(dir)
+        git_root ? File.join(git_root, ".worktrees", worktree_name) : dir
+      end
+
+      def find_git_root(dir)
+        current = File.expand_path(dir)
+        while current != "/"
+          return current if File.exist?(File.join(current, ".git"))
+
+          current = File.dirname(current)
+        end
+        nil
       end
     end
   end

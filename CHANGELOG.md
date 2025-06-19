@@ -1,3 +1,12 @@
+## [Unreleased]
+
+### Fixed
+- **ps command path display**: The `claude-swarm ps` command now shows expanded absolute paths instead of raw YAML values
+  - Relative paths like `.` are expanded to their full absolute paths (e.g., `/Users/paulo/project`)
+  - Multiple directories are properly expanded and displayed as comma-separated values
+  - Worktree directories are correctly shown when sessions use worktrees (e.g., `/path/to/repo/.worktrees/feature-branch`)
+  - Path resolution uses the start_directory from session metadata for accurate expansion
+
 ## [0.1.18]
 
 ### Added
