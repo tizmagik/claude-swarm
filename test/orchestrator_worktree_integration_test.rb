@@ -136,6 +136,9 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
     FileUtils.mkdir_p(dir)
     Dir.chdir(dir) do
       system("git", "init", "--quiet", out: File::NULL, err: File::NULL)
+      # Configure git user for GitHub Actions
+      system("git", "config", "user.email", "test@example.com", out: File::NULL, err: File::NULL)
+      system("git", "config", "user.name", "Test User", out: File::NULL, err: File::NULL)
       File.write("test.txt", "test content")
       system("git", "add", ".", out: File::NULL, err: File::NULL)
       system("git", "commit", "-m", "Initial commit", "--quiet", out: File::NULL, err: File::NULL)
