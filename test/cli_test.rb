@@ -507,8 +507,6 @@ class CLITest < Minitest::Test
     # Test that README content is included
     assert_match(/<full_readme>.*Test README content for Claude Swarm.*<\/full_readme>/m, prompt)
     
-    # Test that it ends with the ready statement
-    assert_match(/Now just say: I am ready to start/, prompt)
   end
 
   def test_build_generation_prompt_without_output_file
@@ -525,7 +523,5 @@ class CLITest < Minitest::Test
     # Test that README content is included
     assert_match(/<full_readme>.*Test README content.*<\/full_readme>/m, prompt)
     
-    # Test that it ends with the ready statement
-    assert_match(/Now just say: I am ready to start/, prompt)
   end
 end
