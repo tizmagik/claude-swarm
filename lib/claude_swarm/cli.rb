@@ -200,6 +200,37 @@ module ClaudeSwarm
       say "Edit this file to configure your swarm, then run 'claude-swarm' to start"
     end
 
+    desc "generate", "Launch Claude to help generate a swarm configuration interactively"
+    method_option :output, aliases: "-o", type: :string, default: "claude-swarm.yml",
+                           desc: "Output file path for the generated configuration"
+    method_option :model, aliases: "-m", type: :string, default: "sonnet",
+                          desc: "Claude model to use for generation"
+    def generate
+      # Check if claude command exists
+      unless system("which claude > /dev/null 2>&1")
+        error "Claude CLI is not installed or not in PATH"
+        say "To install Claude CLI, visit: https://docs.anthropic.com/en/docs/claude-code"
+        exit 1
+      end
+
+      # Read README for context about claude-swarm capabilities
+      readme_path = File.join(__dir__, "../../README.md")
+      readme_content = File.exist?(readme_path) ? File.read(readme_path) : ""
+
+      # Build the pre-prompt
+      preprompt = build_generation_prompt(readme_content, options[:output])
+
+      # Launch Claude with the pre-prompt
+      cmd = [
+        "claude",
+        "--model", options[:model],
+        "--append-system-prompt", preprompt
+      ]
+
+      # Execute and let the user take over
+      exec(*cmd)
+    end
+
     desc "version", "Show Claude Swarm version"
     def version
       say "Claude Swarm #{VERSION}"
@@ -444,6 +475,90 @@ module ClaudeSwarm
       end
 
       nil
+    end
+
+    def build_generation_prompt(_readme_content, output_file)
+      <<~PROMPT
+        You are a Claude Swarm configuration generator assistant. Your role is to help the user create a well-structured claude-swarm.yml file through an interactive conversation.
+
+        ## Claude Swarm Overview
+        Claude Swarm is a Ruby gem that orchestrates multiple Claude Code instances as a collaborative AI development team. It enables running AI agents with specialized roles, tools, and directory contexts, communicating via MCP (Model Context Protocol).
+
+        Key capabilities:
+        - Define multiple AI instances with different roles and specializations
+        - Set up connections between instances for collaboration
+        - Restrict tools based on each instance's responsibilities
+        - Run instances in different directories or Git worktrees
+        - Support for custom system prompts per instance
+        - Choose appropriate models (opus for complex tasks, sonnet for simpler ones)
+
+        ## Your Task
+        1. Start by asking about the user's project structure and development needs
+        2. Understand what kind of team they need (roles, specializations)
+        3. Suggest an appropriate swarm topology based on their needs
+        4. Help them refine and customize the configuration
+        5. Generate the final claude-swarm.yml content
+        6. When the configuration is complete, save it to: #{output_file}
+
+        ## Configuration Structure
+        ```yaml
+        version: 1
+        swarm:
+          name: "Descriptive Swarm Name"
+          main: main_instance_name
+          instances:
+            instance_name:
+              description: "Clear description of role and responsibilities"
+              directory: ./path/to/directory
+              model: sonnet  # or opus for complex tasks
+              prompt: "Custom system prompt for specialization"
+              allowed_tools: [Read, Edit, Write, Bash]
+              connections: [other_instance_names]  # Optional
+        ```
+
+        ## Best Practices to Follow
+        - Use descriptive, role-based instance names (e.g., frontend_dev, api_architect)
+        - Write clear descriptions explaining each instance's responsibilities
+        - Choose opus model for complex architectural or algorithmic tasks
+        - Choose sonnet model for routine development and simpler tasks
+        - Set up logical connections (e.g., lead → team members, architect → implementers)
+        - Select tools based on each instance's actual needs:
+          - Read: For code review and analysis roles
+          - Edit: For active development roles
+          - Write: For creating new files
+          - Bash: For running commands, tests, builds
+          - Tool restrictions like "Bash(npm:*)" for specific commands
+        - Use custom prompts to specialize each instance's expertise
+        - Organize directories to match project structure
+
+        ## Common Swarm Patterns
+        1. **Full-stack Web App**:
+           - lead_developer → [frontend_dev, backend_dev, database_engineer]
+           - Each instance works in their respective directories
+
+        2. **Microservices Architecture**:
+           - system_architect → [api_gateway_dev → [service_devs...]]
+           - Hierarchical structure matching service dependencies
+
+        3. **Research & Documentation**:
+           - lead_researcher → [data_analyst, technical_writer]
+           - Focused on analysis and documentation generation
+
+        4. **Testing & QA**:
+           - qa_lead → [unit_tester, integration_tester, e2e_tester]
+           - Specialized testing roles with appropriate tool access
+
+        ## Interactive Questions to Ask
+        - What type of project are you working on?
+        - What's your project's directory structure?
+        - What are the main technologies/frameworks you're using?
+        - What development tasks do you need help with?
+        - Do you need specialized roles (testing, DevOps, documentation)?
+        - Are there specific areas that need focused attention?
+        - Do you have multiple repositories or services to coordinate?
+
+        Start the conversation by greeting the user and asking: "What kind of project would you like to create a Claude Swarm for?"
+      PROMPT
     end
   end
 end

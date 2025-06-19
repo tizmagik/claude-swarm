@@ -369,4 +369,117 @@ class CLITest < Minitest::Test
     # Skip these tests as they depend on the executable being in the PATH
     skip "Skipping executable tests"
   end
+
+  def test_generate_without_claude_installed
+    # Mock system call to simulate Claude not being installed
+    @cli.stub :system, false do
+      out, = capture_cli_output do
+        assert_raises(SystemExit) { @cli.generate }
+      end
+
+      assert_match(/Claude CLI is not installed or not in PATH/, out)
+      assert_match(/To install Claude CLI, visit:/, out)
+    end
+  end
+
+  def test_generate_with_claude_installed
+    # Mock system call to simulate Claude being installed
+    @cli.stub :system, true do
+      # Stub exec to prevent actual execution and capture the command
+      exec_called = false
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_called = true
+        exec_args = args
+        # Prevent actual exec
+        nil
+      } do
+        @cli.options = { output: "claude-swarm.yml", model: "sonnet" }
+        @cli.generate
+
+        assert exec_called, "exec should have been called"
+        assert_equal "claude", exec_args[0]
+        assert_equal "--model", exec_args[1]
+        assert_equal "sonnet", exec_args[2]
+        assert_equal "--append-system-prompt", exec_args[3]
+        assert_match(/You are a Claude Swarm configuration generator assistant/, exec_args[4])
+      end
+    end
+  end
+
+  def test_generate_with_custom_output_file
+    @cli.stub :system, true do
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_args = args
+        nil
+      } do
+        @cli.options = { output: "my-custom-config.yml", model: "sonnet" }
+        @cli.generate
+
+        # Check that the custom output file is mentioned in the prompt
+        assert_match(/save it to: my-custom-config\.yml/, exec_args[4])
+      end
+    end
+  end
+
+  def test_generate_with_custom_model
+    @cli.stub :system, true do
+      exec_args = nil
+
+      @cli.stub :exec, lambda { |*args|
+        exec_args = args
+        nil
+      } do
+        @cli.options = { output: "claude-swarm.yml", model: "opus" }
+        @cli.generate
+
+        assert_equal "opus", exec_args[2]
+      end
+    end
+  end
+
+  def test_generate_includes_readme_content_if_exists
+    # Create a mock README file
+    readme_content = "# Claude Swarm\nThis is a test README content."
+    readme_path = File.join(__dir__, "../../lib/claude_swarm/../../README.md")
+
+    File.stub :exist?, ->(path) { path == readme_path } do
+      File.stub :read, lambda { |path|
+        path == readme_path ? readme_content : ""
+      } do
+        @cli.stub :system, true do
+          exec_args = nil
+
+          @cli.stub :exec, lambda { |*args|
+            exec_args = args
+            nil
+          } do
+            @cli.options = { output: "claude-swarm.yml", model: "sonnet" }
+            @cli.generate
+
+            # The prompt should include overview content
+            assert_match(/Claude Swarm Overview/, exec_args[4])
+          end
+        end
+      end
+    end
+  end
+
+  def test_build_generation_prompt
+    prompt = @cli.send(:build_generation_prompt, "Test README content", "output.yml")
+
+    # Test key sections are present
+    assert_match(/You are a Claude Swarm configuration generator assistant/, prompt)
+    assert_match(/Claude Swarm Overview/, prompt)
+    assert_match(/Your Task/, prompt)
+    assert_match(/Configuration Structure/, prompt)
+    assert_match(/Best Practices to Follow/, prompt)
+    assert_match(/Common Swarm Patterns/, prompt)
+    assert_match(/Interactive Questions to Ask/, prompt)
+    assert_match(/save it to: output\.yml/, prompt)
+    assert_match(/What kind of project would you like to create a Claude Swarm for\?/, prompt)
+  end
 end
