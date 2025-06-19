@@ -385,10 +385,19 @@ class CLITest < Minitest::Test
   def test_generate_with_claude_installed
     # Mock system call to simulate Claude being installed
     @cli.stub :system, true do
-      # Mock File operations for README
-      File.stub :exist?, ->(path) { path.include?("README.md") } do
+      # Read the actual template file before stubbing
+      actual_template_path = File.expand_path("../lib/claude_swarm/templates/generation_prompt.md.erb", __dir__)
+      template_content = File.read(actual_template_path)
+      # Mock File operations for README and template
+      File.stub :exist?, ->(path) { path.include?("README.md") || path.include?("generation_prompt.md.erb") } do
         File.stub :read, lambda { |path|
-          path.include?("README.md") ? "Mock README content" : ""
+          if path.include?("README.md")
+            "Mock README content"
+          elsif path.include?("generation_prompt.md.erb")
+            template_content
+          else
+            ""
+          end
         } do
           # Stub exec to prevent actual execution and capture the command
           exec_called = false
@@ -471,9 +480,19 @@ class CLITest < Minitest::Test
     # Create a mock README file
     readme_content = "# Claude Swarm\nThis is a test README content."
 
-    File.stub :exist?, ->(path) { path.include?("README.md") } do
+    # Read the actual template file before stubbing
+    actual_template_path = File.expand_path("../lib/claude_swarm/templates/generation_prompt.md.erb", __dir__)
+    template_content = File.read(actual_template_path)
+
+    File.stub :exist?, ->(path) { path.include?("README.md") || path.include?("generation_prompt.md.erb") } do
       File.stub :read, lambda { |path|
-        path.include?("README.md") ? readme_content : ""
+        if path.include?("README.md")
+          readme_content
+        elsif path.include?("generation_prompt.md.erb")
+          template_content
+        else
+          ""
+        end
       } do
         @cli.stub :system, true do
           exec_args = nil

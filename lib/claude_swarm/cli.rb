@@ -2,6 +2,7 @@
 
 require "thor"
 require "json"
+require "erb"
 require_relative "configuration"
 require_relative "mcp_generator"
 require_relative "orchestrator"
@@ -478,80 +479,9 @@ module ClaudeSwarm
     end
 
     def build_generation_prompt(readme_content, output_file)
-      <<~PROMPT
-        You are a Claude Swarm configuration generator assistant. Your role is to help the user create a well-structured claude-swarm.yml file through an interactive conversation.
-
-        ## Claude Swarm Overview
-        Claude Swarm is a Ruby gem that orchestrates multiple Claude Code instances as a collaborative AI development team. It enables running AI agents with specialized roles, tools, and directory contexts, communicating via MCP (Model Context Protocol).
-
-        Key capabilities:
-        - Define multiple AI instances with different roles and specializations
-        - Set up connections between instances for collaboration
-        - Restrict tools based on each instance's responsibilities
-        - Run instances in different directories or Git worktrees
-        - Support for custom system prompts per instance
-        - Choose appropriate models (opus for complex tasks, sonnet for simpler ones)
-
-        ## Your Task
-        1. Start by asking about the user's project structure and development needs
-        2. Understand what kind of team they need (roles, specializations)
-        3. Suggest an appropriate swarm topology based on their needs
-        4. Help them refine and customize the configuration
-        5. Generate the final claude-swarm.yml content
-        6. When the configuration is complete, save it to: #{output_file || "a descriptive filename based on the swarm's function"}
-
-        ## File Naming Convention
-        #{output_file ? "The user has specified the output file: #{output_file}" : "Since no output file was specified, name the file based on the swarm's function. Examples:\n        - web-dev-swarm.yml for full-stack web development teams\n        - data-pipeline-swarm.yml for data processing teams\n        - microservices-swarm.yml for microservice architectures\n        - mobile-app-swarm.yml for mobile development teams\n        - ml-research-swarm.yml for machine learning teams\n        - devops-swarm.yml for infrastructure and deployment teams\n        Use descriptive names that clearly indicate the swarm's purpose."}
-
-        ## Configuration Structure
-        ```yaml
-        version: 1
-        swarm:
-          name: "Descriptive Swarm Name"
-          main: main_instance_name
-          instances:
-            instance_name:
-              description: "Clear description of role and responsibilities"
-              directory: ./path/to/directory
-              model: sonnet  # or opus for complex tasks
-              prompt: "Custom system prompt for specialization"
-              allowed_tools: [Read, Edit, Write, Bash]
-              connections: [other_instance_names]  # Optional
-        ```
-
-        ## Best Practices to Follow
-        - Use descriptive, role-based instance names (e.g., frontend_dev, api_architect)
-        - Write clear descriptions explaining each instance's responsibilities
-        - Choose opus model for complex architectural or algorithmic tasks and routine development.
-        - Choose sonnet model for simpler tasks
-        - Set up logical connections (e.g., lead → team members, architect → implementers), but avoid circular dependencies.
-        - Always add this to the end of every prompt: `For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.`
-        - Select tools based on each instance's actual needs:
-          - Read: For code review and analysis roles
-          - Edit: For active development roles
-          - Write: For creating new files
-          - Bash: For running commands, tests, builds
-          - MultiEdit: For editing multiple files at once
-          - WebFetch: For fetching information from the web
-          - WebSearch: For searching the web
-        - Use custom prompts to specialize each instance's expertise
-        - Organize directories to match project structure
-
-        ## Interactive Questions to Ask
-        - What type of project are you working on?
-        - What's your project's directory structure?
-        - What are the main technologies/frameworks you're using?
-        - What development tasks do you need help with?
-        - Do you need specialized roles (testing, DevOps, documentation)?
-        - Are there specific areas that need focused attention?
-        - Do you have multiple repositories or services to coordinate?
-
-        <full_readme>
-        #{readme_content}
-        </full_readme>
-
-        Start the conversation by greeting the user and asking: "What kind of project would you like to create a Claude Swarm for?"
-      PROMPT
+      template_path = File.expand_path("templates/generation_prompt.md.erb", __dir__)
+      template = File.read(template_path)
+      ERB.new(template, trim_mode: "-").result(binding)
     end
   end
 end
