@@ -8,6 +8,7 @@
   - Model selection with `-m/--model` option (default: sonnet)
   - Checks for Claude CLI installation and provides helpful error message if not found
   - Includes comprehensive initial prompt with Claude Swarm overview, best practices, and common patterns
+  - Full README content is included in the prompt within `<full_readme>` tags for complete context
   - Claude starts with "I am ready to start" and then guides users through configuration creation
   - Examples: 
     - `claude-swarm generate` - Claude names file based on swarm function

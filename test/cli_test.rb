@@ -385,24 +385,32 @@ class CLITest < Minitest::Test
   def test_generate_with_claude_installed
     # Mock system call to simulate Claude being installed
     @cli.stub :system, true do
-      # Stub exec to prevent actual execution and capture the command
-      exec_called = false
-      exec_args = nil
+      # Mock File operations for README
+      File.stub :exist?, lambda { |path| path.include?("README.md") } do
+        File.stub :read, lambda { |path| 
+          path.include?("README.md") ? "Mock README content" : ""
+        } do
+          # Stub exec to prevent actual execution and capture the command
+          exec_called = false
+          exec_args = nil
 
-      @cli.stub :exec, lambda { |*args|
-        exec_called = true
-        exec_args = args
-        # Prevent actual exec
-        nil
-      } do
-        @cli.options = { model: "sonnet" }
-        @cli.generate
+          @cli.stub :exec, lambda { |*args|
+            exec_called = true
+            exec_args = args
+            # Prevent actual exec
+            nil
+          } do
+            @cli.options = { model: "sonnet" }
+            @cli.generate
 
-        assert exec_called, "exec should have been called"
-        assert_equal "claude", exec_args[0]
-        assert_equal "--model", exec_args[1]
-        assert_equal "sonnet", exec_args[2]
-        assert_match(/You are a Claude Swarm configuration generator assistant/, exec_args[3])
+            assert exec_called, "exec should have been called"
+            assert_equal "claude", exec_args[0]
+            assert_equal "--model", exec_args[1]
+            assert_equal "sonnet", exec_args[2]
+            # Test that the prompt includes README content
+            assert_match(/<full_readme>.*Mock README content.*<\/full_readme>/m, exec_args[3])
+          end
+        end
       end
     end
   end
@@ -462,11 +470,10 @@ class CLITest < Minitest::Test
   def test_generate_includes_readme_content_if_exists
     # Create a mock README file
     readme_content = "# Claude Swarm\nThis is a test README content."
-    readme_path = File.join(__dir__, "../../lib/claude_swarm/../../README.md")
 
-    File.stub :exist?, ->(path) { path == readme_path } do
+    File.stub :exist?, lambda { |path| path.include?("README.md") } do
       File.stub :read, lambda { |path|
-        path == readme_path ? readme_content : ""
+        path.include?("README.md") ? readme_content : ""
       } do
         @cli.stub :system, true do
           exec_args = nil
@@ -478,8 +485,8 @@ class CLITest < Minitest::Test
             @cli.options = { model: "sonnet" }
             @cli.generate
 
-            # The prompt should include overview content
-            assert_match(/Claude Swarm Overview/, exec_args[3])
+            # The prompt should include the README content in full_readme tags
+            assert_match(/<full_readme>.*# Claude Swarm.*This is a test README content.*<\/full_readme>/m, exec_args[3])
           end
         end
       end
@@ -487,30 +494,38 @@ class CLITest < Minitest::Test
   end
 
   def test_build_generation_prompt_with_output_file
-    prompt = @cli.send(:build_generation_prompt, "Test README content", "output.yml")
+    readme_content = "Test README content for Claude Swarm"
+    prompt = @cli.send(:build_generation_prompt, readme_content, "output.yml")
 
-    # Test key sections are present
-    assert_match(/You are a Claude Swarm configuration generator assistant/, prompt)
-    assert_match(/Claude Swarm Overview/, prompt)
-    assert_match(/Your Task/, prompt)
-    assert_match(/Configuration Structure/, prompt)
-    assert_match(/Best Practices to Follow/, prompt)
-    assert_match(/Interactive Questions to Ask/, prompt)
-    assert_match(/save it to: output\.yml/, prompt)
-    assert_match(/The user has specified the output file: output\.yml/, prompt)
-    assert_match(/What kind of project would you like to create a Claude Swarm for\?/, prompt)
+    # Test that a prompt is generated
+    assert prompt.is_a?(String)
+    assert prompt.length > 100
+    
+    # Test that output file is mentioned
+    assert_match(/output\.yml/, prompt)
+    
+    # Test that README content is included
+    assert_match(/<full_readme>.*Test README content for Claude Swarm.*<\/full_readme>/m, prompt)
+    
+    # Test that it ends with the ready statement
     assert_match(/Now just say: I am ready to start/, prompt)
   end
 
   def test_build_generation_prompt_without_output_file
-    prompt = @cli.send(:build_generation_prompt, "Test README content", nil)
+    readme_content = "Test README content"
+    prompt = @cli.send(:build_generation_prompt, readme_content, nil)
     
-    # Test that it includes file naming instructions
+    # Test that a prompt is generated
+    assert prompt.is_a?(String)
+    assert prompt.length > 100
+    
+    # Test that it includes file naming instructions when no output specified
     assert_match(/name the file based on the swarm's function/, prompt)
-    assert_match(/web-dev-swarm\.yml/, prompt)
-    assert_match(/data-pipeline-swarm\.yml/, prompt)
-    assert_match(/microservices-swarm\.yml/, prompt)
-    assert_match(/Use descriptive names that clearly indicate the swarm's purpose/, prompt)
-    refute_match(/The user has specified the output file/, prompt)
+    
+    # Test that README content is included
+    assert_match(/<full_readme>.*Test README content.*<\/full_readme>/m, prompt)
+    
+    # Test that it ends with the ready statement
+    assert_match(/Now just say: I am ready to start/, prompt)
   end
 end

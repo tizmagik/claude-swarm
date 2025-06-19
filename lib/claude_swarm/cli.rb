@@ -477,7 +477,7 @@ module ClaudeSwarm
       nil
     end
 
-    def build_generation_prompt(_readme_content, output_file)
+    def build_generation_prompt(readme_content, output_file)
       <<~PROMPT
         You are a Claude Swarm configuration generator assistant. Your role is to help the user create a well-structured claude-swarm.yml file through an interactive conversation.
 
@@ -524,13 +524,16 @@ module ClaudeSwarm
         - Write clear descriptions explaining each instance's responsibilities
         - Choose opus model for complex architectural or algorithmic tasks and routine development.
         - Choose sonnet model for simpler tasks
-        - Set up logical connections (e.g., lead → team members, architect → implementers)
+        - Set up logical connections (e.g., lead → team members, architect → implementers), but avoid circular dependencies.
+        - Always add this to the end of every prompt: `For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.`
         - Select tools based on each instance's actual needs:
           - Read: For code review and analysis roles
           - Edit: For active development roles
           - Write: For creating new files
           - Bash: For running commands, tests, builds
-          - Tool restrictions like "Bash(npm:*)" for specific commands
+          - MultiEdit: For editing multiple files at once
+          - WebFetch: For fetching information from the web
+          - WebSearch: For searching the web
         - Use custom prompts to specialize each instance's expertise
         - Organize directories to match project structure
 
@@ -543,9 +546,11 @@ module ClaudeSwarm
         - Are there specific areas that need focused attention?
         - Do you have multiple repositories or services to coordinate?
 
-        Start the conversation by greeting the user and asking: "What kind of project would you like to create a Claude Swarm for?"
+        <full_readme>
+        #{readme_content}
+        </full_readme>
 
-        Now just say: I am ready to start
+        Start the conversation by greeting the user and asking: "What kind of project would you like to create a Claude Swarm for?"
       PROMPT
     end
   end
