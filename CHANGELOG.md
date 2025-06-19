@@ -1,13 +1,13 @@
 ## [Unreleased]
 
 ### Added
-- **Configuration generator with Claude**: New `claude-swarm generate` command launches Claude to help create swarm configurations
-  - Runs Claude in non-interactive mode with a specialized prompt to generate configurations
+- **Interactive configuration generator**: New `claude-swarm generate` command launches Claude to help create swarm configurations
+  - Runs Claude in interactive mode with an initial prompt to guide configuration creation
   - Customizable output file with `-o/--output` option (default: claude-swarm.yml)
   - Model selection with `-m/--model` option (default: sonnet)
   - Checks for Claude CLI installation and provides helpful error message if not found
-  - Includes comprehensive system prompt with Claude Swarm overview, best practices, and common patterns
-  - Claude responds with a complete swarm configuration based on the provided context
+  - Includes comprehensive initial prompt with Claude Swarm overview, best practices, and common patterns
+  - Claude starts with "I am ready to start" and then guides users through configuration creation
   - Example: `claude-swarm generate -o my-team.yml --model opus`
 
 ### Fixed

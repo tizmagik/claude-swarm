@@ -220,11 +220,11 @@ module ClaudeSwarm
       # Build the pre-prompt
       preprompt = build_generation_prompt(readme_content, options[:output])
 
-      # Launch Claude in non-interactive mode with the prompt
+      # Launch Claude in interactive mode with the initial prompt
       cmd = [
         "claude",
         "--model", options[:model],
-        "-p", preprompt
+        preprompt
       ]
 
       # Execute and let the user take over

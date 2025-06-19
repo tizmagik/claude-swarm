@@ -402,8 +402,7 @@ class CLITest < Minitest::Test
         assert_equal "claude", exec_args[0]
         assert_equal "--model", exec_args[1]
         assert_equal "sonnet", exec_args[2]
-        assert_equal "-p", exec_args[3]
-        assert_match(/You are a Claude Swarm configuration generator assistant/, exec_args[4])
+        assert_match(/You are a Claude Swarm configuration generator assistant/, exec_args[3])
       end
     end
   end
@@ -420,7 +419,7 @@ class CLITest < Minitest::Test
         @cli.generate
 
         # Check that the custom output file is mentioned in the prompt
-        assert_match(/save it to: my-custom-config\.yml/, exec_args[4])
+        assert_match(/save it to: my-custom-config\.yml/, exec_args[3])
       end
     end
   end
@@ -461,7 +460,7 @@ class CLITest < Minitest::Test
             @cli.generate
 
             # The prompt should include overview content
-            assert_match(/Claude Swarm Overview/, exec_args[4])
+            assert_match(/Claude Swarm Overview/, exec_args[3])
           end
         end
       end
