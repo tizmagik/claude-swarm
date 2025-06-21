@@ -3,10 +3,6 @@
 require "thor"
 require "json"
 require "erb"
-require_relative "configuration"
-require_relative "mcp_generator"
-require_relative "orchestrator"
-require_relative "claude_mcp_server"
 
 module ClaudeSwarm
   class CLI < Thor
@@ -239,13 +235,11 @@ module ClaudeSwarm
 
     desc "ps", "List running Claude Swarm sessions"
     def ps
-      require_relative "commands/ps"
       Commands::Ps.new.execute
     end
 
     desc "show SESSION_ID", "Show detailed session information"
     def show(session_id)
-      require_relative "commands/show"
       Commands::Show.new.execute(session_id)
     end
 

@@ -4,6 +4,7 @@ PATH
     claude_swarm (0.1.19)
       fast-mcp-annotations
       thor (~> 1.3)
+      zeitwerk (~> 2.7.3)
 
 GEM
   remote: https://rubygems.org/
@@ -11,8 +12,8 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
-    base64 (0.2.0)
-    bigdecimal (3.1.9)
+    base64 (0.3.0)
+    bigdecimal (3.2.2)
     capybara (3.40.0)
       addressable
       matrix
@@ -46,7 +47,7 @@ GEM
       dry-logic (~> 1.5)
       dry-types (~> 1.8)
       zeitwerk (~> 2.6)
-    dry-types (1.8.2)
+    dry-types (1.8.3)
       bigdecimal (~> 3.0)
       concurrent-ruby (~> 1.0)
       dry-core (~> 1.0)
@@ -91,7 +92,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0520)
+    mime-types-data (3.2025.0617)
     mini_mime (1.1.5)
     minitest (5.25.5)
     multi_json (1.15.0)
@@ -118,7 +119,7 @@ GEM
     puma (6.6.0)
       nio4r (~> 2.0)
     racc (1.8.1)
-    rack (3.1.15)
+    rack (3.1.16)
     rack-protection (4.1.1)
       base64 (>= 0.1.0)
       logger (>= 1.6.0)

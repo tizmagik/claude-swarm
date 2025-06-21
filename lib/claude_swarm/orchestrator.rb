@@ -4,9 +4,6 @@ require "English"
 require "shellwords"
 require "json"
 require "fileutils"
-require_relative "session_path"
-require_relative "process_tracker"
-require_relative "worktree_manager"
 
 module ClaudeSwarm
   class Orchestrator
