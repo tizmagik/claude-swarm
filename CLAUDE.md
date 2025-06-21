@@ -71,14 +71,15 @@ instances:
 ```
 
 ### Worktree Behavior
-- Worktrees are created inside each repository in a `.worktrees/` directory
-- A `.gitignore` file is automatically created inside `.worktrees/` to ignore all contents
+- Worktrees are created in external directory: `~/.claude-swarm/worktrees/[session_id]/[repo_name-hash]/[worktree_name]`
+- This ensures proper isolation from the main repository and avoids conflicts with bundler and other tools
 - Each unique Git repository gets its own worktree with the same name
 - All instance directories are mapped to their worktree equivalents
 - Worktrees are automatically cleaned up when the swarm exits
 - Session metadata tracks worktree information for restoration
 - Non-Git directories are used as-is without creating worktrees
 - Existing worktrees with the same name are reused
+- The `claude-swarm clean` command removes orphaned worktrees
 
 ## Architecture
 

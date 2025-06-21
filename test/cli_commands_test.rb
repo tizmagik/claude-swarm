@@ -59,7 +59,7 @@ module ClaudeSwarm
       FileUtils.rm_rf(@run_dir)
       output = capture_io { @cli.clean }.first
 
-      assert_match(/No run directory found/, output)
+      assert_match(/No cleanup needed/, output)
     end
 
     def test_clean_command_removes_stale_symlinks
@@ -68,7 +68,7 @@ module ClaudeSwarm
 
       output = capture_io { @cli.clean }.first
 
-      assert_match(/Cleaned 1 stale session/, output)
+      assert_match(/Cleaned 1 stale symlink/, output)
 
       # Verify symlink was removed
       refute_path_exists File.join(@run_dir, "stale-session")
@@ -88,7 +88,7 @@ module ClaudeSwarm
       # Clean with 7 days threshold
       output = capture_io { @cli.invoke(:clean, [], days: 7) }.first
 
-      assert_match(/Cleaned 1 stale session/, output)
+      assert_match(/Cleaned 1 stale symlink/, output)
 
       FileUtils.rm_rf(old_session_dir)
     end
@@ -100,7 +100,7 @@ module ClaudeSwarm
 
       output = capture_io { @cli.clean }.first
 
-      assert_match(/Cleaned 2 stale sessions/, output)
+      assert_match(/Cleaned 2 stale symlinks/, output)
     end
 
     def test_clean_command_skips_valid_symlinks
@@ -109,7 +109,7 @@ module ClaudeSwarm
 
       output = capture_io { @cli.clean }.first
 
-      assert_match(/Cleaned 0 stale sessions/, output)
+      assert_match(/No cleanup needed/, output)
 
       # Verify valid symlink still exists
       assert_path_exists File.join(@run_dir, "valid-session")

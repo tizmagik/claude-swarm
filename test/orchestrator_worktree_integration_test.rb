@@ -4,6 +4,7 @@ require "test_helper"
 require_relative "../lib/claude_swarm/orchestrator"
 require_relative "../lib/claude_swarm/configuration"
 require_relative "../lib/claude_swarm/mcp_generator"
+require "digest"
 
 class OrchestratorWorktreeIntegrationTest < Minitest::Test
   def setup
@@ -32,7 +33,10 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
       )
 
       worktree_created = false
-      worktree_path = File.join(@repo_dir, ".worktrees", "test-feature")
+      repo_name = File.basename(@repo_dir)
+      repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+      session_id = orchestrator.instance_variable_get(:@session_id)
+      worktree_path = File.expand_path("~/.claude-swarm/worktrees/#{session_id}/#{repo_name}-#{repo_hash}/test-feature")
 
       # Stub the system call to check worktree at the right moment
       orchestrator.stub :system, lambda { |*_args|

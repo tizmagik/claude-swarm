@@ -522,17 +522,16 @@ swarm:
 
 #### Git Worktrees
 
-Claude Swarm supports running instances in Git worktrees, allowing isolated work without affecting your main repository state. Worktrees are created inside each repository in a `.worktrees/` directory following Git best practices.
+Claude Swarm supports running instances in Git worktrees, allowing isolated work without affecting your main repository state. Worktrees are created in an external directory (`~/.claude-swarm/worktrees/`) to ensure proper isolation from the main repository and avoid conflicts with bundler and other tools.
 
 **Example Structure:**
 ```
-my-repo/
-├── .git/
-├── .worktrees/        (created by Claude Swarm)
-│   ├── .gitignore     (auto-created, contains "*")
-│   └── feature-x/     (worktree for feature-x branch)
-├── src/
-└── tests/
+~/.claude-swarm/worktrees/
+└── [session_id]/
+    ├── my-repo-[hash]/
+    │   └── feature-x/     (worktree for feature-x branch)
+    └── other-repo-[hash]/
+        └── feature-x/     (worktree for feature-x branch)
 ```
 
 **CLI Option:**
@@ -577,14 +576,14 @@ swarm:
 - Omitted - Follows CLI behavior (use worktree if `--worktree` is specified)
 
 **Notes:**
-- Worktrees are created inside each repository in a `.worktrees/` directory
 - Auto-generated worktree names use the session ID (e.g., `worktree-20241206_143022`)
 - This makes it easy to correlate worktrees with their Claude Swarm sessions
-- A `.gitignore` file is automatically created inside `.worktrees/` to ignore all worktree contents
+- Worktrees are stored externally in `~/.claude-swarm/worktrees/[session_id]/`
 - All worktrees are automatically cleaned up when the swarm exits
 - Worktrees with the same name across different repositories share that name
 - Non-Git directories are unaffected by worktree settings
 - Existing worktrees with the same name are reused
+- The `claude-swarm clean` command also removes orphaned worktrees
 
 ### Command Line Options
 
@@ -652,10 +651,10 @@ claude-swarm watch 20250617_235233 -n 50
 claude-swarm list-sessions
 claude-swarm list-sessions --limit 20
 
-# Clean up stale session symlinks
+# Clean up stale session symlinks and orphaned worktrees
 claude-swarm clean
 
-# Remove sessions older than 30 days
+# Remove sessions and worktrees older than 30 days
 claude-swarm clean --days 30
 ```
 

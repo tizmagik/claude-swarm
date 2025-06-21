@@ -5,6 +5,7 @@ require "fileutils"
 require "json"
 require "pathname"
 require "securerandom"
+require "digest"
 
 module ClaudeSwarm
   class WorktreeManager
@@ -137,8 +138,35 @@ module ClaudeSwarm
         output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "remove", "--force", worktree_path)
         puts "Force remove result: #{output}" unless status.success?
       end
+
+      # Clean up external worktree directories
+      cleanup_external_directories
     rescue StandardError => e
       puts "Error during worktree cleanup: #{e.message}"
+    end
+
+    def cleanup_external_directories
+      # Remove session-specific worktree directory if it exists and is empty
+      return unless @session_id
+
+      session_worktree_dir = File.join(File.expand_path("~/.claude-swarm/worktrees"), @session_id)
+      return unless File.exist?(session_worktree_dir)
+
+      # Try to remove the directory tree
+      begin
+        # Remove all empty directories recursively
+        Dir.glob(File.join(session_worktree_dir, "**/*"), File::FNM_DOTMATCH).reverse_each do |path|
+          next if path.end_with?("/.", "/..")
+
+          FileUtils.rmdir(path) if File.directory?(path) && Dir.empty?(path)
+        end
+        # Finally try to remove the session directory itself
+        FileUtils.rmdir(session_worktree_dir) if Dir.empty?(session_worktree_dir)
+      rescue Errno::ENOTEMPTY
+        puts "Note: Session worktree directory not empty, leaving in place: #{session_worktree_dir}" unless ENV["CLAUDE_SWARM_PROMPT"]
+      rescue StandardError => e
+        puts "Warning: Error cleaning up worktree directories: #{e.message}" unless ENV["CLAUDE_SWARM_PROMPT"]
+      end
     end
 
     def session_metadata
@@ -156,6 +184,35 @@ module ClaudeSwarm
     end
 
     private
+
+    def external_worktree_path(repo_root, worktree_name)
+      # Get repository name from path
+      repo_name = sanitize_repo_name(File.basename(repo_root))
+
+      # Add a short hash of the full path to handle multiple repos with same name
+      path_hash = Digest::SHA256.hexdigest(repo_root)[0..7]
+      unique_repo_name = "#{repo_name}-#{path_hash}"
+
+      # Build external path: ~/.claude-swarm/worktrees/[session_id]/[repo_name-hash]/[worktree_name]
+      base_dir = File.expand_path("~/.claude-swarm/worktrees")
+
+      # Validate base directory is accessible
+      begin
+        FileUtils.mkdir_p(base_dir)
+      rescue Errno::EACCES
+        # Fall back to temp directory if home is not writable
+        base_dir = File.join(Dir.tmpdir, ".claude-swarm", "worktrees")
+        FileUtils.mkdir_p(base_dir)
+      end
+
+      session_dir = @session_id || "default"
+      File.join(base_dir, session_dir, unique_repo_name, worktree_name)
+    end
+
+    def sanitize_repo_name(name)
+      # Replace problematic characters with underscores
+      name.gsub(/[^a-zA-Z0-9._-]/, "_")
+    end
 
     def generate_worktree_name
       # Use session ID if available, otherwise generate a random suffix
@@ -240,9 +297,8 @@ module ClaudeSwarm
 
     def create_worktree(repo_root, worktree_name)
       worktree_key = "#{repo_root}:#{worktree_name}"
-      # Create worktrees inside the repository in a .worktrees directory
-      worktree_base_dir = File.join(repo_root, ".worktrees")
-      worktree_path = File.join(worktree_base_dir, worktree_name)
+      # Create worktrees in external directory
+      worktree_path = external_worktree_path(repo_root, worktree_name)
 
       # Check if worktree already exists
       if File.exist?(worktree_path)
@@ -251,12 +307,16 @@ module ClaudeSwarm
         return
       end
 
-      # Ensure .worktrees directory exists
-      FileUtils.mkdir_p(worktree_base_dir)
-
-      # Create .gitignore inside .worktrees to ignore all contents
-      gitignore_path = File.join(worktree_base_dir, ".gitignore")
-      File.write(gitignore_path, "# Ignore all worktree contents\n*\n") unless File.exist?(gitignore_path)
+      # Ensure parent directory exists with proper error handling
+      begin
+        FileUtils.mkdir_p(File.dirname(worktree_path))
+      rescue Errno::EACCES => e
+        raise Error, "Permission denied creating worktree directory: #{e.message}"
+      rescue Errno::ENOSPC => e
+        raise Error, "Not enough disk space for worktree: #{e.message}"
+      rescue StandardError => e
+        raise Error, "Failed to create worktree directory: #{e.message}"
+      end
 
       # Get current branch
       output, status = Open3.capture2e("git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD")
