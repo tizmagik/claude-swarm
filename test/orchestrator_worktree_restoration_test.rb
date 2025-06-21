@@ -4,6 +4,7 @@ require "test_helper"
 require_relative "../lib/claude_swarm/orchestrator"
 require_relative "../lib/claude_swarm/configuration"
 require_relative "../lib/claude_swarm/mcp_generator"
+require "digest"
 require "json"
 
 class OrchestratorWorktreeRestorationTest < Minitest::Test
@@ -29,13 +30,21 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
   def teardown
     FileUtils.rm_rf(@test_dir)
     FileUtils.rm_rf(@session_dir)
+    # Clean up any external worktrees
+    FileUtils.rm_rf(File.expand_path("~/.claude-swarm/worktrees/20250618_123456"))
+    FileUtils.rm_rf(File.expand_path("~/.claude-swarm/worktrees/default"))
   end
 
   def test_restoration_with_worktrees
     # First, create a session with worktrees
     worktree_name = "test-worktree-#{@session_id}"
 
-    # Simulate saving worktree metadata
+    # Get external worktree path
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    external_worktree_path = File.expand_path("~/.claude-swarm/worktrees/20250618_123456/#{repo_name}-#{repo_hash}/#{worktree_name}")
+    
+    # Simulate saving worktree metadata with external path
     metadata = {
       "start_directory" => @repo_dir,
       "timestamp" => Time.now.utc.iso8601,
@@ -45,7 +54,7 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
         "enabled" => true,
         "shared_name" => worktree_name,
         "created_paths" => {
-          "#{@repo_dir}:#{worktree_name}" => File.join(@repo_dir, ".worktrees", worktree_name)
+          "#{@repo_dir}:#{worktree_name}" => external_worktree_path
         },
         "instance_configs" => {
           "main" => { "skip" => false, "name" => worktree_name }
@@ -59,10 +68,21 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
     # Copy config to session
     FileUtils.cp(@config_file, File.join(@session_path, "config.yml"))
 
-    # Create the worktree manually (simulating previous session)
+    # Create the worktree manually in external location (simulating previous session)
+    FileUtils.mkdir_p(File.dirname(external_worktree_path))
     Dir.chdir(@repo_dir) do
-      FileUtils.mkdir_p(".worktrees")
-      system("git", "worktree", "add", "-b", worktree_name, ".worktrees/#{worktree_name}", "HEAD",
+      # Clean up any existing worktree with the same name
+      system("git", "worktree", "remove", "--force", external_worktree_path,
+             out: File::NULL, err: File::NULL)
+      # Also try to remove any old internal worktree
+      system("git", "worktree", "remove", "--force", ".worktrees/#{worktree_name}",
+             out: File::NULL, err: File::NULL)
+      # Delete the branch if it exists
+      system("git", "branch", "-D", worktree_name,
+             out: File::NULL, err: File::NULL)
+      
+      # Create new worktree
+      system("git", "worktree", "add", "-b", worktree_name, external_worktree_path, "HEAD",
              out: File::NULL, err: File::NULL)
     end
 
@@ -82,9 +102,9 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
         orchestrator.start
       end
 
-      # Verify the main instance started in the worktree
-      assert_includes worktree_dir_used, ".worktrees/#{worktree_name}",
-                      "Main instance should start in the restored worktree"
+      # Verify the main instance started in the external worktree
+      assert_equal external_worktree_path, worktree_dir_used,
+                      "Main instance should start in the restored external worktree"
     end
   end
 

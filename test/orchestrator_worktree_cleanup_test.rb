@@ -4,6 +4,7 @@ require "test_helper"
 require_relative "../lib/claude_swarm/orchestrator"
 require_relative "../lib/claude_swarm/configuration"
 require_relative "../lib/claude_swarm/mcp_generator"
+require "digest"
 
 class OrchestratorWorktreeCleanupTest < Minitest::Test
   def setup
@@ -21,12 +22,9 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
   end
 
   def teardown
-    # Clean up any remaining worktrees
-    Dir.glob(File.join(@repo_dir, ".worktrees", "*")).each do |worktree|
-      system("git", "-C", @repo_dir, "worktree", "remove", "--force", worktree,
-             out: File::NULL, err: File::NULL)
-    end
     FileUtils.rm_rf(@test_dir)
+    # Clean up any external worktrees created during tests
+    FileUtils.rm_rf(File.expand_path("~/.claude-swarm/worktrees/default"))
   end
 
   def test_orchestrator_skips_cleanup_with_uncommitted_changes
@@ -36,14 +34,26 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
         worktree: "test-uncommitted"
       )
 
+      # We need to run start first to get the session ID
+      worktree_path = nil
+
+      # Use a flag to track when to make changes
+      changes_made = false
+      
       # Mock system to simulate Claude execution and make changes
-      orchestrator.stub :system, lambda { |*_args|
-        # Find the worktree path
-        worktree_path = File.join(@repo_dir, ".worktrees", "test-uncommitted")
-
-        # Make uncommitted changes in the worktree
-        File.write(File.join(worktree_path, "uncommitted.txt"), "changes") if File.exist?(worktree_path)
-
+      orchestrator.stub :system, lambda { |*args|
+        # When claude is launched, we're in the worktree directory
+        if args.any? { |arg| arg.to_s.include?("claude") } && !changes_made
+          # Get the worktree path from the manager
+          worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
+          if worktree_manager
+            worktree_path = worktree_manager.created_worktrees.values.first
+          end
+          
+          # Make uncommitted changes in current directory (the worktree)
+          File.write("uncommitted.txt", "changes")
+          changes_made = true
+        end
         true
       } do
         output = capture_io { orchestrator.start }.join
@@ -53,8 +63,7 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
       end
 
       # Verify worktree still exists
-      worktree_path = File.join(@repo_dir, ".worktrees", "test-uncommitted")
-
+      assert worktree_path, "Worktree path should be set"
       assert_path_exists worktree_path, "Worktree should not be deleted with uncommitted changes"
     end
   end
@@ -66,20 +75,29 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
         worktree: "test-unpushed"
       )
 
+      # We need to run start first to get the session ID
+      worktree_path = nil
+
+      # Use a flag to track when to make commits
+      commits_made = false
+      
       # Mock system to simulate Claude execution and make commits
-      orchestrator.stub :system, lambda { |*_args|
-        # Find the worktree path
-        worktree_path = File.join(@repo_dir, ".worktrees", "test-unpushed")
-
-        # Make a commit in the worktree
-        if File.exist?(worktree_path)
-          Dir.chdir(worktree_path) do
-            File.write("new_feature.txt", "feature content")
-            system("git", "add", ".", out: File::NULL, err: File::NULL)
-            system("git", "commit", "-m", "New feature", out: File::NULL, err: File::NULL)
+      orchestrator.stub :system, lambda { |*args|
+        # When claude is launched, we're in the worktree directory
+        if args.any? { |arg| arg.to_s.include?("claude") } && !commits_made
+          # Get the worktree path from the manager
+          worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
+          if worktree_manager
+            worktree_path = worktree_manager.created_worktrees.values.first
           end
+          
+          # Make a commit in current directory (the worktree)
+          File.write("new_feature.txt", "feature content")
+          # Use backticks to avoid calling the stubbed system
+          `git add . 2>/dev/null`
+          `git commit -m "New feature" 2>/dev/null`
+          commits_made = true
         end
-
         true
       } do
         output = capture_io { orchestrator.start }.join
@@ -89,8 +107,7 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
       end
 
       # Verify worktree still exists
-      worktree_path = File.join(@repo_dir, ".worktrees", "test-unpushed")
-
+      assert worktree_path, "Worktree path should be set"
       assert_path_exists worktree_path, "Worktree should not be deleted with unpushed commits"
     end
   end
@@ -102,7 +119,19 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
         worktree: "test-clean"
       )
 
-      orchestrator.stub :system, true do
+      # We'll get the worktree path after it's created
+      worktree_path = nil
+
+      orchestrator.stub :system, lambda { |*args|
+        # Get the worktree path from the manager when claude is launched
+        if args.any? { |arg| arg.to_s.include?("claude") }
+          worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
+          if worktree_manager
+            worktree_path = worktree_manager.created_worktrees.values.first
+          end
+        end
+        true
+      } do
         output = capture_io { orchestrator.start }.join
 
         # Should see normal cleanup message
@@ -110,8 +139,7 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
       end
 
       # Verify worktree was removed
-      worktree_path = File.join(@repo_dir, ".worktrees", "test-clean")
-
+      assert worktree_path, "Worktree path should be set"
       refute_path_exists worktree_path, "Clean worktree should be deleted"
     end
   end

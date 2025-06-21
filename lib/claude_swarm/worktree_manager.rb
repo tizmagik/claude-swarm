@@ -337,6 +337,22 @@ module ClaudeSwarm
         output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "add", worktree_path, branch_name)
       end
 
+      # If worktree path is already in use, it might be from a previous run
+      if !status.success? && output.include?("is already used by worktree")
+        puts "Worktree path already in use, checking if it's valid" unless ENV["CLAUDE_SWARM_PROMPT"]
+        # Check if the worktree actually exists at that path
+        if File.exist?(File.join(worktree_path, ".git"))
+          puts "Using existing worktree: #{worktree_path}" unless ENV["CLAUDE_SWARM_PROMPT"]
+          @created_worktrees[worktree_key] = worktree_path
+          return
+        else
+          # The worktree is registered but the directory doesn't exist, prune and retry
+          puts "Pruning stale worktree references" unless ENV["CLAUDE_SWARM_PROMPT"]
+          system("git", "-C", repo_root, "worktree", "prune")
+          output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "add", worktree_path, branch_name)
+        end
+      end
+
       raise Error, "Failed to create worktree: #{output}" unless status.success?
 
       @created_worktrees[worktree_key] = worktree_path
