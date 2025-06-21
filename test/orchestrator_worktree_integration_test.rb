@@ -36,16 +36,19 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
       orchestrator.stub :system, true do
         orchestrator.start
       end
-      
+
       # Get the worktree info from the manager
       worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
+
       assert worktree_manager, "Worktree manager should exist"
-      
+
       # Check that worktree was created
       created_worktrees = worktree_manager.created_worktrees
+
       assert_equal 1, created_worktrees.size, "One worktree should be created"
-      
+
       worktree_path = created_worktrees.values.first
+
       assert worktree_path, "Worktree path should be set"
 
       # After execution, worktree should be cleaned up

@@ -39,17 +39,15 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
 
       # Use a flag to track when to make changes
       changes_made = false
-      
+
       # Mock system to simulate Claude execution and make changes
       orchestrator.stub :system, lambda { |*args|
         # When claude is launched, we're in the worktree directory
         if args.any? { |arg| arg.to_s.include?("claude") } && !changes_made
           # Get the worktree path from the manager
           worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
-          if worktree_manager
-            worktree_path = worktree_manager.created_worktrees.values.first
-          end
-          
+          worktree_path = worktree_manager.created_worktrees.values.first if worktree_manager
+
           # Make uncommitted changes in current directory (the worktree)
           File.write("uncommitted.txt", "changes")
           changes_made = true
@@ -80,17 +78,15 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
 
       # Use a flag to track when to make commits
       commits_made = false
-      
+
       # Mock system to simulate Claude execution and make commits
       orchestrator.stub :system, lambda { |*args|
         # When claude is launched, we're in the worktree directory
         if args.any? { |arg| arg.to_s.include?("claude") } && !commits_made
           # Get the worktree path from the manager
           worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
-          if worktree_manager
-            worktree_path = worktree_manager.created_worktrees.values.first
-          end
-          
+          worktree_path = worktree_manager.created_worktrees.values.first if worktree_manager
+
           # Make a commit in current directory (the worktree)
           File.write("new_feature.txt", "feature content")
           # Use backticks to avoid calling the stubbed system
@@ -126,9 +122,7 @@ class OrchestratorWorktreeCleanupTest < Minitest::Test
         # Get the worktree path from the manager when claude is launched
         if args.any? { |arg| arg.to_s.include?("claude") }
           worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
-          if worktree_manager
-            worktree_path = worktree_manager.created_worktrees.values.first
-          end
+          worktree_path = worktree_manager.created_worktrees.values.first if worktree_manager
         end
         true
       } do

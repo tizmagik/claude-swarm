@@ -43,7 +43,7 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
     repo_name = File.basename(@repo_dir)
     repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
     external_worktree_path = File.expand_path("~/.claude-swarm/worktrees/20250618_123456/#{repo_name}-#{repo_hash}/#{worktree_name}")
-    
+
     # Simulate saving worktree metadata with external path
     metadata = {
       "start_directory" => @repo_dir,
@@ -80,7 +80,7 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
       # Delete the branch if it exists
       system("git", "branch", "-D", worktree_name,
              out: File::NULL, err: File::NULL)
-      
+
       # Create new worktree
       system("git", "worktree", "add", "-b", worktree_name, external_worktree_path, "HEAD",
              out: File::NULL, err: File::NULL)
@@ -104,7 +104,7 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
 
       # Verify the main instance started in the external worktree
       assert_equal external_worktree_path, worktree_dir_used,
-                      "Main instance should start in the restored external worktree"
+                   "Main instance should start in the restored external worktree"
     end
   end
 
