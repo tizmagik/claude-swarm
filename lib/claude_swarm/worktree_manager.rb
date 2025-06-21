@@ -122,7 +122,9 @@ module ClaudeSwarm
         end
 
         # Check for unpushed commits
-        if has_unpushed_commits?(worktree_path)
+        has_unpushed = has_unpushed_commits?(worktree_path)
+
+        if has_unpushed
           puts "⚠️  Warning: Worktree has unpushed commits, skipping cleanup: #{worktree_path}" unless ENV["CLAUDE_SWARM_PROMPT"]
           next
         end
@@ -377,35 +379,56 @@ module ClaudeSwarm
       # Check if the branch has an upstream
       _, upstream_status = Open3.capture2e("git", "-C", worktree_path, "rev-parse", "--abbrev-ref", "#{current_branch}@{upstream}")
 
-      # If no upstream, check if there are any commits on this branch
-      unless upstream_status.success?
-        # Get the base branch (usually main or master)
-        base_branch = find_base_branch(worktree_path)
+      # If branch has upstream, check against it
+      if upstream_status.success?
+        # Check for unpushed commits against upstream
+        unpushed_output, unpushed_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{current_branch}@{upstream}")
+        return false unless unpushed_status.success?
 
-        # If we can't find a base branch or this IS the base branch, check if there are any commits at all
-        if base_branch.nil? || current_branch == base_branch
-          # Check if this branch has any commits
-          commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "--count", "HEAD")
-          return false unless commits_status.success?
-
-          # If there's more than 0 commits and no upstream, they're unpushed
-          return commits_output.strip.to_i.positive?
-        end
-
-        # Check if this branch has any commits not on the base branch
-        commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{base_branch}")
-        return false unless commits_status.success?
-
-        # If there are commits, they're unpushed (no upstream set)
-        return !commits_output.strip.empty?
+        # If output is not empty, there are unpushed commits
+        return !unpushed_output.strip.empty?
       end
 
-      # Check for unpushed commits
-      unpushed_output, unpushed_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{current_branch}@{upstream}")
-      return false unless unpushed_status.success?
+      # No upstream - this is likely a new branch created by the worktree
+      # The key insight: when git worktree add -b creates a branch, it creates it in BOTH
+      # the worktree AND the main repository. So we need to check the reflog in the worktree
+      # to see if any NEW commits were made after the worktree was created.
 
-      # If output is not empty, there are unpushed commits
-      !unpushed_output.strip.empty?
+      # Use reflog to check if any commits were made in this worktree
+      reflog_output, reflog_status = Open3.capture2e("git", "-C", worktree_path, "reflog", "--format=%H %gs", current_branch)
+
+      if reflog_status.success? && !reflog_output.strip.empty?
+        reflog_lines = reflog_output.strip.split("\n")
+
+        # Look for commit entries (not branch creation)
+        commit_entries = reflog_lines.select { |line| line.include?(" commit:") || line.include?(" commit (amend):") }
+
+        # If there are commit entries in the reflog, there are unpushed commits
+        return !commit_entries.empty?
+      end
+
+      # As a fallback, assume no unpushed commits
+      false
+    end
+
+    def find_original_repo_for_worktree(worktree_path)
+      # Get the git directory for this worktree
+      _, git_dir_status = Open3.capture2e("git", "-C", worktree_path, "rev-parse", "--git-dir")
+      return nil unless git_dir_status.success?
+
+      # Read the gitdir file to find the main repository
+      # Worktree .git files contain: gitdir: /path/to/main/repo/.git/worktrees/worktree-name
+      if File.file?(File.join(worktree_path, ".git"))
+        gitdir_content = File.read(File.join(worktree_path, ".git")).strip
+        if gitdir_content =~ /^gitdir: (.+)$/
+          git_path = $1
+          # Extract the main repo path from the worktree git path
+          # Format: /path/to/repo/.git/worktrees/worktree-name
+          return $1 if git_path =~ %r{^(.+)/\.git/worktrees/[^/]+$}
+        end
+      end
+
+      nil
     end
 
     def find_base_branch(repo_path)

@@ -397,10 +397,8 @@ class WorktreeManagerTest < Minitest::Test
 
     manager.setup_worktrees(instances)
 
-    # Make a commit in the worktree
-    repo_name = File.basename(@repo_dir)
-    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
-    worktree_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/test-unpushed")
+    # Get the actual worktree path from the updated instance
+    worktree_path = instances.first[:directory]
 
     assert_path_exists worktree_path
 
@@ -458,6 +456,39 @@ class WorktreeManagerTest < Minitest::Test
 
     # The session directory should be removed if empty
     refute_path_exists session_worktree_dir, "Empty session worktree directory should be removed"
+  end
+
+  def test_cleanup_removes_worktree_created_from_feature_branch_without_changes
+    # Create a feature branch in the main repo
+    Dir.chdir(@repo_dir) do
+      # Create and checkout a feature branch
+      system("git", "checkout", "-b", "feature-branch", out: File::NULL, err: File::NULL)
+      # Make a commit on the feature branch
+      File.write("feature.txt", "feature content")
+      system("git", "add", ".", out: File::NULL, err: File::NULL)
+      system("git", "commit", "-m", "Feature commit", out: File::NULL, err: File::NULL)
+    end
+
+    manager = ClaudeSwarm::WorktreeManager.new("test-feature-worktree")
+
+    instances = [
+      { name: "main", directory: @repo_dir }
+    ]
+
+    manager.setup_worktrees(instances)
+
+    # Get the actual worktree path from the updated instance
+    worktree_path = instances.first[:directory]
+
+    assert_path_exists worktree_path
+
+    # Don't make any changes in the worktree - it should still be removable
+    # Capture output during cleanup
+    output = capture_io { manager.cleanup_worktrees }.join
+
+    # The worktree should be removed because it has no changes
+    refute_path_exists worktree_path, "Worktree created from feature branch with no changes should be removed"
+    refute_match(/has unpushed commits, skipping cleanup/, output)
   end
 
   private
