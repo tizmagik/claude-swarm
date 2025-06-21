@@ -4,7 +4,6 @@ require "json"
 require "open3"
 require "logger"
 require "fileutils"
-require_relative "session_path"
 
 module ClaudeSwarm
   class ClaudeCodeExecutor

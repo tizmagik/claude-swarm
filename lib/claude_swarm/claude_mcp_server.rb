@@ -2,11 +2,6 @@
 
 require "fast_mcp_annotations"
 require "json"
-require_relative "claude_code_executor"
-require_relative "task_tool"
-require_relative "session_info_tool"
-require_relative "reset_session_tool"
-require_relative "process_tracker"
 
 module ClaudeSwarm
   class ClaudeMcpServer

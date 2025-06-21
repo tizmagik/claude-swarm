@@ -1,17 +1,25 @@
 # frozen_string_literal: true
 
-require_relative "claude_swarm/version"
-require_relative "claude_swarm/cli"
-require_relative "claude_swarm/configuration"
-require_relative "claude_swarm/mcp_generator"
-require_relative "claude_swarm/orchestrator"
-require_relative "claude_swarm/claude_code_executor"
-require_relative "claude_swarm/claude_mcp_server"
-require_relative "claude_swarm/session_path"
-require_relative "claude_swarm/session_info_tool"
-require_relative "claude_swarm/reset_session_tool"
-require_relative "claude_swarm/task_tool"
-require_relative "claude_swarm/process_tracker"
+# External dependencies
+require "thor"
+require "yaml"
+require "json"
+require "fileutils"
+require "erb"
+require "tmpdir"
+require "open3"
+require "timeout"
+require "pty"
+require "io/console"
+
+# Zeitwerk setup
+require "zeitwerk"
+loader = Zeitwerk::Loader.for_gem
+loader.ignore("#{__dir__}/claude_swarm/templates")
+loader.inflector.inflect(
+  "cli" => "CLI"
+)
+loader.setup
 
 module ClaudeSwarm
   class Error < StandardError; end

@@ -4,7 +4,6 @@ require "json"
 require "fileutils"
 require "shellwords"
 require "securerandom"
-require_relative "session_path"
 
 module ClaudeSwarm
   class McpGenerator
