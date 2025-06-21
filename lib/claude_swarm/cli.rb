@@ -243,39 +243,22 @@ module ClaudeSwarm
       Commands::Show.new.execute(session_id)
     end
 
-    desc "clean", "Remove stale session symlinks"
+    desc "clean", "Remove stale session symlinks and orphaned worktrees"
     method_option :days, aliases: "-d", type: :numeric, default: 7,
                          desc: "Remove sessions older than N days"
     def clean
-      run_dir = File.expand_path("~/.claude-swarm/run")
-      unless Dir.exist?(run_dir)
-        say "No run directory found", :yellow
-        return
+      # Clean stale symlinks
+      cleaned_symlinks = clean_stale_symlinks(options[:days])
+
+      # Clean orphaned worktrees
+      cleaned_worktrees = clean_orphaned_worktrees(options[:days])
+
+      if cleaned_symlinks.positive? || cleaned_worktrees.positive?
+        say "Cleaned #{cleaned_symlinks} stale symlink#{"s" unless cleaned_symlinks == 1}", :green
+        say "Cleaned #{cleaned_worktrees} orphaned worktree#{"s" unless cleaned_worktrees == 1}", :green
+      else
+        say "No cleanup needed", :green
       end
-
-      cleaned = 0
-      Dir.glob("#{run_dir}/*").each do |symlink|
-        next unless File.symlink?(symlink)
-
-        begin
-          # Remove if target doesn't exist (stale)
-          unless File.exist?(File.readlink(symlink))
-            File.unlink(symlink)
-            cleaned += 1
-            next
-          end
-
-          # Remove if older than specified days
-          if File.stat(symlink).mtime < Time.now - (options[:days] * 86_400)
-            File.unlink(symlink)
-            cleaned += 1
-          end
-        rescue StandardError
-          # Skip problematic symlinks
-        end
-      end
-
-      say "Cleaned #{cleaned} stale session#{"s" unless cleaned == 1}", :green
     end
 
     desc "watch SESSION_ID", "Watch session logs"
@@ -470,6 +453,87 @@ module ClaudeSwarm
       end
 
       nil
+    end
+
+    def clean_stale_symlinks(days)
+      run_dir = File.expand_path("~/.claude-swarm/run")
+      return 0 unless Dir.exist?(run_dir)
+
+      cleaned = 0
+      Dir.glob("#{run_dir}/*").each do |symlink|
+        next unless File.symlink?(symlink)
+
+        begin
+          # Remove if target doesn't exist (stale)
+          unless File.exist?(File.readlink(symlink))
+            File.unlink(symlink)
+            cleaned += 1
+            next
+          end
+
+          # Remove if older than specified days
+          if File.stat(symlink).mtime < Time.now - (days * 86_400)
+            File.unlink(symlink)
+            cleaned += 1
+          end
+        rescue StandardError
+          # Skip problematic symlinks
+        end
+      end
+
+      cleaned
+    end
+
+    def clean_orphaned_worktrees(days)
+      worktrees_dir = File.expand_path("~/.claude-swarm/worktrees")
+      return 0 unless Dir.exist?(worktrees_dir)
+
+      sessions_dir = File.expand_path("~/.claude-swarm/sessions")
+      cleaned = 0
+
+      Dir.glob("#{worktrees_dir}/*").each do |session_worktree_dir|
+        session_id = File.basename(session_worktree_dir)
+
+        # Skip if session still exists
+        next if Dir.glob("#{sessions_dir}/*/#{session_id}").any? { |path| File.exist?(File.join(path, "config.yml")) }
+
+        # Check age of worktree directory
+        begin
+          if File.stat(session_worktree_dir).mtime < Time.now - (days * 86_400)
+            # Remove all git worktrees in this session directory
+            Dir.glob("#{session_worktree_dir}/*/*").each do |worktree_path|
+              next unless File.directory?(worktree_path)
+
+              # Try to find the git repo and remove the worktree properly
+              git_dir = File.join(worktree_path, ".git")
+              if File.exist?(git_dir)
+                # Read the gitdir file to find the repo
+                gitdir_content = File.read(git_dir).strip
+                if gitdir_content.start_with?("gitdir:")
+                  repo_git_path = gitdir_content.sub("gitdir: ", "")
+                  # Extract repo path from .git/worktrees path
+                  repo_path = repo_git_path.split("/.git/worktrees/").first
+
+                  # Try to remove worktree via git
+                  system("git", "-C", repo_path, "worktree", "remove", worktree_path, "--force",
+                         out: File::NULL, err: File::NULL)
+                end
+              end
+
+              # Force remove directory if it still exists
+              FileUtils.rm_rf(worktree_path)
+            end
+
+            # Remove the session worktree directory
+            FileUtils.rm_rf(session_worktree_dir)
+            cleaned += 1
+          end
+        rescue StandardError => e
+          say "Warning: Failed to clean worktree directory #{session_worktree_dir}: #{e.message}", :yellow if options[:debug]
+        end
+      end
+
+      cleaned
     end
 
     def build_generation_prompt(readme_content, output_file)

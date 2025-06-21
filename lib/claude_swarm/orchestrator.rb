@@ -453,7 +453,9 @@ module ClaudeSwarm
       end
 
       # Restore worktrees using the saved configuration
-      @worktree_manager = WorktreeManager.new(worktree_data["shared_name"])
+      # Extract session ID from the session path
+      session_id = File.basename(session_path)
+      @worktree_manager = WorktreeManager.new(worktree_data["shared_name"], session_id: session_id)
 
       # Get all instances and restore their worktree paths
       all_instances = @config.instances.values

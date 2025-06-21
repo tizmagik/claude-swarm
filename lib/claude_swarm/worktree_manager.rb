@@ -5,6 +5,7 @@ require "fileutils"
 require "json"
 require "pathname"
 require "securerandom"
+require "digest"
 
 module ClaudeSwarm
   class WorktreeManager
@@ -121,7 +122,9 @@ module ClaudeSwarm
         end
 
         # Check for unpushed commits
-        if has_unpushed_commits?(worktree_path)
+        has_unpushed = has_unpushed_commits?(worktree_path)
+
+        if has_unpushed
           puts "⚠️  Warning: Worktree has unpushed commits, skipping cleanup: #{worktree_path}" unless ENV["CLAUDE_SWARM_PROMPT"]
           next
         end
@@ -137,8 +140,35 @@ module ClaudeSwarm
         output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "remove", "--force", worktree_path)
         puts "Force remove result: #{output}" unless status.success?
       end
+
+      # Clean up external worktree directories
+      cleanup_external_directories
     rescue StandardError => e
       puts "Error during worktree cleanup: #{e.message}"
+    end
+
+    def cleanup_external_directories
+      # Remove session-specific worktree directory if it exists and is empty
+      return unless @session_id
+
+      session_worktree_dir = File.join(File.expand_path("~/.claude-swarm/worktrees"), @session_id)
+      return unless File.exist?(session_worktree_dir)
+
+      # Try to remove the directory tree
+      begin
+        # Remove all empty directories recursively
+        Dir.glob(File.join(session_worktree_dir, "**/*"), File::FNM_DOTMATCH).reverse_each do |path|
+          next if path.end_with?("/.", "/..")
+
+          FileUtils.rmdir(path) if File.directory?(path) && Dir.empty?(path)
+        end
+        # Finally try to remove the session directory itself
+        FileUtils.rmdir(session_worktree_dir) if Dir.empty?(session_worktree_dir)
+      rescue Errno::ENOTEMPTY
+        puts "Note: Session worktree directory not empty, leaving in place: #{session_worktree_dir}" unless ENV["CLAUDE_SWARM_PROMPT"]
+      rescue StandardError => e
+        puts "Warning: Error cleaning up worktree directories: #{e.message}" unless ENV["CLAUDE_SWARM_PROMPT"]
+      end
     end
 
     def session_metadata
@@ -156,6 +186,35 @@ module ClaudeSwarm
     end
 
     private
+
+    def external_worktree_path(repo_root, worktree_name)
+      # Get repository name from path
+      repo_name = sanitize_repo_name(File.basename(repo_root))
+
+      # Add a short hash of the full path to handle multiple repos with same name
+      path_hash = Digest::SHA256.hexdigest(repo_root)[0..7]
+      unique_repo_name = "#{repo_name}-#{path_hash}"
+
+      # Build external path: ~/.claude-swarm/worktrees/[session_id]/[repo_name-hash]/[worktree_name]
+      base_dir = File.expand_path("~/.claude-swarm/worktrees")
+
+      # Validate base directory is accessible
+      begin
+        FileUtils.mkdir_p(base_dir)
+      rescue Errno::EACCES
+        # Fall back to temp directory if home is not writable
+        base_dir = File.join(Dir.tmpdir, ".claude-swarm", "worktrees")
+        FileUtils.mkdir_p(base_dir)
+      end
+
+      session_dir = @session_id || "default"
+      File.join(base_dir, session_dir, unique_repo_name, worktree_name)
+    end
+
+    def sanitize_repo_name(name)
+      # Replace problematic characters with underscores
+      name.gsub(/[^a-zA-Z0-9._-]/, "_")
+    end
 
     def generate_worktree_name
       # Use session ID if available, otherwise generate a random suffix
@@ -240,9 +299,8 @@ module ClaudeSwarm
 
     def create_worktree(repo_root, worktree_name)
       worktree_key = "#{repo_root}:#{worktree_name}"
-      # Create worktrees inside the repository in a .worktrees directory
-      worktree_base_dir = File.join(repo_root, ".worktrees")
-      worktree_path = File.join(worktree_base_dir, worktree_name)
+      # Create worktrees in external directory
+      worktree_path = external_worktree_path(repo_root, worktree_name)
 
       # Check if worktree already exists
       if File.exist?(worktree_path)
@@ -251,12 +309,16 @@ module ClaudeSwarm
         return
       end
 
-      # Ensure .worktrees directory exists
-      FileUtils.mkdir_p(worktree_base_dir)
-
-      # Create .gitignore inside .worktrees to ignore all contents
-      gitignore_path = File.join(worktree_base_dir, ".gitignore")
-      File.write(gitignore_path, "# Ignore all worktree contents\n*\n") unless File.exist?(gitignore_path)
+      # Ensure parent directory exists with proper error handling
+      begin
+        FileUtils.mkdir_p(File.dirname(worktree_path))
+      rescue Errno::EACCES => e
+        raise Error, "Permission denied creating worktree directory: #{e.message}"
+      rescue Errno::ENOSPC => e
+        raise Error, "Not enough disk space for worktree: #{e.message}"
+      rescue StandardError => e
+        raise Error, "Failed to create worktree directory: #{e.message}"
+      end
 
       # Get current branch
       output, status = Open3.capture2e("git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD")
@@ -275,6 +337,22 @@ module ClaudeSwarm
       if !status.success? && output.include?("already exists")
         puts "Branch #{branch_name} already exists, using existing branch" unless ENV["CLAUDE_SWARM_PROMPT"]
         output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "add", worktree_path, branch_name)
+      end
+
+      # If worktree path is already in use, it might be from a previous run
+      if !status.success? && output.include?("is already used by worktree")
+        puts "Worktree path already in use, checking if it's valid" unless ENV["CLAUDE_SWARM_PROMPT"]
+        # Check if the worktree actually exists at that path
+        if File.exist?(File.join(worktree_path, ".git"))
+          puts "Using existing worktree: #{worktree_path}" unless ENV["CLAUDE_SWARM_PROMPT"]
+          @created_worktrees[worktree_key] = worktree_path
+          return
+        else
+          # The worktree is registered but the directory doesn't exist, prune and retry
+          puts "Pruning stale worktree references" unless ENV["CLAUDE_SWARM_PROMPT"]
+          system("git", "-C", repo_root, "worktree", "prune")
+          output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "add", worktree_path, branch_name)
+        end
       end
 
       raise Error, "Failed to create worktree: #{output}" unless status.success?
@@ -301,35 +379,56 @@ module ClaudeSwarm
       # Check if the branch has an upstream
       _, upstream_status = Open3.capture2e("git", "-C", worktree_path, "rev-parse", "--abbrev-ref", "#{current_branch}@{upstream}")
 
-      # If no upstream, check if there are any commits on this branch
-      unless upstream_status.success?
-        # Get the base branch (usually main or master)
-        base_branch = find_base_branch(worktree_path)
+      # If branch has upstream, check against it
+      if upstream_status.success?
+        # Check for unpushed commits against upstream
+        unpushed_output, unpushed_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{current_branch}@{upstream}")
+        return false unless unpushed_status.success?
 
-        # If we can't find a base branch or this IS the base branch, check if there are any commits at all
-        if base_branch.nil? || current_branch == base_branch
-          # Check if this branch has any commits
-          commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "--count", "HEAD")
-          return false unless commits_status.success?
-
-          # If there's more than 0 commits and no upstream, they're unpushed
-          return commits_output.strip.to_i.positive?
-        end
-
-        # Check if this branch has any commits not on the base branch
-        commits_output, commits_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{base_branch}")
-        return false unless commits_status.success?
-
-        # If there are commits, they're unpushed (no upstream set)
-        return !commits_output.strip.empty?
+        # If output is not empty, there are unpushed commits
+        return !unpushed_output.strip.empty?
       end
 
-      # Check for unpushed commits
-      unpushed_output, unpushed_status = Open3.capture2e("git", "-C", worktree_path, "rev-list", "HEAD", "^#{current_branch}@{upstream}")
-      return false unless unpushed_status.success?
+      # No upstream - this is likely a new branch created by the worktree
+      # The key insight: when git worktree add -b creates a branch, it creates it in BOTH
+      # the worktree AND the main repository. So we need to check the reflog in the worktree
+      # to see if any NEW commits were made after the worktree was created.
 
-      # If output is not empty, there are unpushed commits
-      !unpushed_output.strip.empty?
+      # Use reflog to check if any commits were made in this worktree
+      reflog_output, reflog_status = Open3.capture2e("git", "-C", worktree_path, "reflog", "--format=%H %gs", current_branch)
+
+      if reflog_status.success? && !reflog_output.strip.empty?
+        reflog_lines = reflog_output.strip.split("\n")
+
+        # Look for commit entries (not branch creation)
+        commit_entries = reflog_lines.select { |line| line.include?(" commit:") || line.include?(" commit (amend):") }
+
+        # If there are commit entries in the reflog, there are unpushed commits
+        return !commit_entries.empty?
+      end
+
+      # As a fallback, assume no unpushed commits
+      false
+    end
+
+    def find_original_repo_for_worktree(worktree_path)
+      # Get the git directory for this worktree
+      _, git_dir_status = Open3.capture2e("git", "-C", worktree_path, "rev-parse", "--git-dir")
+      return nil unless git_dir_status.success?
+
+      # Read the gitdir file to find the main repository
+      # Worktree .git files contain: gitdir: /path/to/main/repo/.git/worktrees/worktree-name
+      if File.file?(File.join(worktree_path, ".git"))
+        gitdir_content = File.read(File.join(worktree_path, ".git")).strip
+        if gitdir_content =~ /^gitdir: (.+)$/
+          git_path = $1
+          # Extract the main repo path from the worktree git path
+          # Format: /path/to/repo/.git/worktrees/worktree-name
+          return $1 if git_path =~ %r{^(.+)/\.git/worktrees/[^/]+$}
+        end
+      end
+
+      nil
     end
 
     def find_base_branch(repo_path)

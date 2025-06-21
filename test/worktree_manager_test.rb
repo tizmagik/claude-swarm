@@ -2,6 +2,7 @@
 
 require "test_helper"
 require_relative "../lib/claude_swarm/worktree_manager"
+require "digest"
 
 class WorktreeManagerTest < Minitest::Test
   def setup
@@ -40,10 +41,12 @@ class WorktreeManagerTest < Minitest::Test
 
     manager.setup_worktrees(instances)
 
-    # Check worktree was created
-    worktree_path = File.join(@repo_dir, ".worktrees", "test-worktree")
+    # Check worktree was created in external directory
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/test-worktree")
 
-    assert_path_exists worktree_path, "Worktree should be created"
+    assert_path_exists worktree_path, "Worktree should be created in external directory"
 
     # Check instances were updated
     assert_equal worktree_path, instances[0][:directory]
@@ -67,9 +70,14 @@ class WorktreeManagerTest < Minitest::Test
 
     manager.setup_worktrees(instances)
 
-    # Check both worktrees were created
-    worktree_path1 = File.join(@repo_dir, ".worktrees", "multi-repo")
-    worktree_path2 = File.join(@other_repo_dir, ".worktrees", "multi-repo")
+    # Check both worktrees were created in external directories
+    repo_name1 = File.basename(@repo_dir)
+    repo_hash1 = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path1 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name1}-#{repo_hash1}/multi-repo")
+
+    repo_name2 = File.basename(@other_repo_dir)
+    repo_hash2 = Digest::SHA256.hexdigest(@other_repo_dir)[0..7]
+    worktree_path2 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name2}-#{repo_hash2}/multi-repo")
 
     assert_path_exists worktree_path1, "First worktree should be created"
     assert_path_exists worktree_path2, "Second worktree should be created"
@@ -92,10 +100,18 @@ class WorktreeManagerTest < Minitest::Test
     manager.setup_worktrees(instances)
 
     # Check all directories were mapped
+    repo_name1 = File.basename(@repo_dir)
+    repo_hash1 = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path1 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name1}-#{repo_hash1}/array-test")
+
+    repo_name2 = File.basename(@other_repo_dir)
+    repo_hash2 = Digest::SHA256.hexdigest(@other_repo_dir)[0..7]
+    worktree_path2 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name2}-#{repo_hash2}/array-test")
+
     expected_dirs = [
-      File.join(@repo_dir, ".worktrees", "array-test"),
-      File.join(@repo_dir, ".worktrees", "array-test", "subdir"),
-      File.join(@other_repo_dir, ".worktrees", "array-test")
+      worktree_path1,
+      File.join(worktree_path1, "subdir"),
+      worktree_path2
     ]
 
     assert_equal expected_dirs, instances[0][:directories]
@@ -121,8 +137,13 @@ class WorktreeManagerTest < Minitest::Test
     manager.setup_worktrees(instances)
 
     # Verify worktrees exist
-    worktree_path1 = File.join(@repo_dir, ".worktrees", "cleanup-test")
-    worktree_path2 = File.join(@other_repo_dir, ".worktrees", "cleanup-test")
+    repo_name1 = File.basename(@repo_dir)
+    repo_hash1 = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path1 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name1}-#{repo_hash1}/cleanup-test")
+
+    repo_name2 = File.basename(@other_repo_dir)
+    repo_hash2 = Digest::SHA256.hexdigest(@other_repo_dir)[0..7]
+    worktree_path2 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name2}-#{repo_hash2}/cleanup-test")
 
     assert_path_exists worktree_path1
     assert_path_exists worktree_path2
@@ -149,13 +170,20 @@ class WorktreeManagerTest < Minitest::Test
     assert metadata[:enabled]
     assert_equal "metadata-test", metadata[:shared_name]
     assert_kind_of Hash, metadata[:created_paths]
-    assert_equal File.join(@repo_dir, ".worktrees", "metadata-test"), metadata[:created_paths]["#{@repo_dir}:metadata-test"]
+
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    expected_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/metadata-test")
+
+    assert_equal expected_path, metadata[:created_paths]["#{@repo_dir}:metadata-test"]
   end
 
   def test_existing_worktree_reuse
-    # Create a worktree manually
+    # Create a worktree manually in external location
     worktree_name = "existing-worktree"
-    worktree_base = File.join(@repo_dir, ".worktrees")
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_base = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}")
     FileUtils.mkdir_p(worktree_base)
     worktree_path = File.join(worktree_base, worktree_name)
 
@@ -200,7 +228,9 @@ class WorktreeManagerTest < Minitest::Test
     # Should create worktree using existing branch
     manager.setup_worktrees(instances)
 
-    worktree_path = File.join(@repo_dir, ".worktrees", branch_name)
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/#{branch_name}")
 
     assert_path_exists worktree_path, "Worktree should be created"
 
@@ -247,23 +277,9 @@ class WorktreeManagerTest < Minitest::Test
   end
 
   def test_gitignore_created_in_worktrees_directory
-    manager = ClaudeSwarm::WorktreeManager.new("test-gitignore")
-
-    instances = [
-      { name: "main", directory: @repo_dir }
-    ]
-
-    manager.setup_worktrees(instances)
-
-    # Check that .gitignore was created in .worktrees directory
-    gitignore_path = File.join(@repo_dir, ".worktrees", ".gitignore")
-
-    assert_path_exists gitignore_path, ".gitignore should be created in .worktrees"
-
-    # Check contents
-    gitignore_content = File.read(gitignore_path)
-
-    assert_match(/\*/, gitignore_content, ".gitignore should contain wildcard to ignore all contents")
+    # This test is no longer relevant since worktrees are now external
+    # Skip this test
+    skip "Gitignore test not applicable for external worktrees"
   end
 
   def test_per_instance_worktree_false
@@ -277,7 +293,11 @@ class WorktreeManagerTest < Minitest::Test
     manager.setup_worktrees(instances)
 
     # Main instance should be in worktree
-    assert_equal File.join(@repo_dir, ".worktrees", "shared-worktree"), instances[0][:directory]
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    expected_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/shared-worktree")
+
+    assert_equal expected_path, instances[0][:directory]
 
     # Other instance should keep original directory
     assert_equal @other_repo_dir, instances[1][:directory]
@@ -294,10 +314,18 @@ class WorktreeManagerTest < Minitest::Test
     manager.setup_worktrees(instances)
 
     # Main instance should use shared worktree
-    assert_equal File.join(@repo_dir, ".worktrees", "shared-worktree"), instances[0][:directory]
+    repo_name1 = File.basename(@repo_dir)
+    repo_hash1 = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    expected_path1 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name1}-#{repo_hash1}/shared-worktree")
+
+    assert_equal expected_path1, instances[0][:directory]
 
     # Other instance should use custom worktree
-    assert_equal File.join(@other_repo_dir, ".worktrees", "custom-branch"), instances[1][:directory]
+    repo_name2 = File.basename(@other_repo_dir)
+    repo_hash2 = Digest::SHA256.hexdigest(@other_repo_dir)[0..7]
+    expected_path2 = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name2}-#{repo_hash2}/custom-branch")
+
+    assert_equal expected_path2, instances[1][:directory]
   end
 
   def test_per_instance_worktree_without_cli_option
@@ -314,7 +342,11 @@ class WorktreeManagerTest < Minitest::Test
     assert_equal @repo_dir, instances[0][:directory]
 
     # Other instance should use custom worktree
-    assert_equal File.join(@other_repo_dir, ".worktrees", "feature-x"), instances[1][:directory]
+    repo_name = File.basename(@other_repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@other_repo_dir)[0..7]
+    expected_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/feature-x")
+
+    assert_equal expected_path, instances[1][:directory]
   end
 
   def test_per_instance_worktree_true_without_cli_generates_name
@@ -340,7 +372,9 @@ class WorktreeManagerTest < Minitest::Test
     manager.setup_worktrees(instances)
 
     # Make changes in the worktree
-    worktree_path = File.join(@repo_dir, ".worktrees", "test-changes")
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/test-changes")
 
     assert_path_exists worktree_path
 
@@ -363,8 +397,8 @@ class WorktreeManagerTest < Minitest::Test
 
     manager.setup_worktrees(instances)
 
-    # Make a commit in the worktree
-    worktree_path = File.join(@repo_dir, ".worktrees", "test-unpushed")
+    # Get the actual worktree path from the updated instance
+    worktree_path = instances.first[:directory]
 
     assert_path_exists worktree_path
 
@@ -391,7 +425,9 @@ class WorktreeManagerTest < Minitest::Test
 
     manager.setup_worktrees(instances)
 
-    worktree_path = File.join(@repo_dir, ".worktrees", "test-clean")
+    repo_name = File.basename(@repo_dir)
+    repo_hash = Digest::SHA256.hexdigest(@repo_dir)[0..7]
+    worktree_path = File.expand_path("~/.claude-swarm/worktrees/default/#{repo_name}-#{repo_hash}/test-clean")
 
     assert_path_exists worktree_path
 
@@ -399,6 +435,60 @@ class WorktreeManagerTest < Minitest::Test
     manager.cleanup_worktrees
 
     refute_path_exists worktree_path, "Clean worktree should be removed"
+  end
+
+  def test_cleanup_external_directories_with_session_id
+    manager = ClaudeSwarm::WorktreeManager.new("test-external", session_id: "test_session_123")
+
+    instances = [
+      { name: "main", directory: @repo_dir }
+    ]
+
+    manager.setup_worktrees(instances)
+
+    # Check that session directory exists
+    session_worktree_dir = File.expand_path("~/.claude-swarm/worktrees/test_session_123")
+
+    assert_path_exists session_worktree_dir
+
+    # Cleanup should remove the worktree and try to clean up empty directories
+    manager.cleanup_worktrees
+
+    # The session directory should be removed if empty
+    refute_path_exists session_worktree_dir, "Empty session worktree directory should be removed"
+  end
+
+  def test_cleanup_removes_worktree_created_from_feature_branch_without_changes
+    # Create a feature branch in the main repo
+    Dir.chdir(@repo_dir) do
+      # Create and checkout a feature branch
+      system("git", "checkout", "-b", "feature-branch", out: File::NULL, err: File::NULL)
+      # Make a commit on the feature branch
+      File.write("feature.txt", "feature content")
+      system("git", "add", ".", out: File::NULL, err: File::NULL)
+      system("git", "commit", "-m", "Feature commit", out: File::NULL, err: File::NULL)
+    end
+
+    manager = ClaudeSwarm::WorktreeManager.new("test-feature-worktree")
+
+    instances = [
+      { name: "main", directory: @repo_dir }
+    ]
+
+    manager.setup_worktrees(instances)
+
+    # Get the actual worktree path from the updated instance
+    worktree_path = instances.first[:directory]
+
+    assert_path_exists worktree_path
+
+    # Don't make any changes in the worktree - it should still be removable
+    # Capture output during cleanup
+    output = capture_io { manager.cleanup_worktrees }.join
+
+    # The worktree should be removed because it has no changes
+    refute_path_exists worktree_path, "Worktree created from feature branch with no changes should be removed"
+    refute_match(/has unpushed commits, skipping cleanup/, output)
   end
 
   private

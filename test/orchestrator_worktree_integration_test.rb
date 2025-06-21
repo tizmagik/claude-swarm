@@ -4,6 +4,7 @@ require "test_helper"
 require_relative "../lib/claude_swarm/orchestrator"
 require_relative "../lib/claude_swarm/configuration"
 require_relative "../lib/claude_swarm/mcp_generator"
+require "digest"
 
 class OrchestratorWorktreeIntegrationTest < Minitest::Test
   def setup
@@ -31,28 +32,29 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
         worktree: "test-feature"
       )
 
-      worktree_created = false
-      worktree_path = File.join(@repo_dir, ".worktrees", "test-feature")
-
-      # Stub the system call to check worktree at the right moment
-      orchestrator.stub :system, lambda { |*_args|
-        # At this point, worktree should exist
-        worktree_created = File.exist?(worktree_path)
-        true
-      } do
+      # Start the orchestrator and capture the worktree path
+      orchestrator.stub :system, true do
         orchestrator.start
       end
 
-      # Verify worktree was created during execution
-      assert worktree_created, "Worktree should be created before launching Claude"
+      # Get the worktree info from the manager
+      worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
+
+      assert worktree_manager, "Worktree manager should exist"
+
+      # Check that worktree was created
+      created_worktrees = worktree_manager.created_worktrees
+
+      assert_equal 1, created_worktrees.size, "One worktree should be created"
+
+      worktree_path = created_worktrees.values.first
+
+      assert worktree_path, "Worktree path should be set"
 
       # After execution, worktree should be cleaned up
       refute_path_exists worktree_path, "Worktree should be cleaned up after execution"
 
-      # Just verify the worktree manager was set up correctly
-      assert orchestrator.instance_variable_get(:@worktree_manager), "Worktree manager should exist"
-      worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
-
+      # Verify the worktree name
       assert_equal "test-feature", worktree_manager.worktree_name
     end
   end
