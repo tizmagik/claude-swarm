@@ -371,8 +371,10 @@ class CLITest < Minitest::Test
   end
 
   def test_generate_without_claude_installed
-    # Mock system call to simulate Claude not being installed
-    @cli.stub :system, false do
+    # Mock system call to simulate Claude not being installed (command -v fails)
+    @cli.stub :system, lambda { |cmd|
+      !cmd.include?("command -v claude")
+    } do
       out, = capture_cli_output do
         assert_raises(SystemExit) { @cli.generate }
       end
@@ -383,8 +385,10 @@ class CLITest < Minitest::Test
   end
 
   def test_generate_with_claude_installed
-    # Mock system call to simulate Claude being installed
-    @cli.stub :system, true do
+    # Mock system call to simulate Claude being installed (command -v succeeds)
+    @cli.stub :system, lambda { |cmd|
+      cmd.include?("command -v claude") || false
+    } do
       # Read the actual template file before stubbing
       actual_template_path = File.expand_path("../lib/claude_swarm/templates/generation_prompt.md.erb", __dir__)
       template_content = File.read(actual_template_path)
