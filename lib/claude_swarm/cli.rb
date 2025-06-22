@@ -203,8 +203,8 @@ module ClaudeSwarm
     method_option :model, aliases: "-m", type: :string, default: "sonnet",
                           desc: "Claude model to use for generation"
     def generate
-      # Check if claude command exists
-      unless system("which claude > /dev/null 2>&1")
+      # Check if claude command exists (works with aliases)
+      unless system("command -v claude > /dev/null 2>&1")
         error "Claude CLI is not installed or not in PATH"
         say "To install Claude CLI, visit: https://docs.anthropic.com/en/docs/claude-code"
         exit 1
