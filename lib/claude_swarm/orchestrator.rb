@@ -171,7 +171,7 @@ module ClaudeSwarm
 
       command = build_main_command(main_instance)
       if @debug && !@prompt
-        puts "Running: #{command}"
+        puts "🏃 Running: #{format_command_for_display(command)}"
         puts
       end
 
@@ -357,6 +357,16 @@ module ClaudeSwarm
       rescue StandardError
         # Silently handle errors (file might be deleted, process might end, etc.)
       end
+    end
+
+    def format_command_for_display(command)
+      command.map do |part|
+        if part.match?(/\s|'|"/)
+          "'#{part.gsub("'", "'\\\\''")}'"
+        else
+          part
+        end
+      end.join(" ")
     end
 
     def build_main_command(instance)
