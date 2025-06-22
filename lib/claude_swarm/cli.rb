@@ -6,6 +6,7 @@ require "erb"
 
 module ClaudeSwarm
   class CLI < Thor
+    include SystemUtils
     def self.exit_on_failure?
       true
     end
@@ -203,8 +204,10 @@ module ClaudeSwarm
     method_option :model, aliases: "-m", type: :string, default: "sonnet",
                           desc: "Claude model to use for generation"
     def generate
-      # Check if claude command exists (works with aliases)
-      unless system("command -v claude > /dev/null 2>&1")
+      # Check if claude command exists
+      begin
+        system!("command -v claude > /dev/null 2>&1")
+      rescue Error
         error "Claude CLI is not installed or not in PATH"
         say "To install Claude CLI, visit: https://docs.anthropic.com/en/docs/claude-code"
         exit 1
@@ -515,8 +518,8 @@ module ClaudeSwarm
                   repo_path = repo_git_path.split("/.git/worktrees/").first
 
                   # Try to remove worktree via git
-                  system("git", "-C", repo_path, "worktree", "remove", worktree_path, "--force",
-                         out: File::NULL, err: File::NULL)
+                  system!("git", "-C", repo_path, "worktree", "remove", worktree_path, "--force",
+                          out: File::NULL, err: File::NULL)
                 end
               end
 

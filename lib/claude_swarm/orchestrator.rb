@@ -7,6 +7,7 @@ require "fileutils"
 
 module ClaudeSwarm
   class Orchestrator
+    include SystemUtils
     RUN_DIR = File.expand_path("~/.claude-swarm/run")
 
     def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false,
@@ -181,7 +182,7 @@ module ClaudeSwarm
 
       # Execute the main instance - this will cascade to other instances via MCP
       Dir.chdir(main_instance[:directory]) do
-        system(*command)
+        system!(*command)
       end
 
       # Clean up log streaming thread
