@@ -12,3 +12,4 @@
 *.gem
 tmp/
 node_modules/
+build/
