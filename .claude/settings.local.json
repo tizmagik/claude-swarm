@@ -19,7 +19,8 @@
       "mcp__playwright__playwright_fill",
       "mcp__playwright__playwright_press_key",
       "mcp__playwright__playwright_select",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
