@@ -9,6 +9,7 @@ require "digest"
 
 module ClaudeSwarm
   class WorktreeManager
+    include SystemUtils
     attr_reader :shared_worktree_name, :created_worktrees
 
     def initialize(cli_worktree_option = nil, session_id: nil)
@@ -350,7 +351,11 @@ module ClaudeSwarm
         else
           # The worktree is registered but the directory doesn't exist, prune and retry
           puts "Pruning stale worktree references" unless ENV["CLAUDE_SWARM_PROMPT"]
-          system("git", "-C", repo_root, "worktree", "prune")
+          begin
+            system!("git", "-C", repo_root, "worktree", "prune")
+          rescue Error
+            # Ignore errors when pruning
+          end
           output, status = Open3.capture2e("git", "-C", repo_root, "worktree", "add", worktree_path, branch_name)
         end
       end
