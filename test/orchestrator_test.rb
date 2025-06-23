@@ -262,7 +262,7 @@ class OrchestratorTest < Minitest::Test
       output = capture_io { orchestrator.start }[0]
     end
 
-    assert_match(/Running: \["claude".*--model.*\]/, output)
+    assert_match(/🏃 Running: claude --model.*/, output)
   end
 
   def test_empty_connections_and_tools

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 # External dependencies
+require "time"
 require "thor"
 require "yaml"
 require "json"
