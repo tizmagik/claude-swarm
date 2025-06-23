@@ -14,3 +14,5 @@ tmp/
 node_modules/
 build/
 .claude/settings.local.json
+.react-router/
+.vite/
