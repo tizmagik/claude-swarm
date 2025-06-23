@@ -1,3 +1,20 @@
+## [0.1.20]
+
+### Added
+- **External worktree directory**: Git worktrees are now created in `~/.claude-swarm/worktrees/` for better isolation from the main repository
+  - Prevents conflicts with bundler and other tools
+  - Each unique Git repository gets its own worktree with the same name
+  - Session metadata tracks worktree information for restoration
+- **Zeitwerk autoloading**: Implemented Zeitwerk for better code organization and loading
+
+### Changed
+- **Improved team coordination**: Removed circular dependencies in team configurations
+- **Better code organization**: Refactored code structure to work with Zeitwerk autoloading
+
+### Internal
+- Updated Gemfile.lock to include zeitwerk dependency
+- Added prompt best practices documentation
+
 ## [0.1.19]
 
 ### Added
