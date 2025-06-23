@@ -27,7 +27,13 @@ Claude Swarm orchestrates multiple Claude Code instances as a collaborative AI d
 
 ## Installation
 
-Install the gem by executing:
+Install [Claude CLI](https://docs.anthropic.com/en/docs/claude-code/overview) if you haven't already:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+Install this gem by executing:
 
 ```bash
 gem install claude_swarm
