@@ -24,6 +24,7 @@ interface AgentNode {
   mcps: string[];
   model: string;
   connections: string[];
+  directory: string | string[]; // Support both single directory and array of directories
 }
 
 interface Connection {
@@ -71,7 +72,8 @@ export default function Home() {
           tools: instance.allowed_tools || instance.tools || [],
           mcps: instance.mcps?.map((mcp: any) => mcp.name) || [],
           model: instance.model || 'sonnet',
-          connections: instance.connections || []
+          connections: instance.connections || [],
+          directory: instance.directory || '.'
         }));
         
         console.log('Created swarm nodes:', swarmNodes);
@@ -141,6 +143,7 @@ export default function Home() {
           // Update with current node data
           model: node.model,
           description: node.description,
+          directory: node.directory,
           tools: node.tools,
           allowed_tools: node.tools, // Keep both arrays in sync
           connections: node.connections,

@@ -12,6 +12,7 @@ import {
   Minus,
   Plus,
   Trash2,
+  Folder,
 } from "lucide-react";
 
 interface AgentNode {
@@ -24,6 +25,7 @@ interface AgentNode {
   mcps: string[];
   model: string;
   connections: string[];
+  directory: string | string[]; // Support both single directory and array of directories
 }
 
 interface Connection {
@@ -110,6 +112,7 @@ function ReactFlowCanvas({
     tools: [] as string[],
     mcps: [] as string[],
     description: "",
+    directories: [] as string[], // Array of directories for multi-directory support
   });
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   useEffect(() => {
@@ -122,6 +125,7 @@ function ReactFlowCanvas({
     // Import ReactFlow styles
     import("@xyflow/react/dist/style.css");
   }, []);
+
 
   // Convert nodes to ReactFlow format and update local state when nodes change
   useEffect(() => {
@@ -301,6 +305,7 @@ function ReactFlowCanvas({
           tools: [...agentNode.tools],
           mcps: [...agentNode.mcps],
           description: agentNode.description,
+          directories: Array.isArray(agentNode.directory) ? [...agentNode.directory] : [agentNode.directory],
         });
       }
     },
@@ -364,6 +369,7 @@ function ReactFlowCanvas({
               mcps: agent.mcps?.map((mcp: any) => mcp.name) || [],
               model: agent.model || "sonnet",
               connections: [],
+              directory: agent.directory || ".",
             };
 
             const updatedNodes = [...nodes, newNode];
@@ -474,7 +480,12 @@ function ReactFlowCanvas({
     if (!editingNode) return;
 
     const updatedNodes = nodes.map((n) =>
-      n.id === editingNode.id ? { ...n, ...editForm } : n
+      n.id === editingNode.id ? { 
+        ...n, 
+        ...editForm,
+        // Convert directories array back to the proper format
+        directory: editForm.directories.length === 1 ? editForm.directories[0] : editForm.directories
+      } : n
     );
 
     onNodeUpdate(updatedNodes);
@@ -489,8 +500,23 @@ function ReactFlowCanvas({
       tools: [],
       mcps: [],
       description: "",
+      directories: [],
     });
   }, []);
+
+  // Add keyboard event listener for Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && editingNode) {
+        handleEditCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editingNode, handleEditCancel]);
 
   const handleToolAdd = useCallback(
     (tool: string) => {
@@ -624,6 +650,62 @@ function ReactFlowCanvas({
                   <option value="opus">Claude 3 Opus</option>
                   <option value="haiku">Claude 3 Haiku</option>
                 </select>
+              </div>
+
+              {/* Working Directories */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <Folder className="w-4 h-4 inline mr-1" />
+                  Working Directories
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {editForm.directories.map((dir, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-full"
+                    >
+                      {dir}
+                      <button
+                        onClick={() => {
+                          setEditForm((prev) => ({
+                            ...prev,
+                            directories: prev.directories.filter((_, i) => i !== index)
+                          }));
+                        }}
+                        className="ml-2 text-green-200 hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {editForm.directories.length === 0 && (
+                    <span className="text-slate-400 text-sm">
+                      No directories configured
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add directory (e.g., ., ./frontend, ~/projects)"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                        const newDir = e.currentTarget.value.trim();
+                        if (!editForm.directories.includes(newDir)) {
+                          setEditForm((prev) => ({
+                            ...prev,
+                            directories: [...prev.directories, newDir]
+                          }));
+                        }
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Press Enter to add. First directory is primary, additional are accessible via --add-dir. Use "." for current directory.
+                </div>
               </div>
 
               {/* Description */}

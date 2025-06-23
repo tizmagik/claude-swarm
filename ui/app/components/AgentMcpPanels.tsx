@@ -57,6 +57,36 @@ export default function AgentMcpPanels() {
     loadData();
   }, []);
 
+  // Handle Escape key for Agent modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showAgentModal) {
+        setShowAgentModal(false);
+        setEditingAgent(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showAgentModal]);
+
+  // Handle Escape key for MCP modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showMcpModal) {
+        setShowMcpModal(false);
+        setEditingMcp(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showMcpModal]);
+
   const loadData = async () => {
     try {
       // Load agent templates
