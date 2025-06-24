@@ -671,7 +671,7 @@ Example output from `claude-swarm ps`:
 SESSION_ID       SWARM_NAME                 TOTAL_COST    UPTIME      DIRECTORY
 -------------------------------------------------------------------------------
 20250617_235233  Feature Development        $0.3847       15m         .
-20250617_143022  Bug Investigation          $1.2156       1h          ./shopify
+20250617_143022  Bug Investigation          $1.2156       1h          .
 20250617_091547  Multi-Module Dev           $0.8932       30m         ./frontend, ./backend, ./shared
 ```
 
