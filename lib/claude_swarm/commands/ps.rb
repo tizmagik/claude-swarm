@@ -3,6 +3,7 @@
 require "yaml"
 require "json"
 require "time"
+require_relative "../session_cost_calculator"
 
 module ClaudeSwarm
   module Commands
@@ -110,10 +111,11 @@ module ClaudeSwarm
         directories_str = expanded_directories.join(", ")
 
         # Calculate total cost from JSON log
-        total_cost = calculate_total_cost(session_dir)
+        log_file = File.join(session_dir, "session.log.json")
+        total_cost = SessionCostCalculator.calculate_simple_total(log_file)
 
-        # Get uptime from directory creation time
-        start_time = File.stat(session_dir).ctime
+        # Get uptime from session metadata or fallback to directory creation time
+        start_time = get_start_time(session_dir)
         uptime = format_duration(Time.now - start_time)
 
         {
@@ -128,18 +130,19 @@ module ClaudeSwarm
         nil
       end
 
-      def calculate_total_cost(session_dir)
-        log_file = File.join(session_dir, "session.log.json")
-        return 0.0 unless File.exist?(log_file)
-
-        total = 0.0
-        File.foreach(log_file) do |line|
-          data = JSON.parse(line)
-          total += data["event"]["total_cost_usd"] if data.dig("event", "type") == "result" && data.dig("event", "total_cost_usd")
-        rescue JSON::ParserError
-          next
+      def get_start_time(session_dir)
+        # Try to get from session metadata first
+        metadata_file = File.join(session_dir, "session_metadata.json")
+        if File.exist?(metadata_file)
+          metadata = JSON.parse(File.read(metadata_file))
+          return Time.parse(metadata["start_time"]) if metadata["start_time"]
         end
-        total
+
+        # Fallback to directory creation time
+        File.stat(session_dir).ctime
+      rescue StandardError
+        # If anything fails, use directory creation time
+        File.stat(session_dir).ctime
       end
 
       def format_duration(seconds)

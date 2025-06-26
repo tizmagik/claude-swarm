@@ -4,6 +4,7 @@ require "English"
 require "shellwords"
 require "json"
 require "fileutils"
+require_relative "session_cost_calculator"
 
 module ClaudeSwarm
   class Orchestrator
@@ -26,12 +27,17 @@ module ClaudeSwarm
                                 configuration.instances.values.any? { |inst| !inst[:worktree].nil? }
       # Store modified instances after worktree setup
       @modified_instances = nil
+      # Track start time for runtime calculation
+      @start_time = nil
 
       # Set environment variable for prompt mode to suppress output
       ENV["CLAUDE_SWARM_PROMPT"] = "1" if @prompt
     end
 
     def start
+      # Track start time
+      @start_time = Time.now
+
       if @restore_session_path
         unless @prompt
           puts "🔄 Restoring Claude Swarm: #{@config.swarm_name}"
@@ -191,6 +197,9 @@ module ClaudeSwarm
         log_thread.join
       end
 
+      # Display runtime and cost summary
+      display_summary
+
       # Clean up child processes and run symlink
       cleanup_processes
       cleanup_run_symlink
@@ -267,6 +276,7 @@ module ClaudeSwarm
       metadata = {
         "start_directory" => Dir.pwd,
         "timestamp" => Time.now.utc.iso8601,
+        "start_time" => @start_time.utc.iso8601,
         "swarm_name" => @config.swarm_name,
         "claude_swarm_version" => VERSION
       }
@@ -282,6 +292,7 @@ module ClaudeSwarm
       %w[INT TERM QUIT].each do |signal|
         Signal.trap(signal) do
           puts "\n🛑 Received #{signal} signal, cleaning up..."
+          display_summary
           cleanup_processes
           cleanup_run_symlink
           cleanup_worktrees
@@ -303,6 +314,71 @@ module ClaudeSwarm
       @worktree_manager.cleanup_worktrees
     rescue StandardError => e
       puts "⚠️  Error during worktree cleanup: #{e.message}"
+    end
+
+    def display_summary
+      return unless @session_path && @start_time
+
+      end_time = Time.now
+      runtime_seconds = (end_time - @start_time).to_i
+
+      # Update session metadata with end time
+      update_session_end_time(end_time)
+
+      # Calculate total cost from session logs
+      total_cost = calculate_total_cost
+
+      puts
+      puts "=" * 50
+      puts "🏁 Claude Swarm Summary"
+      puts "=" * 50
+      puts "Runtime: #{format_duration(runtime_seconds)}"
+      puts "Total Cost: #{format_cost(total_cost)}"
+      puts "Session: #{File.basename(@session_path)}"
+      puts "=" * 50
+    end
+
+    def update_session_end_time(end_time)
+      metadata_file = File.join(@session_path, "session_metadata.json")
+      return unless File.exist?(metadata_file)
+
+      metadata = JSON.parse(File.read(metadata_file))
+      metadata["end_time"] = end_time.utc.iso8601
+      metadata["duration_seconds"] = (end_time - @start_time).to_i
+
+      File.write(metadata_file, JSON.pretty_generate(metadata))
+    rescue StandardError => e
+      puts "⚠️  Error updating session metadata: #{e.message}" unless @prompt
+    end
+
+    def calculate_total_cost
+      log_file = File.join(@session_path, "session.log.json")
+      result = SessionCostCalculator.calculate_total_cost(log_file)
+
+      # Check if main instance has cost data
+      main_instance_name = @config.main_instance
+      @main_has_cost = result[:instances_with_cost].include?(main_instance_name)
+
+      result[:total_cost]
+    end
+
+    def format_duration(seconds)
+      hours = seconds / 3600
+      minutes = (seconds % 3600) / 60
+      secs = seconds % 60
+
+      parts = []
+      parts << "#{hours}h" if hours.positive?
+      parts << "#{minutes}m" if minutes.positive?
+      parts << "#{secs}s"
+
+      parts.join(" ")
+    end
+
+    def format_cost(cost)
+      cost_str = format("$%.4f", cost)
+      cost_str += " (excluding main instance)" unless @main_has_cost
+      cost_str
     end
 
     def create_run_symlink
