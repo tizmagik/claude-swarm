@@ -2,6 +2,8 @@
 
 require "yaml"
 require "json"
+require "time"
+require_relative "../session_cost_calculator"
 
 module ClaudeSwarm
   module Commands
@@ -18,7 +20,8 @@ module ClaudeSwarm
         main_instance_name = config.dig("swarm", "main")
 
         # Parse all events to build instance data
-        instances = parse_instance_hierarchy(session_path, main_instance_name)
+        log_file = File.join(session_path, "session.log.json")
+        instances = SessionCostCalculator.parse_instance_hierarchy(log_file)
 
         # Calculate total cost (excluding main if not available)
         total_cost = instances.values.sum { |i| i[:cost] }
@@ -31,6 +34,11 @@ module ClaudeSwarm
         # Display session info
         puts "Session: #{session_id}"
         puts "Swarm: #{config.dig("swarm", "name")}"
+
+        # Display runtime if available
+        runtime_info = get_runtime_info(session_path)
+        puts "Runtime: #{runtime_info}" if runtime_info
+
         puts "Total Cost: #{cost_display}"
 
         # Try to read start directory
@@ -71,58 +79,36 @@ module ClaudeSwarm
         end
       end
 
-      def parse_instance_hierarchy(session_path, _main_instance_name)
-        log_file = File.join(session_path, "session.log.json")
-        instances = {}
+      def get_runtime_info(session_path)
+        metadata_file = File.join(session_path, "session_metadata.json")
+        return nil unless File.exist?(metadata_file)
 
-        return instances unless File.exist?(log_file)
+        metadata = JSON.parse(File.read(metadata_file))
 
-        File.foreach(log_file) do |line|
-          data = JSON.parse(line)
-          instance_name = data["instance"]
-          instance_id = data["instance_id"]
-          calling_instance = data["calling_instance"]
-
-          # Initialize instance data
-          instances[instance_name] ||= {
-            name: instance_name,
-            id: instance_id,
-            cost: 0.0,
-            calls: 0,
-            called_by: Set.new,
-            calls_to: Set.new,
-            has_cost_data: false
-          }
-
-          # Track relationships
-          if calling_instance && calling_instance != instance_name
-            instances[instance_name][:called_by] << calling_instance
-
-            instances[calling_instance] ||= {
-              name: calling_instance,
-              id: data["calling_instance_id"],
-              cost: 0.0,
-              calls: 0,
-              called_by: Set.new,
-              calls_to: Set.new,
-              has_cost_data: false
-            }
-            instances[calling_instance][:calls_to] << instance_name
-          end
-
-          # Track costs and calls
-          if data.dig("event", "type") == "result"
-            instances[instance_name][:calls] += 1
-            if (cost = data.dig("event", "total_cost_usd"))
-              instances[instance_name][:cost] += cost
-              instances[instance_name][:has_cost_data] = true
-            end
-          end
-        rescue JSON::ParserError
-          next
+        if metadata["duration_seconds"]
+          # Session has completed
+          format_duration(metadata["duration_seconds"])
+        elsif metadata["start_time"]
+          # Session is still running or was interrupted
+          start_time = Time.parse(metadata["start_time"])
+          duration = (Time.now - start_time).to_i
+          "#{format_duration(duration)} (active)"
         end
+      rescue StandardError
+        nil
+      end
 
-        instances
+      def format_duration(seconds)
+        hours = seconds / 3600
+        minutes = (seconds % 3600) / 60
+        secs = seconds % 60
+
+        parts = []
+        parts << "#{hours}h" if hours.positive?
+        parts << "#{minutes}m" if minutes.positive?
+        parts << "#{secs}s"
+
+        parts.join(" ")
       end
 
       def display_instance_tree(instance, all_instances, level, main_instance_name)
