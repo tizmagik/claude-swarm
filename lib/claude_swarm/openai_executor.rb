@@ -190,62 +190,24 @@ module ClaudeSwarm
         end
       end
 
-      # Make the API call with streaming
-      response_text = ""
-      tool_calls = []
-      current_tool_calls = {}
+      # Make the API call without streaming
+      response = @openai_client.chat(parameters: parameters)
 
-      @openai_client.chat(
-        parameters: parameters.merge(
-          stream: proc do |chunk, _bytesize|
-            # Handle content
-            if (content = chunk.dig("choices", 0, "delta", "content"))
-              response_text += content
-              log_streaming_content(content)
-            end
+      # Extract the message from the response
+      message = response.dig("choices", 0, "message")
+      
+      if message.nil?
+        @logger.error("No message in response: #{response.inspect}")
+        return "Error: No response from OpenAI"
+      end
 
-            # Handle tool calls (proper streaming implementation)
-            if (delta_tool_calls = chunk.dig("choices", 0, "delta", "tool_calls"))
-              delta_tool_calls.each do |tool_call_delta|
-                index = tool_call_delta["index"]
-                
-                # Initialize tool call if needed
-                current_tool_calls[index] ||= {
-                  "id" => nil,
-                  "function" => {
-                    "name" => nil,
-                    "arguments" => ""
-                  }
-                }
-
-                # Update tool call with delta
-                if tool_call_delta["id"]
-                  current_tool_calls[index]["id"] = tool_call_delta["id"]
-                end
-
-                if tool_call_delta.dig("function", "name")
-                  current_tool_calls[index]["function"]["name"] = tool_call_delta["function"]["name"]
-                end
-
-                if tool_call_delta.dig("function", "arguments")
-                  current_tool_calls[index]["function"]["arguments"] += tool_call_delta["function"]["arguments"]
-                end
-              end
-            end
-
-            # Check if this is the final chunk
-            if chunk.dig("choices", 0, "finish_reason") == "tool_calls"
-              tool_calls = current_tool_calls.values
-            end
-          end
-        )
-      )
-
-      # Handle tool calls if any
-      if tool_calls.any?
-        handle_tool_calls(tool_calls, messages)
+      # Check if there are tool calls
+      if message["tool_calls"]
+        # Handle tool calls
+        handle_tool_calls(message["tool_calls"], messages)
       else
-        # Add assistant response to conversation
+        # Regular text response
+        response_text = message["content"] || ""
         messages << { role: "assistant", content: response_text }
         @conversation_messages = messages
         response_text
@@ -275,56 +237,39 @@ module ClaudeSwarm
         end
       end
 
-      # Make the API call with streaming
-      response_text = ""
-      response_id = nil
-      tool_calls = []
-      current_tool_call = nil
+      # Make the API call without streaming
+      response = @openai_client.responses.create(parameters: parameters)
 
-      @openai_client.responses.create(
-        parameters: parameters.merge(
-          stream: proc do |chunk, _bytesize|
-            case chunk["type"]
-            when "response.output_text.delta"
-              response_text += chunk["delta"]
-              log_streaming_content(chunk["delta"])
-            when "response.tool_call.start"
-              # Start of a new tool call
-              current_tool_call = {
-                "id" => chunk["id"],
-                "function" => {
-                  "name" => chunk["function"]["name"],
-                  "arguments" => ""
-                }
-              }
-            when "response.tool_call.arguments.delta"
-              # Accumulate tool arguments
-              if current_tool_call
-                current_tool_call["function"]["arguments"] += chunk["delta"]
-              end
-            when "response.tool_call.done"
-              # Tool call complete
-              if current_tool_call
-                tool_calls << current_tool_call
-                current_tool_call = nil
-              end
-            when "response.done"
-              response_id = chunk["id"]
-            end
-          end
-        )
-      )
-
-      # Handle tool calls if any
-      if tool_calls.any?
-        tool_results = execute_tools_and_continue(tool_calls, prompt)
-        return tool_results
-      end
-
+      # Extract response details
+      response_id = response["id"]
+      response_type = response["type"]
+      
       # Store response ID for next conversation turn
       @previous_response_id = response_id if response_id
 
-      response_text
+      # Handle different response types
+      case response_type
+      when "text"
+        # Regular text response
+        response["output"]["text"]
+      when "tool_calls"
+        # Tool calls response
+        tool_calls = response["output"]["tool_calls"].map do |tc|
+          {
+            "id" => tc["id"],
+            "function" => {
+              "name" => tc["function"]["name"],
+              "arguments" => tc["function"]["arguments"]
+            }
+          }
+        end
+        
+        # Execute tools and continue
+        execute_tools_and_continue(tool_calls, prompt)
+      else
+        @logger.error("Unknown response type: #{response_type}")
+        "Error: Unknown response type"
+      end
     end
 
     def build_messages(prompt, options)
@@ -346,31 +291,39 @@ module ClaudeSwarm
     end
 
     def handle_tool_calls(tool_calls, messages)
-      # This is a simplified implementation
-      # In a full implementation, we would:
-      # 1. Parse the tool calls properly from streaming chunks
-      # 2. Execute each tool via MCP
-      # 3. Add tool results to messages
-      # 4. Make another API call to get the final response
+      # Add the assistant message with tool calls
+      messages << {
+        role: "assistant",
+        content: nil,
+        tool_calls: tool_calls
+      }
 
-      tool_results = []
-
+      # Execute each tool and collect results
       tool_calls.each do |tool_call|
         tool_name = tool_call.dig("function", "name")
-        tool_args = tool_call.dig("function", "arguments")
+        tool_args_str = tool_call.dig("function", "arguments")
 
         begin
+          # Parse arguments
+          tool_args = tool_args_str.is_a?(String) ? JSON.parse(tool_args_str) : tool_args_str
+          
           # Execute tool via MCP
-          result = @mcp_client.call_tool(tool_name, JSON.parse(tool_args))
-          tool_results << {
+          @logger.info("Executing tool: #{tool_name} with args: #{tool_args.inspect}")
+          result = @mcp_client.call_tool(tool_name, tool_args)
+          
+          # Add tool result to messages
+          messages << {
             tool_call_id: tool_call["id"],
             role: "tool",
             name: tool_name,
             content: result.to_s
           }
         rescue StandardError => e
-          @logger.error("Tool execution failed: #{e.message}")
-          tool_results << {
+          @logger.error("Tool execution failed for #{tool_name}: #{e.message}")
+          @logger.error(e.backtrace.join("\n"))
+          
+          # Add error as tool result
+          messages << {
             tool_call_id: tool_call["id"],
             role: "tool",
             name: tool_name,
@@ -379,10 +332,7 @@ module ClaudeSwarm
         end
       end
 
-      # Add tool results and get final response
-      messages.concat(tool_results)
-
-      # Make another call to get the final response
+      # Make another call to get the final response with tool results
       final_response = @openai_client.chat(
         parameters: {
           model: @model,
@@ -391,11 +341,16 @@ module ClaudeSwarm
         }
       )
 
-      final_text = final_response.dig("choices", 0, "message", "content")
-      messages << { role: "assistant", content: final_text }
-      @conversation_messages = messages
-
-      final_text
+      final_message = final_response.dig("choices", 0, "message")
+      if final_message
+        final_text = final_message["content"] || ""
+        messages << { role: "assistant", content: final_text }
+        @conversation_messages = messages
+        final_text
+      else
+        @logger.error("No final message in tool response: #{final_response.inspect}")
+        "Error: Failed to get response after tool execution"
+      end
     end
 
     def execute_tools_and_continue(tool_calls, original_prompt)
