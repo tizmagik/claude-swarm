@@ -16,18 +16,22 @@ module ClaudeSwarm
       @calling_instance_id = calling_instance_id
 
       # Create appropriate executor based on provider
+      common_params = {
+        working_directory: instance_config[:directory],
+        model: instance_config[:model],
+        mcp_config: instance_config[:mcp_config_path],
+        vibe: instance_config[:vibe],
+        instance_name: instance_config[:name],
+        instance_id: instance_config[:instance_id],
+        calling_instance: calling_instance,
+        calling_instance_id: calling_instance_id,
+        claude_session_id: instance_config[:claude_session_id],
+        additional_directories: instance_config[:directories][1..] || []
+      }
+
       @executor = if instance_config[:provider] == "openai"
                     OpenAIExecutor.new(
-                      working_directory: instance_config[:directory],
-                      model: instance_config[:model],
-                      mcp_config: instance_config[:mcp_config_path],
-                      vibe: instance_config[:vibe],
-                      instance_name: instance_config[:name],
-                      instance_id: instance_config[:instance_id],
-                      calling_instance: calling_instance,
-                      calling_instance_id: calling_instance_id,
-                      claude_session_id: instance_config[:claude_session_id],
-                      additional_directories: instance_config[:directories][1..] || [],
+                      **common_params,
                       # OpenAI-specific parameters
                       temperature: instance_config[:temperature],
                       api_version: instance_config[:api_version],
@@ -36,18 +40,7 @@ module ClaudeSwarm
                     )
                   else
                     # Default Claude behavior (existing code)
-                    ClaudeCodeExecutor.new(
-                      working_directory: instance_config[:directory],
-                      model: instance_config[:model],
-                      mcp_config: instance_config[:mcp_config_path],
-                      vibe: instance_config[:vibe],
-                      instance_name: instance_config[:name],
-                      instance_id: instance_config[:instance_id],
-                      calling_instance: calling_instance,
-                      calling_instance_id: calling_instance_id,
-                      claude_session_id: instance_config[:claude_session_id],
-                      additional_directories: instance_config[:directories][1..] || []
-                    )
+                    ClaudeCodeExecutor.new(**common_params)
                   end
 
       # Set class variables so tools can access them
