@@ -193,6 +193,7 @@ module ClaudeSwarm
       # Make the API call with streaming
       response_text = ""
       tool_calls = []
+      current_tool_calls = {}
 
       @openai_client.chat(
         parameters: parameters.merge(
@@ -203,11 +204,38 @@ module ClaudeSwarm
               log_streaming_content(content)
             end
 
-            # Handle tool calls
-            if chunk.dig("choices", 0, "delta", "tool_calls") && chunk.dig("choices", 0, "delta", "tool_calls", 0, "function", "name")
-              # Accumulate tool calls (simplified for now)
-              # Full implementation would properly handle streaming tool calls
-              tool_calls << chunk.dig("choices", 0, "delta", "tool_calls", 0)
+            # Handle tool calls (proper streaming implementation)
+            if (delta_tool_calls = chunk.dig("choices", 0, "delta", "tool_calls"))
+              delta_tool_calls.each do |tool_call_delta|
+                index = tool_call_delta["index"]
+                
+                # Initialize tool call if needed
+                current_tool_calls[index] ||= {
+                  "id" => nil,
+                  "function" => {
+                    "name" => nil,
+                    "arguments" => ""
+                  }
+                }
+
+                # Update tool call with delta
+                if tool_call_delta["id"]
+                  current_tool_calls[index]["id"] = tool_call_delta["id"]
+                end
+
+                if tool_call_delta.dig("function", "name")
+                  current_tool_calls[index]["function"]["name"] = tool_call_delta["function"]["name"]
+                end
+
+                if tool_call_delta.dig("function", "arguments")
+                  current_tool_calls[index]["function"]["arguments"] += tool_call_delta["function"]["arguments"]
+                end
+              end
+            end
+
+            # Check if this is the final chunk
+            if chunk.dig("choices", 0, "finish_reason") == "tool_calls"
+              tool_calls = current_tool_calls.values
             end
           end
         )
@@ -250,19 +278,48 @@ module ClaudeSwarm
       # Make the API call with streaming
       response_text = ""
       response_id = nil
+      tool_calls = []
+      current_tool_call = nil
 
       @openai_client.responses.create(
         parameters: parameters.merge(
           stream: proc do |chunk, _bytesize|
-            if chunk["type"] == "response.output_text.delta"
+            case chunk["type"]
+            when "response.output_text.delta"
               response_text += chunk["delta"]
               log_streaming_content(chunk["delta"])
-            elsif chunk["type"] == "response.done"
+            when "response.tool_call.start"
+              # Start of a new tool call
+              current_tool_call = {
+                "id" => chunk["id"],
+                "function" => {
+                  "name" => chunk["function"]["name"],
+                  "arguments" => ""
+                }
+              }
+            when "response.tool_call.arguments.delta"
+              # Accumulate tool arguments
+              if current_tool_call
+                current_tool_call["function"]["arguments"] += chunk["delta"]
+              end
+            when "response.tool_call.done"
+              # Tool call complete
+              if current_tool_call
+                tool_calls << current_tool_call
+                current_tool_call = nil
+              end
+            when "response.done"
               response_id = chunk["id"]
             end
           end
         )
       )
+
+      # Handle tool calls if any
+      if tool_calls.any?
+        tool_results = execute_tools_and_continue(tool_calls, prompt)
+        return tool_results
+      end
 
       # Store response ID for next conversation turn
       @previous_response_id = response_id if response_id
@@ -339,6 +396,33 @@ module ClaudeSwarm
       @conversation_messages = messages
 
       final_text
+    end
+
+    def execute_tools_and_continue(tool_calls, original_prompt)
+      # Execute tools via MCP
+      tool_results = []
+      tool_outputs = []
+
+      tool_calls.each do |tool_call|
+        tool_name = tool_call.dig("function", "name")
+        tool_args = tool_call.dig("function", "arguments")
+
+        begin
+          # Execute tool via MCP
+          result = @mcp_client.call_tool(tool_name, JSON.parse(tool_args))
+          tool_outputs << "Tool: #{tool_name}\nResult: #{result}"
+          @logger.info("Executed tool #{tool_name}: #{result}")
+        rescue StandardError => e
+          @logger.error("Tool execution failed: #{e.message}")
+          tool_outputs << "Tool: #{tool_name}\nError: #{e.message}"
+        end
+      end
+
+      # Format the combined prompt with tool results
+      combined_prompt = "#{original_prompt}\n\nTool execution results:\n#{tool_outputs.join("\n\n")}\n\nBased on these tool results, please provide your response."
+
+      # Make another responses API call with the tool results
+      execute_responses_api(combined_prompt, {})
     end
 
     def calculate_cost(_result)
