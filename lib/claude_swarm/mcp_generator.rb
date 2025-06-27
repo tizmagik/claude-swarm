@@ -130,6 +130,19 @@ module ClaudeSwarm
 
       args.push("--vibe") if @vibe || instance[:vibe]
 
+      # Add provider-specific parameters
+      if instance[:provider]
+        args.push("--provider", instance[:provider])
+
+        # Add OpenAI-specific parameters
+        if instance[:provider] == "openai"
+          args.push("--temperature", instance[:temperature].to_s) if instance[:temperature]
+          args.push("--api-version", instance[:api_version]) if instance[:api_version]
+          args.push("--openai-token-env", instance[:openai_token_env]) if instance[:openai_token_env]
+          args.push("--base-url", instance[:base_url]) if instance[:base_url]
+        end
+      end
+
       # Add claude session ID if restoring
       if @restore_states[name.to_s]
         claude_session_id = @restore_states[name.to_s]["claude_session_id"]
