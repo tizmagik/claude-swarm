@@ -5,6 +5,7 @@ require "logger"
 require "fileutils"
 require "openai"
 require "mcp_client"
+require "securerandom"
 
 module ClaudeSwarm
   class OpenAIExecutor
@@ -269,21 +270,27 @@ module ClaudeSwarm
       # Check if output is an array (as per ruby-openai expert)
       if output.is_a?(Array) && !output.empty?
         first_output = output.first
+        @logger.info("First output item: #{first_output.inspect}")
         
         # Check if it's a function call
         if first_output["type"] == "function_call"
           # Tool call response
           tool_calls = output.map do |item|
-            if item["type"] == "function_call"
+            if item["type"] == "function_call" && item["function"]
               {
-                "id" => item["id"],
+                "id" => item["id"] || SecureRandom.uuid,
                 "function" => {
                   "name" => item["function"]["name"],
-                  "arguments" => item["function"]["arguments"]
+                  "arguments" => item["function"]["arguments"] || "{}"
                 }
               }
             end
           end.compact
+          
+          if tool_calls.empty?
+            @logger.error("No valid tool calls found in response")
+            return "Error: Invalid tool call format in response"
+          end
           
           # Execute tools and continue
           execute_tools_and_continue(tool_calls, prompt)
