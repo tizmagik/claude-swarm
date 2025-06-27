@@ -110,6 +110,7 @@ swarm:
       description: "Expert in fast-mcp library for MCP server development, tools, and resource management"
       directory: ~/src/github.com/parruda/fast-mcp
       model: opus
+      vibe: true
       prompt: |
         You are an expert in the fast-mcp library, specializing in MCP server development, tool creation, and resource management.
 
