@@ -53,7 +53,7 @@ swarm:
 
     openai_api_expert:
       description: "Expert in ruby-openai gem and OpenAI API integration patterns"
-      directory: /Users/paulo/src/github.com/parruda/ruby-openai
+      directory: ~/src/github.com/alexrudall/ruby-openai
       model: opus
       vibe: true
       prompt: |
@@ -108,7 +108,7 @@ swarm:
     
     fast_mcp_expert:
       description: "Expert in fast-mcp library for MCP server development, tools, and resource management"
-      directory: /Users/paulo/src/github.com/parruda/fast-mcp
+      directory: ~/src/github.com/parruda/fast-mcp
       model: opus
       prompt: |
         You are an expert in the fast-mcp library, specializing in MCP server development, tool creation, and resource management.
@@ -170,7 +170,7 @@ swarm:
 
     ruby_mcp_client_expert:
       description: "Expert in ruby-mcp-client library for MCP client integration and multi-transport connectivity"
-      directory: /Users/paulo/src/github.com/simonx1/ruby-mcp-client
+      directory: ~/src/github.com/simonx1/ruby-mcp-client
       model: opus
       vibe: true
       prompt: |
