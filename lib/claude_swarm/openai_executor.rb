@@ -133,9 +133,12 @@ module ClaudeSwarm
         mcp_data["mcpServers"].each do |name, server_config|
           case server_config["type"]
           when "stdio"
+            # Combine command and args into a single array
+            command_array = [server_config["command"]]
+            command_array.concat(server_config["args"] || [])
+
             mcp_configs << MCPClient.stdio_config(
-              command: server_config["command"],
-              args: server_config["args"] || [],
+              command: command_array,
               name: name
             )
           when "sse"
