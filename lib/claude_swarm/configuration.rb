@@ -127,7 +127,7 @@ module ClaudeSwarm
         mcps: parse_mcps(config["mcps"] || []),
         prompt: config["prompt"],
         description: config["description"],
-        vibe: config["vibe"] || false,
+        vibe: config["vibe"],
         worktree: parse_worktree_value(config["worktree"]),
         provider: provider # nil means Claude (default)
       }
@@ -140,6 +140,9 @@ module ClaudeSwarm
         instance_config[:base_url] = config["base_url"]
         # Default vibe to true for OpenAI instances if not specified
         instance_config[:vibe] = true if config["vibe"].nil?
+      else
+        # Default vibe to false for Claude instances if not specified
+        instance_config[:vibe] = false if config["vibe"].nil?
       end
 
       instance_config

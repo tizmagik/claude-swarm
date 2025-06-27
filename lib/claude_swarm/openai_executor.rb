@@ -93,6 +93,21 @@ module ClaudeSwarm
 
     private
 
+    def convert_tools_to_openai_format
+      return [] unless @available_tools
+
+      @available_tools.map do |tool|
+        {
+          type: "function",
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.schema || {}
+          }
+        }
+      end
+    end
+
     def setup_openai_client(token_env)
       config = {
         access_token: ENV.fetch(token_env),
@@ -108,32 +123,39 @@ module ClaudeSwarm
     def setup_mcp_client
       return unless @mcp_config && File.exist?(@mcp_config)
 
-      # Read MCP config to find our own MCP server details
+      # Read MCP config to find MCP servers
       mcp_data = JSON.parse(File.read(@mcp_config))
 
-      # Create MCP client to connect to the claude_tools MCP server
-      # This allows OpenAI instances to access Claude tools
-      if mcp_data["mcpServers"] && mcp_data["mcpServers"]["claude_tools"]
-        server_config = mcp_data["mcpServers"]["claude_tools"]
+      # Create MCP client with all MCP servers from the config
+      if mcp_data["mcpServers"] && !mcp_data["mcpServers"].empty?
+        mcp_configs = []
 
-        if server_config["type"] == "stdio"
-          stdio_config = MCPClient.stdio_config(
-            command: server_config["command"],
-            args: server_config["args"] || [],
-            name: "claude_tools"
-          )
+        mcp_data["mcpServers"].each do |name, server_config|
+          case server_config["type"]
+          when "stdio"
+            mcp_configs << MCPClient.stdio_config(
+              command: server_config["command"],
+              args: server_config["args"] || [],
+              name: name
+            )
+          when "sse"
+            @logger.warn("SSE MCP servers not yet supported for OpenAI instances: #{name}")
+            # TODO: Add SSE support when available in ruby-mcp-client
+          end
+        end
 
+        if mcp_configs.any?
           @mcp_client = MCPClient.create_client(
-            mcp_server_configs: [stdio_config],
+            mcp_server_configs: mcp_configs,
             logger: @logger
           )
 
-          # List available tools
+          # List available tools from all MCP servers
           begin
             @available_tools = @mcp_client.list_tools
-            @logger.info("Loaded #{@available_tools.size} tools from Claude MCP")
+            @logger.info("Loaded #{@available_tools.size} tools from #{mcp_configs.size} MCP server(s)")
           rescue StandardError => e
-            @logger.error("Failed to load Claude MCP tools: #{e.message}")
+            @logger.error("Failed to load MCP tools: #{e.message}")
             @available_tools = []
           end
         end
@@ -156,7 +178,14 @@ module ClaudeSwarm
       }
 
       # Add tools if available
-      parameters[:tools] = @mcp_client.to_openai_tools if @available_tools&.any?
+      if @available_tools&.any? && @mcp_client
+        begin
+          parameters[:tools] = @mcp_client.to_openai_tools
+        rescue NoMethodError
+          @logger.warn("to_openai_tools method not available, converting manually")
+          parameters[:tools] = convert_tools_to_openai_format
+        end
+      end
 
       # Make the API call with streaming
       response_text = ""
