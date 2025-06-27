@@ -39,7 +39,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "thor", "~> 1.3"
   spec.add_dependency "zeitwerk", "~> 2.6"
 
-  spec.add_dependency "fast-mcp-annotations"
+  spec.add_dependency "fast-mcp-annotations", "~> 1.5.3"
+  spec.add_dependency "ruby-mcp-client", "~> 0.7"
+  spec.add_dependency "ruby-openai", "~> 8.1"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
