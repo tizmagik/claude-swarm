@@ -111,18 +111,16 @@ module ClaudeSwarm
       # Read MCP config to find our own MCP server details
       mcp_data = JSON.parse(File.read(@mcp_config))
 
-      # Create MCP client to connect to our own `claude mcp serve`
-      # This allows us to access tools
-      if mcp_data["mcpServers"] && !mcp_data["mcpServers"].empty?
-        # For now, we'll connect to the first MCP server
-        # In the future, we might want to connect to all of them
-        server_config = mcp_data["mcpServers"].values.first
+      # Create MCP client to connect to the claude_tools MCP server
+      # This allows OpenAI instances to access Claude tools
+      if mcp_data["mcpServers"] && mcp_data["mcpServers"]["claude_tools"]
+        server_config = mcp_data["mcpServers"]["claude_tools"]
 
         if server_config["type"] == "stdio"
           stdio_config = MCPClient.stdio_config(
             command: server_config["command"],
             args: server_config["args"] || [],
-            name: @instance_name || "openai-instance"
+            name: "claude_tools"
           )
 
           @mcp_client = MCPClient.create_client(
@@ -133,9 +131,9 @@ module ClaudeSwarm
           # List available tools
           begin
             @available_tools = @mcp_client.list_tools
-            @logger.info("Loaded #{@available_tools.size} tools from MCP")
+            @logger.info("Loaded #{@available_tools.size} tools from Claude MCP")
           rescue StandardError => e
-            @logger.error("Failed to load MCP tools: #{e.message}")
+            @logger.error("Failed to load Claude MCP tools: #{e.message}")
             @available_tools = []
           end
         end

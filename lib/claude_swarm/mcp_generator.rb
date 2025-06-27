@@ -67,6 +67,11 @@ module ClaudeSwarm
         )
       end
 
+      # Add Claude tools MCP server for OpenAI instances
+      if instance[:provider] == "openai"
+        mcp_servers["claude_tools"] = build_claude_tools_mcp_config
+      end
+
       config = {
         "instance_id" => @instance_ids[name],
         "instance_name" => name,
@@ -92,6 +97,14 @@ module ClaudeSwarm
           "url" => mcp["url"]
         }
       end
+    end
+
+    def build_claude_tools_mcp_config
+      {
+        "type" => "stdio",
+        "command" => "claude",
+        "args" => ["mcp", "serve"]
+      }
     end
 
     def build_instance_mcp_config(name, instance, calling_instance:, calling_instance_id:)
