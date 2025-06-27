@@ -232,43 +232,77 @@ module ClaudeSwarm
             "type" => "function",
             "name" => tool.name,
             "description" => tool.description,
-            "parameters" => tool.schema
+            "parameters" => tool.schema || {}
           }
         end
+        @logger.info("Available tools for responses API: #{parameters[:tools].map { |t| t["name"] }.join(", ")}")
+      else
+        @logger.warn("No tools available for responses API")
       end
 
       # Make the API call without streaming
-      response = @openai_client.responses.create(parameters: parameters)
+      begin
+        response = @openai_client.responses.create(parameters: parameters)
+      rescue StandardError => e
+        @logger.error("Responses API error: #{e.class} - #{e.message}")
+        @logger.error("Request parameters: #{parameters.inspect}")
+        return "Error calling OpenAI responses API: #{e.message}"
+      end
+
+      # Log the full response for debugging
+      @logger.info("Responses API response: #{response.inspect}")
 
       # Extract response details
       response_id = response["id"]
-      response_type = response["type"]
       
       # Store response ID for next conversation turn
       @previous_response_id = response_id if response_id
 
-      # Handle different response types
-      case response_type
-      when "text"
-        # Regular text response
-        response["output"]["text"]
-      when "tool_calls"
-        # Tool calls response
-        tool_calls = response["output"]["tool_calls"].map do |tc|
-          {
-            "id" => tc["id"],
-            "function" => {
-              "name" => tc["function"]["name"],
-              "arguments" => tc["function"]["arguments"]
-            }
-          }
-        end
+      # Handle response based on output structure
+      output = response["output"]
+      
+      if output.nil?
+        @logger.error("No output in response")
+        return "Error: No output in OpenAI response"
+      end
+
+      # Check if output is an array (as per ruby-openai expert)
+      if output.is_a?(Array) && !output.empty?
+        first_output = output.first
         
-        # Execute tools and continue
-        execute_tools_and_continue(tool_calls, prompt)
+        # Check if it's a function call
+        if first_output["type"] == "function_call"
+          # Tool call response
+          tool_calls = output.map do |item|
+            if item["type"] == "function_call"
+              {
+                "id" => item["id"],
+                "function" => {
+                  "name" => item["function"]["name"],
+                  "arguments" => item["function"]["arguments"]
+                }
+              }
+            end
+          end.compact
+          
+          # Execute tools and continue
+          execute_tools_and_continue(tool_calls, prompt)
+        elsif first_output["content"]
+          # Text response - extract text from content array
+          content_items = first_output["content"]
+          if content_items.is_a?(Array)
+            text_content = content_items.find { |item| item["text"] }
+            text_content ? text_content["text"] : ""
+          else
+            ""
+          end
+        else
+          @logger.error("Unknown output structure: #{first_output.inspect}")
+          "Error: Unknown response structure"
+        end
       else
-        @logger.error("Unknown response type: #{response_type}")
-        "Error: Unknown response type"
+        @logger.error("Unexpected output format: #{output.inspect}")
+        "Error: Unexpected response format"
       end
     end
 
@@ -355,7 +389,6 @@ module ClaudeSwarm
 
     def execute_tools_and_continue(tool_calls, original_prompt)
       # Execute tools via MCP
-      tool_results = []
       tool_outputs = []
 
       tool_calls.each do |tool_call|
