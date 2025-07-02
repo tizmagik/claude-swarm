@@ -9,6 +9,8 @@ require "securerandom"
 
 module ClaudeSwarm
   class OpenAIExecutor
+    MAX_TURNS_WITH_TOOLS = 100_000 # virtually infinite
+
     attr_reader :session_id, :last_response, :working_directory, :logger, :session_path
 
     def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false,
@@ -165,7 +167,7 @@ module ClaudeSwarm
 
     def process_chat_completion(messages, depth = 0)
       # Prevent infinite recursion
-      if depth > 10
+      if depth > MAX_TURNS_WITH_TOOLS
         @logger.error("Maximum recursion depth reached in tool execution")
         return "Error: Maximum tool call depth exceeded"
       end
