@@ -191,8 +191,28 @@ module ClaudeSwarm
         end
       end
 
+      # Log the request parameters
+      @logger.info("Chat API Request Parameters: #{JSON.pretty_generate(parameters)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "openai_request",
+        api: "chat",
+        parameters: parameters
+      })
+
       # Make the API call without streaming
       response = @openai_client.chat(parameters: parameters)
+      
+      # Log the response
+      @logger.info("Chat API Response: #{JSON.pretty_generate(response)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "openai_response",
+        api: "chat",
+        response: response
+      })
 
       # Extract the message from the response
       message = response.dig("choices", 0, "message")
@@ -241,17 +261,46 @@ module ClaudeSwarm
         @logger.warn("No tools available for responses API")
       end
 
+      # Log the request parameters
+      @logger.info("Responses API Request Parameters: #{JSON.pretty_generate(parameters)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "openai_request",
+        api: "responses",
+        parameters: parameters
+      })
+
       # Make the API call without streaming
       begin
         response = @openai_client.responses.create(parameters: parameters)
       rescue StandardError => e
         @logger.error("Responses API error: #{e.class} - #{e.message}")
-        @logger.error("Request parameters: #{parameters.inspect}")
+        @logger.error("Request parameters: #{JSON.pretty_generate(parameters)}")
+        
+        # Log error to session JSON
+        append_to_session_json({
+          type: "openai_error",
+          api: "responses",
+          error: {
+            class: e.class.to_s,
+            message: e.message,
+            backtrace: e.backtrace.first(5)
+          }
+        })
+        
         return "Error calling OpenAI responses API: #{e.message}"
       end
 
-      # Log the full response for debugging
-      @logger.info("Responses API response: #{response.inspect}")
+      # Log the full response
+      @logger.info("Responses API Full Response: #{JSON.pretty_generate(response)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "openai_response",
+        api: "responses",
+        response: response
+      })
 
       # Extract response details
       response_id = response["id"]
@@ -270,7 +319,6 @@ module ClaudeSwarm
       # Check if output is an array (as per ruby-openai expert)
       if output.is_a?(Array) && !output.empty?
         first_output = output.first
-        @logger.info("First output item: #{first_output.inspect}")
         
         # Check if it's a function call
         if first_output["type"] == "function_call"
@@ -332,6 +380,16 @@ module ClaudeSwarm
     end
 
     def handle_tool_calls(tool_calls, messages)
+      # Log tool calls
+      @logger.info("Handling tool calls: #{JSON.pretty_generate(tool_calls)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "tool_calls",
+        api: "chat",
+        tool_calls: tool_calls
+      })
+      
       # Add the assistant message with tool calls
       messages << {
         role: "assistant",
@@ -348,9 +406,22 @@ module ClaudeSwarm
           # Parse arguments
           tool_args = tool_args_str.is_a?(String) ? JSON.parse(tool_args_str) : tool_args_str
           
+          # Log tool execution
+          @logger.info("Executing tool: #{tool_name} with args: #{JSON.pretty_generate(tool_args)}")
+          
           # Execute tool via MCP
-          @logger.info("Executing tool: #{tool_name} with args: #{tool_args.inspect}")
           result = @mcp_client.call_tool(tool_name, tool_args)
+          
+          # Log result
+          @logger.info("Tool result for #{tool_name}: #{result}")
+          
+          # Append to session JSON
+          append_to_session_json({
+            type: "tool_execution",
+            tool_name: tool_name,
+            arguments: tool_args,
+            result: result.to_s
+          })
           
           # Add tool result to messages
           messages << {
@@ -363,6 +434,18 @@ module ClaudeSwarm
           @logger.error("Tool execution failed for #{tool_name}: #{e.message}")
           @logger.error(e.backtrace.join("\n"))
           
+          # Append error to session JSON
+          append_to_session_json({
+            type: "tool_error",
+            tool_name: tool_name,
+            arguments: tool_args,
+            error: {
+              class: e.class.to_s,
+              message: e.message,
+              backtrace: e.backtrace.first(5)
+            }
+          })
+          
           # Add error as tool result
           messages << {
             tool_call_id: tool_call["id"],
@@ -373,14 +456,26 @@ module ClaudeSwarm
         end
       end
 
+      # Log final call parameters
+      final_parameters = {
+        model: @model,
+        messages: messages,
+        temperature: @temperature
+      }
+      @logger.info("Final chat call with tool results: #{JSON.pretty_generate(final_parameters)}")
+      
       # Make another call to get the final response with tool results
-      final_response = @openai_client.chat(
-        parameters: {
-          model: @model,
-          messages: messages,
-          temperature: @temperature
-        }
-      )
+      final_response = @openai_client.chat(parameters: final_parameters)
+      
+      # Log final response
+      @logger.info("Final response after tools: #{JSON.pretty_generate(final_response)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "openai_response",
+        api: "chat_with_tools",
+        response: final_response
+      })
 
       final_message = final_response.dig("choices", 0, "message")
       if final_message
@@ -395,26 +490,72 @@ module ClaudeSwarm
     end
 
     def execute_tools_and_continue(tool_calls, original_prompt)
+      # Log tool calls
+      @logger.info("Responses API - Handling tool calls: #{JSON.pretty_generate(tool_calls)}")
+      
+      # Append to session JSON
+      append_to_session_json({
+        type: "tool_calls",
+        api: "responses",
+        tool_calls: tool_calls
+      })
+      
       # Execute tools via MCP
       tool_outputs = []
 
       tool_calls.each do |tool_call|
         tool_name = tool_call.dig("function", "name")
-        tool_args = tool_call.dig("function", "arguments")
+        tool_args_str = tool_call.dig("function", "arguments")
 
         begin
+          # Parse arguments
+          tool_args = JSON.parse(tool_args_str)
+          
+          # Log tool execution
+          @logger.info("Responses API - Executing tool: #{tool_name} with args: #{JSON.pretty_generate(tool_args)}")
+          
           # Execute tool via MCP
-          result = @mcp_client.call_tool(tool_name, JSON.parse(tool_args))
+          result = @mcp_client.call_tool(tool_name, tool_args)
+          
+          # Log result
+          @logger.info("Responses API - Tool result for #{tool_name}: #{result}")
+          
+          # Append to session JSON
+          append_to_session_json({
+            type: "tool_execution",
+            api: "responses",
+            tool_name: tool_name,
+            arguments: tool_args,
+            result: result.to_s
+          })
+          
           tool_outputs << "Tool: #{tool_name}\nResult: #{result}"
-          @logger.info("Executed tool #{tool_name}: #{result}")
         rescue StandardError => e
-          @logger.error("Tool execution failed: #{e.message}")
+          @logger.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")
+          @logger.error(e.backtrace.join("\n"))
+          
+          # Append error to session JSON
+          append_to_session_json({
+            type: "tool_error",
+            api: "responses",
+            tool_name: tool_name,
+            arguments: tool_args_str,
+            error: {
+              class: e.class.to_s,
+              message: e.message,
+              backtrace: e.backtrace.first(5)
+            }
+          })
+          
           tool_outputs << "Tool: #{tool_name}\nError: #{e.message}"
         end
       end
 
       # Format the combined prompt with tool results
       combined_prompt = "#{original_prompt}\n\nTool execution results:\n#{tool_outputs.join("\n\n")}\n\nBased on these tool results, please provide your response."
+      
+      @logger.info("Responses API - Making follow-up call with tool results")
+      @logger.info("Combined prompt: #{combined_prompt}")
 
       # Make another responses API call with the tool results
       execute_responses_api(combined_prompt, {})
