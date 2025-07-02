@@ -140,9 +140,9 @@ module ClaudeSwarm
         instance_config[:base_url] = config["base_url"]
         # Default vibe to true for OpenAI instances if not specified
         instance_config[:vibe] = true if config["vibe"].nil?
-      else
+      elsif config["vibe"].nil?
         # Default vibe to false for Claude instances if not specified
-        instance_config[:vibe] = false if config["vibe"].nil?
+        instance_config[:vibe] = false
       end
 
       instance_config

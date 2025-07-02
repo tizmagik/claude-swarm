@@ -48,10 +48,10 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-        type: "openai_request",
-        api: "responses",
-        parameters: parameters
-      })
+                               type: "openai_request",
+                               api: "responses",
+                               parameters: parameters
+                             })
 
       # Make the API call without streaming
       begin
@@ -62,14 +62,14 @@ module ClaudeSwarm
 
         # Log error to session JSON
         append_to_session_json({
-          type: "openai_error",
-          api: "responses",
-          error: {
-            class: e.class.to_s,
-            message: e.message,
-            backtrace: e.backtrace.first(5)
-          }
-        })
+                                 type: "openai_error",
+                                 api: "responses",
+                                 error: {
+                                   class: e.class.to_s,
+                                   message: e.message,
+                                   backtrace: e.backtrace.first(5)
+                                 }
+                               })
 
         return "Error calling OpenAI responses API: #{e.message}"
       end
@@ -79,10 +79,10 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-        type: "openai_response",
-        api: "responses",
-        response: response
-      })
+                               type: "openai_response",
+                               api: "responses",
+                               response: response
+                             })
 
       # Extract response details
       response_id = response["id"]
@@ -155,10 +155,10 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-        type: "tool_calls",
-        api: "responses",
-        tool_calls: tool_calls
-      })
+                               type: "tool_calls",
+                               api: "responses",
+                               tool_calls: tool_calls
+                             })
 
       # Execute tools via MCP
       tool_outputs = []
@@ -182,12 +182,12 @@ module ClaudeSwarm
 
           # Append to session JSON
           append_to_session_json({
-            type: "tool_execution",
-            api: "responses",
-            tool_name: tool_name,
-            arguments: tool_args,
-            result: result.to_s
-          })
+                                   type: "tool_execution",
+                                   api: "responses",
+                                   tool_name: tool_name,
+                                   arguments: tool_args,
+                                   result: result.to_s
+                                 })
 
           tool_outputs << "Tool: #{tool_name}\nResult: #{result}"
         rescue StandardError => e
@@ -196,16 +196,16 @@ module ClaudeSwarm
 
           # Append error to session JSON
           append_to_session_json({
-            type: "tool_error",
-            api: "responses",
-            tool_name: tool_name,
-            arguments: tool_args_str,
-            error: {
-              class: e.class.to_s,
-              message: e.message,
-              backtrace: e.backtrace.first(5)
-            }
-          })
+                                   type: "tool_error",
+                                   api: "responses",
+                                   tool_name: tool_name,
+                                   arguments: tool_args_str,
+                                   error: {
+                                     class: e.class.to_s,
+                                     message: e.message,
+                                     backtrace: e.backtrace.first(5)
+                                   }
+                                 })
 
           tool_outputs << "Tool: #{tool_name}\nError: #{e.message}"
         end

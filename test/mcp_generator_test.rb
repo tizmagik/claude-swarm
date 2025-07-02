@@ -432,7 +432,7 @@ class McpGeneratorTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
     generator = ClaudeSwarm::McpGenerator.new(config)
-    
+
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
@@ -440,11 +440,12 @@ class McpGeneratorTest < Minitest::Test
       config_json = read_mcp_config("openai_assistant")
 
       assert config_json["mcpServers"].key?("claude_tools"), "OpenAI instance should have claude_tools MCP server"
-      
+
       claude_tools_config = config_json["mcpServers"]["claude_tools"]
+
       assert_equal "stdio", claude_tools_config["type"]
       assert_equal "claude", claude_tools_config["command"]
-      assert_equal ["mcp", "serve"], claude_tools_config["args"]
+      assert_equal %w[mcp serve], claude_tools_config["args"]
     end
   end
 
@@ -463,7 +464,7 @@ class McpGeneratorTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
     generator = ClaudeSwarm::McpGenerator.new(config)
-    
+
     Dir.chdir(@tmpdir) do
       generator.generate_all
 

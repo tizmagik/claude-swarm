@@ -25,10 +25,10 @@ module ClaudeSwarm
 
       # Process chat with recursive tool handling
       result = process_chat_completion(messages)
-      
+
       # Update conversation state
       @conversation_messages = messages
-      
+
       result
     end
 
@@ -78,11 +78,11 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-        type: "openai_request",
-        api: "chat",
-        depth: depth,
-        parameters: parameters
-      })
+                               type: "openai_request",
+                               api: "chat",
+                               depth: depth,
+                               parameters: parameters
+                             })
 
       # Make the API call without streaming
       response = @openai_client.chat(parameters: parameters)
@@ -92,11 +92,11 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-        type: "openai_response",
-        api: "chat",
-        depth: depth,
-        response: response
-      })
+                               type: "openai_response",
+                               api: "chat",
+                               depth: depth,
+                               response: response
+                             })
 
       # Extract the message from the response
       message = response.dig("choices", 0, "message")
@@ -134,10 +134,10 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-        type: "tool_calls",
-        api: "chat",
-        tool_calls: tool_calls
-      })
+                               type: "tool_calls",
+                               api: "chat",
+                               tool_calls: tool_calls
+                             })
 
       # Execute tool calls in parallel threads
       threads = tool_calls.map do |tool_call|
@@ -160,11 +160,11 @@ module ClaudeSwarm
 
             # Append to session JSON
             append_to_session_json({
-              type: "tool_execution",
-              tool_name: tool_name,
-              arguments: tool_args,
-              result: result.to_s
-            })
+                                     type: "tool_execution",
+                                     tool_name: tool_name,
+                                     arguments: tool_args,
+                                     result: result.to_s
+                                   })
 
             # Return success result
             {
@@ -180,15 +180,15 @@ module ClaudeSwarm
 
             # Append error to session JSON
             append_to_session_json({
-              type: "tool_error",
-              tool_name: tool_name,
-              arguments: tool_args,
-              error: {
-                class: e.class.to_s,
-                message: e.message,
-                backtrace: e.backtrace.first(5)
-              }
-            })
+                                     type: "tool_error",
+                                     tool_name: tool_name,
+                                     arguments: tool_args,
+                                     error: {
+                                       class: e.class.to_s,
+                                       message: e.message,
+                                       backtrace: e.backtrace.first(5)
+                                     }
+                                   })
 
             # Return error result
             {

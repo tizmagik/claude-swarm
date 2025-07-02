@@ -18,7 +18,7 @@ swarm:
       model: gpt-4o
       temperature: 0.7
       base_url: https://proxy-shopify-ai.local.shop.dev/v1
-      api_version: responses
+      api_version: chat_completion
       prompt: "You are a creative frontend developer using React and modern web technologies"
       # OpenAI instances default to vibe: true
       

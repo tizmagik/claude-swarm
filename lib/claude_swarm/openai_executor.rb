@@ -45,7 +45,7 @@ module ClaudeSwarm
 
       # Setup MCP client for tools
       setup_mcp_client
-      
+
       # Create API handlers
       @chat_completion_handler = OpenAIChatCompletion.new(
         openai_client: @openai_client,
@@ -56,7 +56,7 @@ module ClaudeSwarm
         model: @model,
         temperature: @temperature
       )
-      
+
       @responses_handler = OpenAIResponses.new(
         openai_client: @openai_client,
         mcp_client: @mcp_client,
@@ -113,6 +113,32 @@ module ClaudeSwarm
 
     def has_session?
       !@session_id.nil?
+    end
+
+    # Delegate logger methods for the API handlers
+    def info(message)
+      @logger.info(message)
+    end
+    
+    def error(message)
+      @logger.error(message)
+    end
+    
+    def warn(message)
+      @logger.warn(message)
+    end
+    
+    def debug(message)
+      @logger.debug(message)
+    end
+    
+    # Session JSON logger for the API handlers
+    def session_json_logger
+      self
+    end
+    
+    def log(event)
+      append_to_session_json(event)
     end
 
     private
@@ -176,32 +202,6 @@ module ClaudeSwarm
       @logger.error("Failed to setup MCP client: #{e.message}")
       @mcp_client = nil
       @available_tools = []
-    end
-
-    # Delegate logger methods for the API handlers
-    def info(message)
-      @logger.info(message)
-    end
-    
-    def error(message)
-      @logger.error(message)
-    end
-    
-    def warn(message)
-      @logger.warn(message)
-    end
-    
-    def debug(message)
-      @logger.debug(message)
-    end
-    
-    # Session JSON logger for the API handlers
-    def session_json_logger
-      self
-    end
-    
-    def log(event)
-      append_to_session_json(event)
     end
 
     def calculate_cost(_result)
