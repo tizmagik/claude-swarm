@@ -10,7 +10,7 @@ module ClaudeSwarm
       @openai_client = openai_client
       @mcp_client = mcp_client
       @available_tools = available_tools
-      @logger = logger
+      @executor = logger  # This is actually the executor, not a logger
       @instance_name = instance_name
       @model = model
       @temperature = temperature
@@ -38,13 +38,13 @@ module ClaudeSwarm
             "parameters" => tool.schema || {}
           }
         end
-        @logger.info("Available tools for responses API: #{parameters[:tools].map { |t| t["name"] }.join(", ")}")
+        @executor.info("Available tools for responses API: #{parameters[:tools].map { |t| t["name"] }.join(", ")}")
       else
-        @logger.warn("No tools available for responses API")
+        @executor.warn("No tools available for responses API")
       end
 
       # Log the request parameters
-      @logger.info("Responses API Request Parameters: #{JSON.pretty_generate(parameters)}")
+      @executor.info("Responses API Request Parameters: #{JSON.pretty_generate(parameters)}")
 
       # Append to session JSON
       append_to_session_json({
@@ -57,8 +57,8 @@ module ClaudeSwarm
       begin
         response = @openai_client.responses.create(parameters: parameters)
       rescue StandardError => e
-        @logger.error("Responses API error: #{e.class} - #{e.message}")
-        @logger.error("Request parameters: #{JSON.pretty_generate(parameters)}")
+        @executor.error("Responses API error: #{e.class} - #{e.message}")
+        @executor.error("Request parameters: #{JSON.pretty_generate(parameters)}")
 
         # Log error to session JSON
         append_to_session_json({
@@ -75,7 +75,7 @@ module ClaudeSwarm
       end
 
       # Log the full response
-      @logger.info("Responses API Full Response: #{JSON.pretty_generate(response)}")
+      @executor.info("Responses API Full Response: #{JSON.pretty_generate(response)}")
 
       # Append to session JSON
       append_to_session_json({
@@ -94,7 +94,7 @@ module ClaudeSwarm
       output = response["output"]
 
       if output.nil?
-        @logger.error("No output in response")
+        @executor.error("No output in response")
         return "Error: No output in OpenAI response"
       end
 
@@ -118,7 +118,7 @@ module ClaudeSwarm
           end.compact
 
           if tool_calls.empty?
-            @logger.error("No valid tool calls found in response")
+            @executor.error("No valid tool calls found in response")
             return "Error: Invalid tool call format in response"
           end
 
@@ -134,11 +134,11 @@ module ClaudeSwarm
             ""
           end
         else
-          @logger.error("Unknown output structure: #{first_output.inspect}")
+          @executor.error("Unknown output structure: #{first_output.inspect}")
           "Error: Unknown response structure"
         end
       else
-        @logger.error("Unexpected output format: #{output.inspect}")
+        @executor.error("Unexpected output format: #{output.inspect}")
         "Error: Unexpected response format"
       end
     end
@@ -151,7 +151,7 @@ module ClaudeSwarm
 
     def execute_tools_and_continue(tool_calls, original_prompt)
       # Log tool calls
-      @logger.info("Responses API - Handling tool calls: #{JSON.pretty_generate(tool_calls)}")
+      @executor.info("Responses API - Handling tool calls: #{JSON.pretty_generate(tool_calls)}")
 
       # Append to session JSON
       append_to_session_json({
@@ -172,13 +172,13 @@ module ClaudeSwarm
           tool_args = JSON.parse(tool_args_str)
 
           # Log tool execution
-          @logger.info("Responses API - Executing tool: #{tool_name} with args: #{JSON.pretty_generate(tool_args)}")
+          @executor.info("Responses API - Executing tool: #{tool_name} with args: #{JSON.pretty_generate(tool_args)}")
 
           # Execute tool via MCP
           result = @mcp_client.call_tool(tool_name, tool_args)
 
           # Log result
-          @logger.info("Responses API - Tool result for #{tool_name}: #{result}")
+          @executor.info("Responses API - Tool result for #{tool_name}: #{result}")
 
           # Append to session JSON
           append_to_session_json({
@@ -191,8 +191,8 @@ module ClaudeSwarm
 
           tool_outputs << "Tool: #{tool_name}\nResult: #{result}"
         rescue StandardError => e
-          @logger.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")
-          @logger.error(e.backtrace.join("\n"))
+          @executor.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")
+          @executor.error(e.backtrace.join("\n"))
 
           # Append error to session JSON
           append_to_session_json({
@@ -214,16 +214,16 @@ module ClaudeSwarm
       # Format the combined prompt with tool results
       combined_prompt = "#{original_prompt}\n\nTool execution results:\n#{tool_outputs.join("\n\n")}\n\nBased on these tool results, please provide your response."
 
-      @logger.info("Responses API - Making follow-up call with tool results")
-      @logger.info("Combined prompt: #{combined_prompt}")
+      @executor.info("Responses API - Making follow-up call with tool results")
+      @executor.info("Combined prompt: #{combined_prompt}")
 
       # Make another responses API call with the tool results
       execute(combined_prompt, {})
     end
 
     def append_to_session_json(event)
-      # Delegate to the logger (which is the executor)
-      @logger.log(event) if @logger.respond_to?(:log)
+      # Delegate to the executor's log method
+      @executor.log(event) if @executor.respond_to?(:log)
     end
   end
 end
