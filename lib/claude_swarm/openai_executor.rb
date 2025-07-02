@@ -274,14 +274,14 @@ module ClaudeSwarm
         
         # Check if it's a function call
         if first_output["type"] == "function_call"
-          # Tool call response
+          # Tool call response - name and arguments are at top level in responses API
           tool_calls = output.map do |item|
-            if item["type"] == "function_call" && item["function"]
+            if item["type"] == "function_call" && item["name"]
               {
-                "id" => item["id"] || SecureRandom.uuid,
+                "id" => item["call_id"] || item["id"] || SecureRandom.uuid,
                 "function" => {
-                  "name" => item["function"]["name"],
-                  "arguments" => item["function"]["arguments"] || "{}"
+                  "name" => item["name"],
+                  "arguments" => item["arguments"] || "{}"
                 }
               }
             end
