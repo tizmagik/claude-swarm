@@ -98,6 +98,16 @@ module ClaudeSwarm
       rescue StandardError => e
         @executor.error("Responses API error: #{e.class} - #{e.message}")
         @executor.error("Request parameters: #{JSON.pretty_generate(parameters)}")
+        
+        # Try to extract and log the response body for better debugging
+        if e.respond_to?(:response)
+          begin
+            error_body = e.response[:body]
+            @executor.error("Error response body: #{error_body}")
+          rescue StandardError => parse_error
+            @executor.error("Could not parse error response: #{parse_error.message}")
+          end
+        end
 
         # Log error to session JSON
         append_to_session_json({
@@ -106,6 +116,7 @@ module ClaudeSwarm
                                  error: {
                                    class: e.class.to_s,
                                    message: e.message,
+                                   response_body: e.respond_to?(:response) ? e.response[:body] : nil,
                                    backtrace: e.backtrace.first(5)
                                  }
                                })

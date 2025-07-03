@@ -85,7 +85,37 @@ module ClaudeSwarm
                              })
 
       # Make the API call without streaming
-      response = @openai_client.chat(parameters: parameters)
+      begin
+        response = @openai_client.chat(parameters: parameters)
+      rescue StandardError => e
+        @executor.error("Chat API error: #{e.class} - #{e.message}")
+        @executor.error("Request parameters: #{JSON.pretty_generate(parameters)}")
+        
+        # Try to extract and log the response body for better debugging
+        if e.respond_to?(:response)
+          begin
+            error_body = e.response[:body]
+            @executor.error("Error response body: #{error_body}")
+          rescue StandardError => parse_error
+            @executor.error("Could not parse error response: #{parse_error.message}")
+          end
+        end
+
+        # Log error to session JSON
+        append_to_session_json({
+                                 type: "openai_error",
+                                 api: "chat",
+                                 depth: depth,
+                                 error: {
+                                   class: e.class.to_s,
+                                   message: e.message,
+                                   response_body: e.respond_to?(:response) ? e.response[:body] : nil,
+                                   backtrace: e.backtrace.first(5)
+                                 }
+                               })
+
+        return "Error calling OpenAI chat API: #{e.message}"
+      end
 
       # Log the response
       @executor.info("Chat API Response (depth=#{depth}): #{JSON.pretty_generate(response)}")
