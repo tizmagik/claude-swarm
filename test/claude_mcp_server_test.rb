@@ -126,7 +126,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 1000,
       "is_error" => false,
       "total_cost" => 0.01
-    }, ["Test task", { new_session: false, system_prompt: "Test prompt", allowed_tools: %w[Read Edit] }]
+    }, ["Test task", { new_session: false, system_prompt: "Test prompt", description: nil, allowed_tools: %w[Read Edit] }]
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -147,7 +147,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 1500,
       "is_error" => false,
       "total_cost" => 0.02
-    }, ["Start fresh", { new_session: true, system_prompt: "Test prompt", allowed_tools: %w[Read Edit] }]
+    }, ["Start fresh", { new_session: true, system_prompt: "Test prompt", description: nil, allowed_tools: %w[Read Edit] }]
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -168,7 +168,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 800,
       "is_error" => false,
       "total_cost" => 0.01
-    }, ["Do something", { new_session: false, system_prompt: "Custom prompt", allowed_tools: %w[Read Edit] }]
+    }, ["Do something", { new_session: false, system_prompt: "Custom prompt", description: nil, allowed_tools: %w[Read Edit] }]
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -281,7 +281,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 500,
       "is_error" => false,
       "total_cost" => 0.01
-    }, ["Test", { new_session: false, system_prompt: "Test prompt" }] # No allowed_tools
+    }, ["Test", { new_session: false, system_prompt: "Test prompt", description: nil }] # No allowed_tools
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -303,5 +303,77 @@ class ClaudeMcpServerTest < Minitest::Test
     assert_equal "task", ClaudeSwarm::TaskTool.tool_name
     assert_equal "session_info", ClaudeSwarm::SessionInfoTool.tool_name
     assert_equal "reset_session", ClaudeSwarm::ResetSessionTool.tool_name
+  end
+
+  def test_server_with_openai_provider
+    # Mock OpenAI API key
+    ENV["TEST_OPENAI_API_KEY"] = "test-key-123"
+
+    openai_config = @instance_config.merge(
+      provider: "openai",
+      temperature: 0.7,
+      api_version: "chat_completion",
+      openai_token_env: "TEST_OPENAI_API_KEY",
+      base_url: "https://custom.openai.com/v1"
+    )
+
+    ClaudeSwarm::ClaudeMcpServer.new(openai_config, calling_instance: "test_caller")
+
+    # Verify that OpenAIExecutor was created
+    executor = ClaudeSwarm::ClaudeMcpServer.executor
+
+    assert_kind_of ClaudeSwarm::OpenAIExecutor, executor
+    assert_equal @tmpdir, executor.working_directory
+  ensure
+    ENV.delete("TEST_OPENAI_API_KEY")
+  end
+
+  def test_server_with_claude_provider_default
+    ClaudeSwarm::ClaudeMcpServer.new(@instance_config, calling_instance: "test_caller")
+
+    # Verify that ClaudeCodeExecutor was created (default)
+    executor = ClaudeSwarm::ClaudeMcpServer.executor
+
+    assert_kind_of ClaudeSwarm::ClaudeCodeExecutor, executor
+    assert_equal @tmpdir, executor.working_directory
+  end
+
+  def test_server_with_explicit_claude_provider
+    claude_config = @instance_config.merge(provider: "claude")
+
+    ClaudeSwarm::ClaudeMcpServer.new(claude_config, calling_instance: "test_caller")
+
+    # Verify that ClaudeCodeExecutor was created
+    executor = ClaudeSwarm::ClaudeMcpServer.executor
+
+    assert_kind_of ClaudeSwarm::ClaudeCodeExecutor, executor
+  end
+
+  def test_openai_executor_receives_all_parameters
+    ENV["TEST_OPENAI_API_KEY"] = "test-key-123"
+
+    openai_config = @instance_config.merge(
+      provider: "openai",
+      temperature: 0.5,
+      api_version: "responses",
+      openai_token_env: "TEST_OPENAI_API_KEY",
+      base_url: "https://api.openai.com/v1",
+      vibe: true
+    )
+
+    # We can't easily test all internal parameters without exposing them,
+    # but we can verify the executor is created successfully
+    ClaudeSwarm::ClaudeMcpServer.new(openai_config, calling_instance: "test_caller", calling_instance_id: "caller-123")
+
+    executor = ClaudeSwarm::ClaudeMcpServer.executor
+
+    assert_kind_of ClaudeSwarm::OpenAIExecutor, executor
+
+    # Verify class variables are set correctly
+    assert_equal openai_config, ClaudeSwarm::ClaudeMcpServer.instance_config
+    assert_equal "test_caller", ClaudeSwarm::ClaudeMcpServer.calling_instance
+    assert_equal "caller-123", ClaudeSwarm::ClaudeMcpServer.calling_instance_id
+  ensure
+    ENV.delete("TEST_OPENAI_API_KEY")
   end
 end

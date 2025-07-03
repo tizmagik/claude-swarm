@@ -67,6 +67,9 @@ module ClaudeSwarm
         )
       end
 
+      # Add Claude tools MCP server for OpenAI instances
+      mcp_servers["claude_tools"] = build_claude_tools_mcp_config if instance[:provider] == "openai"
+
       config = {
         "instance_id" => @instance_ids[name],
         "instance_name" => name,
@@ -92,6 +95,14 @@ module ClaudeSwarm
           "url" => mcp["url"]
         }
       end
+    end
+
+    def build_claude_tools_mcp_config
+      {
+        "type" => "stdio",
+        "command" => "claude",
+        "args" => %w[mcp serve]
+      }
     end
 
     def build_instance_mcp_config(name, instance, calling_instance:, calling_instance_id:)
@@ -129,6 +140,19 @@ module ClaudeSwarm
       args.push("--instance-id", @instance_ids[name]) if @instance_ids[name]
 
       args.push("--vibe") if @vibe || instance[:vibe]
+
+      # Add provider-specific parameters
+      if instance[:provider]
+        args.push("--provider", instance[:provider])
+
+        # Add OpenAI-specific parameters
+        if instance[:provider] == "openai"
+          args.push("--temperature", instance[:temperature].to_s) if instance[:temperature]
+          args.push("--api-version", instance[:api_version]) if instance[:api_version]
+          args.push("--openai-token-env", instance[:openai_token_env]) if instance[:openai_token_env]
+          args.push("--base-url", instance[:base_url]) if instance[:base_url]
+        end
+      end
 
       # Add claude session ID if restoring
       if @restore_states[name.to_s]
