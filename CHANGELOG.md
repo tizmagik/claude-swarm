@@ -5,7 +5,7 @@
   - Instances can specify `provider: openai` in configuration (default remains "claude")
   - Full MCP tool support for OpenAI instances via automatic conversion
   - Mixed provider swarms allow Claude and OpenAI instances to collaborate
-  - OpenAI instances default to `vibe: true` mode for unrestricted tool access
+  - OpenAI instances only work with `vibe: true` at the moment. There's no way to set allowed/disallowed tools.
   
 - **Dual OpenAI API support**: Two API versions available for different use cases
   - Chat Completion API (`api_version: "chat_completion"`) - Traditional format with tool calling
