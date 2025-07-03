@@ -17,61 +17,45 @@ module ClaudeSwarm
       @model = model
       @temperature = temperature
       @previous_response_id = nil
-      @conversation_input = []
+      @system_prompt = nil
     end
 
     def execute(prompt, options = {})
-      # Build initial input
-      input = build_input(prompt, options)
+      # For responses API, we use string input, not array
+      # System prompt is handled differently
+      @system_prompt = options[:system_prompt] if options[:system_prompt]
       
       # Process with recursive tool handling
-      result = process_responses_api(input)
-      
-      # Update conversation state
-      @conversation_input = input
+      result = process_responses_api(prompt)
       
       result
     end
 
     def reset_session
       @previous_response_id = nil
-      @conversation_input = []
+      @system_prompt = nil
     end
 
     private
 
-    def build_input(prompt, options)
-      # For responses API, input can be a string or an array
-      # We'll use array format to support conversation history
-      input = []
-      
-      # Add system prompt if provided and conversation is empty
-      system_prompt = options[:system_prompt]
-      if system_prompt && @conversation_input.empty?
-        input << { role: "system", content: system_prompt }
-      elsif !@conversation_input.empty?
-        # Use existing conversation
-        input = @conversation_input.dup
-      end
-      
-      # Add user message
-      input << { role: "user", content: prompt }
-      
-      input
-    end
-
-    def process_responses_api(input, depth = 0)
+    def process_responses_api(input_text, depth = 0)
       # Prevent infinite recursion
       if depth > MAX_TURNS_WITH_TOOLS
         @executor.error("Maximum recursion depth reached in tool execution")
         return "Error: Maximum tool call depth exceeded"
       end
 
-      # Build parameters
+      # Build parameters with string input
       parameters = {
         model: @model,
-        input: input
+        input: input_text
       }
+
+      # Add system prompt on first call if provided
+      if depth == 0 && @system_prompt
+        # Prepend system context to the user's prompt
+        parameters[:input] = "#{@system_prompt}\n\n#{input_text}"
+      end
 
       # Add previous response ID for conversation continuity
       parameters[:previous_response_id] = @previous_response_id if @previous_response_id
@@ -153,11 +137,11 @@ module ClaudeSwarm
         function_calls = output.select { |item| item["type"] == "function_call" }
         
         if function_calls.any?
-          # Execute tools and append results
-          execute_and_append_tool_results(function_calls, input)
+          # Execute tools and get formatted results
+          tool_results_text = execute_tools_and_format_results(function_calls)
           
-          # Recursively process the next response
-          process_responses_api(input, depth + 1)
+          # Recursively process with tool results as new input
+          process_responses_api(tool_results_text, depth + 1)
         else
           # Look for text response
           text_output = output.find { |item| item["content"] }
@@ -174,7 +158,7 @@ module ClaudeSwarm
       end
     end
 
-    def execute_and_append_tool_results(function_calls, input)
+    def execute_tools_and_format_results(function_calls)
       # Log tool calls
       @executor.info("Responses API - Handling #{function_calls.size} function calls")
 
@@ -185,16 +169,12 @@ module ClaudeSwarm
                                tool_calls: function_calls
                              })
 
-      # First, add all function calls to input
-      function_calls.each do |fc|
-        input << fc
-      end
-
       # Execute tools and collect results
+      tool_results = []
+      
       function_calls.each do |function_call|
         tool_name = function_call["name"]
         tool_args_str = function_call["arguments"]
-        call_id = function_call["call_id"] || function_call["id"]
 
         begin
           # Parse arguments
@@ -218,12 +198,13 @@ module ClaudeSwarm
                                    result: result.to_s
                                  })
 
-          # Add function result to input in the proper format
-          input << {
-            type: "function_call_output",
-            call_id: call_id,
-            output: result.to_s
-          }
+          # Format result for text response
+          if result.is_a?(Hash) && result["isError"]
+            error_msg = result.dig("content", 0, "text") || result["content"].to_s
+            tool_results << "Error executing #{tool_name}: #{error_msg}"
+          else
+            tool_results << "Successfully executed #{tool_name}: #{result}"
+          end
         rescue StandardError => e
           @executor.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")
           @executor.error(e.backtrace.join("\n"))
@@ -241,16 +222,15 @@ module ClaudeSwarm
                                    }
                                  })
 
-          # Add error result to input
-          input << {
-            type: "function_call_output",
-            call_id: call_id,
-            output: "Error: #{e.message}"
-          }
+          tool_results << "Error executing #{tool_name}: #{e.message}"
         end
       end
 
-      @executor.info("Responses API - Added #{function_calls.size} function results to input")
+      # Format all results as a single text string for the next API call
+      results_text = tool_results.join("\n\n")
+      @executor.info("Responses API - Formatted tool results: #{results_text}")
+      
+      results_text
     end
 
     def append_to_session_json(event)
