@@ -1,3 +1,38 @@
+## [Unreleased]
+
+### Added
+- **OpenAI provider support**: Claude Swarm now supports OpenAI models as an alternative provider
+  - Instances can specify `provider: openai` in configuration (default remains "claude")
+  - Full MCP tool support for OpenAI instances via automatic conversion
+  - Mixed provider swarms allow Claude and OpenAI instances to collaborate
+  - OpenAI instances default to `vibe: true` mode for unrestricted tool access
+  
+- **Dual OpenAI API support**: Two API versions available for different use cases
+  - Chat Completion API (`api_version: "chat_completion"`) - Traditional format with tool calling
+  - Responses API (`api_version: "responses"`) - New structured format with function calls
+  - Both APIs support recursive tool execution with proper conversation tracking
+  
+- **OpenAI-specific configuration options**:
+  - `temperature`: Control response randomness (default: 0.3)
+  - `api_version`: Choose between "chat_completion" or "responses" 
+  - `openai_token_env`: Custom environment variable for API key (default: "OPENAI_API_KEY")
+  - `base_url`: Support for OpenAI-compatible endpoints and proxies
+  
+- **Enhanced debugging and logging**:
+  - Detailed error response logging for OpenAI API calls
+  - Conversation flow tracking with IDs for debugging
+  - Full request/response logging in session JSONL files
+
+### Changed
+- Configuration validation now enforces provider-specific fields
+- Example configurations moved from `example/` to `examples/` directory
+- Added `mixed-provider-swarm.yml` example demonstrating Claude-OpenAI collaboration
+
+### Internal
+- New classes: `OpenAIExecutor`, `OpenAIChatCompletion`, `OpenAIResponses`
+- Comprehensive test coverage for OpenAI provider functionality
+- MCP generator enhanced to support provider-specific configurations
+
 ## [0.1.20]
 
 ### Added
