@@ -12,7 +12,7 @@ module ClaudeSwarm
       @openai_client = openai_client
       @mcp_client = mcp_client
       @available_tools = available_tools
-      @executor = logger  # This is actually the executor, not a logger
+      @executor = logger # This is actually the executor, not a logger
       @instance_name = instance_name
       @model = model
       @temperature = temperature

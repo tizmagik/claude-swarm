@@ -119,24 +119,24 @@ module ClaudeSwarm
     def info(message)
       @logger.info(message)
     end
-    
+
     def error(message)
       @logger.error(message)
     end
-    
+
     def warn(message)
       @logger.warn(message)
     end
-    
+
     def debug(message)
       @logger.debug(message)
     end
-    
+
     # Session JSON logger for the API handlers
     def session_json_logger
       self
     end
-    
+
     def log(event)
       append_to_session_json(event)
     end

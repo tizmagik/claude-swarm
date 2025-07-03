@@ -12,7 +12,7 @@ module ClaudeSwarm
       @openai_client = openai_client
       @mcp_client = mcp_client
       @available_tools = available_tools
-      @executor = logger  # This is actually the executor, not a logger
+      @executor = logger # This is actually the executor, not a logger
       @instance_name = instance_name
       @model = model
       @temperature = temperature
@@ -23,14 +23,12 @@ module ClaudeSwarm
     def execute(prompt, options = {})
       # Store system prompt for first call
       @system_prompt = options[:system_prompt] if options[:system_prompt]
-      
+
       # Start with initial prompt
       initial_input = prompt
-      
+
       # Process with recursive tool handling
-      result = process_responses_api(initial_input, [])
-      
-      result
+      process_responses_api(initial_input, [])
     end
 
     def reset_session
@@ -54,17 +52,17 @@ module ClaudeSwarm
 
       # On first call, use string input (can include system prompt)
       # On subsequent calls with function results, use array input
-      if function_outputs.empty?
-        # Initial call - string input
-        if depth == 0 && @system_prompt
-          parameters[:input] = "#{@system_prompt}\n\n#{input}"
-        else
-          parameters[:input] = input
-        end
-      else
-        # Follow-up call with function outputs - array input
-        parameters[:input] = function_outputs
-      end
+      parameters[:input] = if function_outputs.empty?
+                             # Initial call - string input
+                             if depth.zero? && @system_prompt
+                               "#{@system_prompt}\n\n#{input}"
+                             else
+                               input
+                             end
+                           else
+                             # Follow-up call with function outputs - array input
+                             function_outputs
+                           end
 
       # Add previous response ID for conversation continuity
       parameters[:previous_response_id] = @previous_response_id if @previous_response_id
@@ -144,11 +142,11 @@ module ClaudeSwarm
       if output.is_a?(Array) && !output.empty?
         # Check if there are function calls
         function_calls = output.select { |item| item["type"] == "function_call" }
-        
+
         if function_calls.any?
           # Execute tools and build function output array
           function_outputs = execute_tools_and_build_outputs(function_calls)
-          
+
           # Recursively process with function outputs
           process_responses_api(nil, function_outputs, depth + 1)
         else
@@ -180,7 +178,7 @@ module ClaudeSwarm
 
       # Execute tools and build function_call_output array
       function_outputs = []
-      
+
       function_calls.each do |function_call|
         tool_name = function_call["name"]
         tool_args_str = function_call["arguments"]
@@ -212,7 +210,7 @@ module ClaudeSwarm
           function_outputs << {
             type: "function_call_output",
             call_id: call_id,
-            output: result.to_json  # Must be JSON string
+            output: result.to_json # Must be JSON string
           }
         rescue StandardError => e
           @executor.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")

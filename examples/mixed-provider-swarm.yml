@@ -15,10 +15,10 @@ swarm:
       description: "OpenAI-powered assistant for creative tasks"
       directory: .
       provider: openai
-      model: gpt-4o
-      temperature: 0.7
+      model: o3-pro
+      temperature: 1
       base_url: https://proxy-shopify-ai.local.shop.dev/v1
-      api_version: chat_completion
+      api_version: responses
       prompt: "You are a creative frontend developer using React and modern web technologies"
       # OpenAI instances default to vibe: true
       
