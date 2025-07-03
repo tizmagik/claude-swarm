@@ -126,7 +126,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 1000,
       "is_error" => false,
       "total_cost" => 0.01
-    }, ["Test task", { new_session: false, system_prompt: "Test prompt", allowed_tools: %w[Read Edit] }]
+    }, ["Test task", { new_session: false, system_prompt: "Test prompt", description: nil, allowed_tools: %w[Read Edit] }]
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -147,7 +147,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 1500,
       "is_error" => false,
       "total_cost" => 0.02
-    }, ["Start fresh", { new_session: true, system_prompt: "Test prompt", allowed_tools: %w[Read Edit] }]
+    }, ["Start fresh", { new_session: true, system_prompt: "Test prompt", description: nil, allowed_tools: %w[Read Edit] }]
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -168,7 +168,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 800,
       "is_error" => false,
       "total_cost" => 0.01
-    }, ["Do something", { new_session: false, system_prompt: "Custom prompt", allowed_tools: %w[Read Edit] }]
+    }, ["Do something", { new_session: false, system_prompt: "Custom prompt", description: nil, allowed_tools: %w[Read Edit] }]
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
@@ -281,7 +281,7 @@ class ClaudeMcpServerTest < Minitest::Test
       "duration_ms" => 500,
       "is_error" => false,
       "total_cost" => 0.01
-    }, ["Test", { new_session: false, system_prompt: "Test prompt" }] # No allowed_tools
+    }, ["Test", { new_session: false, system_prompt: "Test prompt", description: nil }] # No allowed_tools
 
     ClaudeSwarm::ClaudeMcpServer.executor = mock_executor
 
