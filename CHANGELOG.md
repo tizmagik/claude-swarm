@@ -1,6 +1,20 @@
 ## [Unreleased]
 
 ### Added
+- **Swarm execution summary**: Display runtime duration and total cost at the end of each swarm run [@claudenm]
+  - Shows total execution time in hours, minutes, and seconds format
+  - Calculates and displays aggregate cost across all instances
+  - Indicates when main instance cost is excluded (e.g., for interactive sessions)
+  - Session metadata now includes end time and duration in seconds
+
+- **Session cost calculator**: New `SessionCostCalculator` class for aggregating costs from session logs [@claudenm]
+  - Processes session.log.json files to calculate total usage costs
+  - Tracks which instances have cost data available
+
+- **Session cost calculator**: New `SessionCostCalculator` class for aggregating costs from session logs
+  - Processes session.log.json files to calculate total usage costs
+  - Tracks which instances have cost data available
+
 - **OpenAI provider support**: Claude Swarm now supports OpenAI models as an alternative provider
   - Instances can specify `provider: openai` in configuration (default remains "claude")
   - Full MCP tool support for OpenAI instances via automatic conversion
@@ -27,6 +41,9 @@
 - Configuration validation now enforces provider-specific fields
 - Example configurations moved from `example/` to `examples/` directory
 - Added `mixed-provider-swarm.yml` example demonstrating Claude-OpenAI collaboration
+- Session metadata now includes `start_time`, `end_time`, and `duration_seconds` fields [@claudenm]
+- Updated `ps` and `show` commands to use the new cost calculation functionality [@claudenm]
+
 
 ### Internal
 - New classes: `OpenAIExecutor`, `OpenAIChatCompletion`, `OpenAIResponses`
