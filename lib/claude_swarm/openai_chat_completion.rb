@@ -90,7 +90,7 @@ module ClaudeSwarm
       rescue StandardError => e
         @executor.error("Chat API error: #{e.class} - #{e.message}")
         @executor.error("Request parameters: #{JSON.pretty_generate(parameters)}")
-        
+
         # Try to extract and log the response body for better debugging
         if e.respond_to?(:response)
           begin
