@@ -17,7 +17,6 @@ swarm:
       provider: openai
       model: o3-pro
       temperature: 1
-      base_url: https://proxy-shopify-ai.local.shop.dev/v1
       api_version: responses
       prompt: "You are a creative frontend developer using React and modern web technologies"
       # OpenAI instances default to vibe: true
