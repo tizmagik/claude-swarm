@@ -253,7 +253,7 @@ When using `provider: openai`, the following additional fields are available:
 - **openai_token_env**: Environment variable name for OpenAI API key (default: "OPENAI_API_KEY")
 - **base_url**: Custom base URL for OpenAI API (optional)
 
-Note: OpenAI instances default to `vibe: true` and use MCP for tool access.
+Note: OpenAI instances default to and ONLY operate as `vibe: true` and use MCP for tool access. By default it comes with Claude Code tools, connected with MCP to `claude mcp serve`.
 
 ```yaml
 instance_name:
