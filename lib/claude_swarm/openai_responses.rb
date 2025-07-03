@@ -16,7 +16,6 @@ module ClaudeSwarm
       @instance_name = instance_name
       @model = model
       @temperature = temperature
-      @previous_response_id = nil
       @system_prompt = nil
     end
 
@@ -27,18 +26,17 @@ module ClaudeSwarm
       # Start with initial prompt
       initial_input = prompt
 
-      # Process with recursive tool handling
-      process_responses_api(initial_input, [])
+      # Process with recursive tool handling - start with empty conversation
+      process_responses_api(initial_input, [], nil)
     end
 
     def reset_session
-      @previous_response_id = nil
       @system_prompt = nil
     end
 
     private
 
-    def process_responses_api(input, function_outputs, depth = 0)
+    def process_responses_api(input, conversation_array, previous_response_id, depth = 0)
       # Prevent infinite recursion
       if depth > MAX_TURNS_WITH_TOOLS
         @executor.error("Maximum recursion depth reached in tool execution")
@@ -52,20 +50,20 @@ module ClaudeSwarm
 
       # On first call, use string input (can include system prompt)
       # On subsequent calls with function results, use array input
-      parameters[:input] = if function_outputs.empty?
-                             # Initial call - string input
-                             if depth.zero? && @system_prompt
+      if conversation_array.empty?
+        # Initial call - string input
+        parameters[:input] = if depth.zero? && @system_prompt
                                "#{@system_prompt}\n\n#{input}"
                              else
                                input
                              end
-                           else
-                             # Follow-up call with function outputs - array input
-                             function_outputs
-                           end
+      else
+        # Follow-up call with conversation array (function calls + outputs)
+        parameters[:input] = conversation_array
+      end
 
       # Add previous response ID for conversation continuity
-      parameters[:previous_response_id] = @previous_response_id if @previous_response_id
+      parameters[:previous_response_id] = previous_response_id if previous_response_id
 
       # Add tools if available
       if @available_tools&.any?
@@ -138,9 +136,6 @@ module ClaudeSwarm
       # Extract response details
       response_id = response["id"]
 
-      # Store response ID for next conversation turn
-      @previous_response_id = response_id if response_id
-
       # Handle response based on output structure
       output = response["output"]
 
@@ -155,11 +150,11 @@ module ClaudeSwarm
         function_calls = output.select { |item| item["type"] == "function_call" }
 
         if function_calls.any?
-          # Execute tools and build function output array
-          function_outputs = execute_tools_and_build_outputs(function_calls)
+          # Build conversation array with function calls and their outputs
+          new_conversation = build_conversation_with_outputs(function_calls)
 
-          # Recursively process with function outputs
-          process_responses_api(nil, function_outputs, depth + 1)
+          # Recursively process with updated conversation
+          process_responses_api(nil, new_conversation, response_id, depth + 1)
         else
           # Look for text response
           text_output = output.find { |item| item["content"] }
@@ -176,7 +171,7 @@ module ClaudeSwarm
       end
     end
 
-    def execute_tools_and_build_outputs(function_calls)
+    def build_conversation_with_outputs(function_calls)
       # Log tool calls
       @executor.info("Responses API - Handling #{function_calls.size} function calls")
 
@@ -187,9 +182,15 @@ module ClaudeSwarm
                                tool_calls: function_calls
                              })
 
-      # Execute tools and build function_call_output array
-      function_outputs = []
+      # Build conversation array with function calls and their outputs
+      conversation = []
+      
+      # First add all function calls to conversation
+      function_calls.each do |fc|
+        conversation << fc
+      end
 
+      # Then execute tools and add outputs
       function_calls.each do |function_call|
         tool_name = function_call["name"]
         tool_args_str = function_call["arguments"]
@@ -217,8 +218,8 @@ module ClaudeSwarm
                                    result: result.to_s
                                  })
 
-          # Build function_call_output object
-          function_outputs << {
+          # Add function output to conversation
+          conversation << {
             type: "function_call_output",
             call_id: call_id,
             output: result.to_json # Must be JSON string
@@ -240,8 +241,8 @@ module ClaudeSwarm
                                    }
                                  })
 
-          # Build error function_call_output
-          function_outputs << {
+          # Add error output to conversation
+          conversation << {
             type: "function_call_output",
             call_id: call_id,
             output: { error: e.message }.to_json
@@ -249,8 +250,8 @@ module ClaudeSwarm
         end
       end
 
-      @executor.info("Responses API - Built #{function_outputs.size} function outputs")
-      function_outputs
+      @executor.info("Responses API - Built conversation with #{function_calls.size} calls and outputs")
+      conversation
     end
 
     def append_to_session_json(event)
