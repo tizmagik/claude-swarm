@@ -74,6 +74,7 @@ module ClaudeSwarm
       end
       validate_connections
       detect_circular_dependencies
+      validate_openai_env_vars
     end
 
     def parse_instance(name, config)
@@ -238,6 +239,17 @@ module ClaudeSwarm
       return value.to_s if value.is_a?(String) && !value.empty?
 
       raise Error, "Invalid worktree value: #{value.inspect}. Must be true, false, or a non-empty string"
+    end
+
+    def validate_openai_env_vars
+      @instances.each_value do |instance|
+        next unless instance[:provider] == "openai"
+
+        env_var = instance[:openai_token_env]
+        unless ENV.key?(env_var) && !ENV[env_var].to_s.strip.empty?
+          raise Error, "Environment variable '#{env_var}' is not set. OpenAI provider instances require an API key."
+        end
+      end
     end
   end
 end

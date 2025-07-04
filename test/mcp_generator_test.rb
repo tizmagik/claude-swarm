@@ -430,6 +430,9 @@ class McpGeneratorTest < Minitest::Test
             model: gpt-4o
     YAML
 
+    # Set environment variable for test
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
     config = ClaudeSwarm::Configuration.new(@config_path)
     generator = ClaudeSwarm::McpGenerator.new(config)
 
@@ -447,6 +450,8 @@ class McpGeneratorTest < Minitest::Test
       assert_equal "claude", claude_tools_config["command"]
       assert_equal %w[mcp serve], claude_tools_config["args"]
     end
+  ensure
+    ENV.delete("OPENAI_API_KEY")
   end
 
   def test_claude_instance_no_claude_tools_mcp

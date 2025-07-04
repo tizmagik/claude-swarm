@@ -121,6 +121,9 @@ class McpGeneratorArgsTest < Minitest::Test
         # Write the config file
         File.write("claude-swarm.yml", openai_config)
 
+        # Set environment variable for test
+        ENV["CUSTOM_OPENAI_KEY"] = "sk-test-key"
+
         # Create the configuration and generator
         config = ClaudeSwarm::Configuration.new("claude-swarm.yml")
         generator = ClaudeSwarm::McpGenerator.new(config)
@@ -184,5 +187,7 @@ class McpGeneratorArgsTest < Minitest::Test
         refute_includes args, "--base-url"
       end
     end
+  ensure
+    ENV.delete("CUSTOM_OPENAI_KEY")
   end
 end
