@@ -54,12 +54,12 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
         "enabled" => true,
         "shared_name" => worktree_name,
         "created_paths" => {
-          "#{@repo_dir}:#{worktree_name}" => external_worktree_path
+          "#{@repo_dir}:#{worktree_name}" => external_worktree_path,
         },
         "instance_configs" => {
-          "main" => { "skip" => false, "name" => worktree_name }
-        }
-      }
+          "main" => { "skip" => false, "name" => worktree_name },
+        },
+      },
     }
 
     # Save metadata to session
@@ -72,39 +72,72 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
     FileUtils.mkdir_p(File.dirname(external_worktree_path))
     Dir.chdir(@repo_dir) do
       # Clean up any existing worktree with the same name
-      system("git", "worktree", "remove", "--force", external_worktree_path,
-             out: File::NULL, err: File::NULL)
+      system(
+        "git",
+        "worktree",
+        "remove",
+        "--force",
+        external_worktree_path,
+        out: File::NULL,
+        err: File::NULL,
+      )
       # Also try to remove any old internal worktree
-      system("git", "worktree", "remove", "--force", ".worktrees/#{worktree_name}",
-             out: File::NULL, err: File::NULL)
+      system(
+        "git",
+        "worktree",
+        "remove",
+        "--force",
+        ".worktrees/#{worktree_name}",
+        out: File::NULL,
+        err: File::NULL,
+      )
       # Delete the branch if it exists
-      system("git", "branch", "-D", worktree_name,
-             out: File::NULL, err: File::NULL)
+      system(
+        "git",
+        "branch",
+        "-D",
+        worktree_name,
+        out: File::NULL,
+        err: File::NULL,
+      )
 
       # Create new worktree
-      system("git", "worktree", "add", "-b", worktree_name, external_worktree_path, "HEAD",
-             out: File::NULL, err: File::NULL)
+      system(
+        "git",
+        "worktree",
+        "add",
+        "-b",
+        worktree_name,
+        external_worktree_path,
+        "HEAD",
+        out: File::NULL,
+        err: File::NULL,
+      )
     end
 
     # Now test restoration
     Dir.chdir(@repo_dir) do
       orchestrator = ClaudeSwarm::Orchestrator.new(
-        @config, @generator,
-        restore_session_path: @session_path
+        @config,
+        @generator,
+        restore_session_path: @session_path,
       )
 
       # Mock system call to verify directory
       worktree_dir_used = nil
-      orchestrator.stub :system, lambda { |*_args|
+      orchestrator.stub(:system, lambda { |*_args|
         worktree_dir_used = Dir.pwd
         true
-      } do
+      }) do
         orchestrator.start
       end
 
       # Verify the main instance started in the external worktree
-      assert_equal external_worktree_path, worktree_dir_used,
-                   "Main instance should start in the restored external worktree"
+      assert_equal(
+        external_worktree_path,
+        worktree_dir_used,
+        "Main instance should start in the restored external worktree",
+      )
     end
   end
 
@@ -114,7 +147,7 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
       "start_directory" => @repo_dir,
       "timestamp" => Time.now.utc.iso8601,
       "swarm_name" => "Test Swarm",
-      "claude_swarm_version" => "0.1.0"
+      "claude_swarm_version" => "0.1.0",
       # No worktree field
     }
 
@@ -127,22 +160,26 @@ class OrchestratorWorktreeRestorationTest < Minitest::Test
     # Test restoration
     Dir.chdir(@repo_dir) do
       orchestrator = ClaudeSwarm::Orchestrator.new(
-        @config, @generator,
-        restore_session_path: @session_path
+        @config,
+        @generator,
+        restore_session_path: @session_path,
       )
 
       # Mock system call to verify directory
       dir_used = nil
-      orchestrator.stub :system, lambda { |*_args|
+      orchestrator.stub(:system, lambda { |*_args|
         dir_used = Dir.pwd
         true
-      } do
+      }) do
         orchestrator.start
       end
 
       # Verify the main instance started in the regular directory
-      assert_equal File.realpath(@repo_dir), File.realpath(dir_used),
-                   "Main instance should start in the regular directory when no worktrees were used"
+      assert_equal(
+        File.realpath(@repo_dir),
+        File.realpath(dir_used),
+        "Main instance should start in the regular directory when no worktrees were used",
+      )
     end
   end
 

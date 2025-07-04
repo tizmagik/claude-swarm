@@ -51,9 +51,9 @@ module ClaudeSwarm
         output = capture_io { Commands::Show.new.execute("test-session-123") }.first
 
         # Main instance should show n/a for cost
-        assert_includes output, "Cost: n/a (interactive)"
+        assert_includes(output, "Cost: n/a (interactive)")
         # Check the whole pattern including the main marker
-        assert_includes output, "orchestrator [main]"
+        assert_includes(output, "orchestrator [main]")
 
         # Should show note about interactive mode
         assert_match(/Note: Main instance.*cost is not tracked in interactive mode/, output)
@@ -66,9 +66,9 @@ module ClaudeSwarm
             "name" => "Test Swarm",
             "main" => "orchestrator",
             "instances" => {
-              "orchestrator" => { "directory" => "." }
-            }
-          }
+              "orchestrator" => { "directory" => "." },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
 
@@ -76,7 +76,7 @@ module ClaudeSwarm
         json_log = {
           "instance" => "orchestrator",
           "instance_id" => "orchestrator_123",
-          "event" => { "type" => "result", "total_cost_usd" => 0.5 }
+          "event" => { "type" => "result", "total_cost_usd" => 0.5 },
         }.to_json
         File.write(File.join(@test_session_dir, "session.log.json"), json_log)
 
@@ -121,32 +121,53 @@ module ClaudeSwarm
               "orchestrator" => { "directory" => "." },
               "frontend" => { "directory" => "./frontend" },
               "backend" => { "directory" => "./backend" },
-              "database" => { "directory" => "./db" }
-            }
-          }
+              "database" => { "directory" => "./db" },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
 
         # Create JSON log with complex relationships
         json_logs = [
           # Orchestrator calls frontend and backend
-          { "instance" => "frontend", "instance_id" => "frontend_123",
-            "calling_instance" => "orchestrator", "calling_instance_id" => "orchestrator_123",
-            "event" => { "type" => "request" } },
-          { "instance" => "backend", "instance_id" => "backend_123",
-            "calling_instance" => "orchestrator", "calling_instance_id" => "orchestrator_123",
-            "event" => { "type" => "request" } },
+          {
+            "instance" => "frontend",
+            "instance_id" => "frontend_123",
+            "calling_instance" => "orchestrator",
+            "calling_instance_id" => "orchestrator_123",
+            "event" => { "type" => "request" },
+          },
+          {
+            "instance" => "backend",
+            "instance_id" => "backend_123",
+            "calling_instance" => "orchestrator",
+            "calling_instance_id" => "orchestrator_123",
+            "event" => { "type" => "request" },
+          },
           # Backend calls database
-          { "instance" => "database", "instance_id" => "database_123",
-            "calling_instance" => "backend", "calling_instance_id" => "backend_123",
-            "event" => { "type" => "request" } },
+          {
+            "instance" => "database",
+            "instance_id" => "database_123",
+            "calling_instance" => "backend",
+            "calling_instance_id" => "backend_123",
+            "event" => { "type" => "request" },
+          },
           # Add some results
-          { "instance" => "frontend", "instance_id" => "frontend_123",
-            "event" => { "type" => "result", "total_cost_usd" => 0.1 } },
-          { "instance" => "backend", "instance_id" => "backend_123",
-            "event" => { "type" => "result", "total_cost_usd" => 0.2 } },
-          { "instance" => "database", "instance_id" => "database_123",
-            "event" => { "type" => "result", "total_cost_usd" => 0.05 } }
+          {
+            "instance" => "frontend",
+            "instance_id" => "frontend_123",
+            "event" => { "type" => "result", "total_cost_usd" => 0.1 },
+          },
+          {
+            "instance" => "backend",
+            "instance_id" => "backend_123",
+            "event" => { "type" => "result", "total_cost_usd" => 0.2 },
+          },
+          {
+            "instance" => "database",
+            "instance_id" => "database_123",
+            "event" => { "type" => "result", "total_cost_usd" => 0.05 },
+          },
         ].map(&:to_json).join("\n")
 
         File.write(File.join(@test_session_dir, "session.log.json"), json_logs)
@@ -161,9 +182,9 @@ module ClaudeSwarm
         assert_match(/└─ database/, output)
 
         # Check costs directly in output
-        assert_includes output, "Cost: $0.1000", "Frontend cost not found in output"
-        assert_includes output, "Cost: $0.2000", "Backend cost not found in output"
-        assert_includes output, "Cost: $0.0500", "Database cost not found in output"
+        assert_includes(output, "Cost: $0.1000", "Frontend cost not found in output")
+        assert_includes(output, "Cost: $0.2000", "Backend cost not found in output")
+        assert_includes(output, "Cost: $0.0500", "Database cost not found in output")
       end
 
       def test_parse_malformed_json_lines
@@ -191,19 +212,26 @@ module ClaudeSwarm
             "main" => "orchestrator",
             "instances" => {
               "orchestrator" => { "directory" => "." },
-              "worker" => { "directory" => "./worker" }
-            }
-          }
+              "worker" => { "directory" => "./worker" },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
 
         # Create test JSON log with hierarchy
         json_logs = [
-          { "instance" => "worker", "instance_id" => "worker_123",
-            "calling_instance" => "orchestrator", "calling_instance_id" => "orchestrator_123",
-            "event" => { "type" => "request" } },
-          { "instance" => "worker", "instance_id" => "worker_123",
-            "event" => { "type" => "result", "total_cost_usd" => 0.3579 } }
+          {
+            "instance" => "worker",
+            "instance_id" => "worker_123",
+            "calling_instance" => "orchestrator",
+            "calling_instance_id" => "orchestrator_123",
+            "event" => { "type" => "request" },
+          },
+          {
+            "instance" => "worker",
+            "instance_id" => "worker_123",
+            "event" => { "type" => "result", "total_cost_usd" => 0.3579 },
+          },
         ].map(&:to_json).join("\n")
 
         File.write(File.join(@test_session_dir, "session.log.json"), json_logs)

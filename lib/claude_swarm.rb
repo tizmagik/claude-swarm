@@ -21,7 +21,7 @@ loader.inflector.inflect(
   "cli" => "CLI",
   "openai_executor" => "OpenAIExecutor",
   "openai_chat_completion" => "OpenAIChatCompletion",
-  "openai_responses" => "OpenAIResponses"
+  "openai_responses" => "OpenAIResponses",
 )
 loader.setup
 

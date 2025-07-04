@@ -55,25 +55,37 @@ class WorkingDirectoryRestorationTest < Minitest::Test
       # Load config with base_dir (like it would during restoration)
       config_restored = ClaudeSwarm::Configuration.new(
         File.join(@session_dir, "config.yml"),
-        base_dir: @project_dir
+        base_dir: @project_dir,
       )
 
       # Verify directories are resolved correctly
       lead_normal = config_normal.instances["lead"]
       lead_restored = config_restored.instances["lead"]
 
-      assert_equal File.realpath(@project_dir), File.realpath(lead_normal[:directory]),
-                   "Normal load should resolve . to project directory"
-      assert_equal File.realpath(@project_dir), File.realpath(lead_restored[:directory]),
-                   "Restored load should also resolve . to project directory"
+      assert_equal(
+        File.realpath(@project_dir),
+        File.realpath(lead_normal[:directory]),
+        "Normal load should resolve . to project directory",
+      )
+      assert_equal(
+        File.realpath(@project_dir),
+        File.realpath(lead_restored[:directory]),
+        "Restored load should also resolve . to project directory",
+      )
 
       worker_normal = config_normal.instances["worker"]
       worker_restored = config_restored.instances["worker"]
 
-      assert_equal File.realpath(@subdir), File.realpath(worker_normal[:directory]),
-                   "Normal load should resolve ./subdir correctly"
-      assert_equal File.realpath(@subdir), File.realpath(worker_restored[:directory]),
-                   "Restored load should also resolve ./subdir correctly"
+      assert_equal(
+        File.realpath(@subdir),
+        File.realpath(worker_normal[:directory]),
+        "Normal load should resolve ./subdir correctly",
+      )
+      assert_equal(
+        File.realpath(@subdir),
+        File.realpath(worker_restored[:directory]),
+        "Restored load should also resolve ./subdir correctly",
+      )
     end
   end
 
@@ -91,12 +103,12 @@ class WorkingDirectoryRestorationTest < Minitest::Test
           # Load configuration with current directory as base
           config = ClaudeSwarm::Configuration.new(
             File.join(@session_dir, "config.yml"),
-            base_dir: Dir.pwd
+            base_dir: Dir.pwd,
           )
 
           # Verify instances have correct directories (normalize paths for comparison)
-          assert_equal File.realpath(@project_dir), File.realpath(config.instances["lead"][:directory])
-          assert_equal File.realpath(@subdir), File.realpath(config.instances["worker"][:directory])
+          assert_equal(File.realpath(@project_dir), File.realpath(config.instances["lead"][:directory]))
+          assert_equal(File.realpath(@subdir), File.realpath(config.instances["worker"][:directory]))
         end
       end
     ensure

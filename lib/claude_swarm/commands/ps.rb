@@ -81,7 +81,7 @@ module ClaudeSwarm
 
         # Load config for swarm name and main directory
         config_file = File.join(session_dir, "config.yml")
-        return nil unless File.exist?(config_file)
+        return unless File.exist?(config_file)
 
         config = YAML.load_file(config_file)
         swarm_name = config.dig("swarm", "name") || "Unknown"
@@ -95,10 +95,10 @@ module ClaudeSwarm
         # Get all directories - handle both string and array formats
         dir_config = config.dig("swarm", "instances", main_instance, "directory")
         directories = if dir_config.is_a?(Array)
-                        dir_config
-                      else
-                        [dir_config || "."]
-                      end
+          dir_config
+        else
+          [dir_config || "."]
+        end
 
         # Expand paths relative to the base directory
         expanded_directories = directories.map do |dir|
@@ -124,7 +124,7 @@ module ClaudeSwarm
           cost: total_cost,
           uptime: uptime,
           directory: directories_str,
-          start_time: start_time
+          start_time: start_time,
         }
       rescue StandardError
         nil

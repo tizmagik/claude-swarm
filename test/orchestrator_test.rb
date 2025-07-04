@@ -27,7 +27,7 @@ class OrchestratorTest < Minitest::Test
 
   def find_mcp_file(name)
     session_path = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
-    return nil unless session_path
+    return unless session_path
 
     file_path = File.join(session_path, "#{name}.mcp.json")
     File.exist?(file_path) ? file_path : nil
@@ -69,14 +69,14 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     # Mock system to prevent actual execution
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       capture_io do
         orchestrator.start
       end
     end
 
-    assert ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
-    assert ENV.fetch("CLAUDE_SWARM_START_DIR", nil)
+    assert(ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil))
+    assert(ENV.fetch("CLAUDE_SWARM_START_DIR", nil))
     assert_match(%r{/sessions/.+/\d{8}_\d{6}}, ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil))
   end
 
@@ -86,7 +86,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     Dir.chdir(@tmpdir) do
-      orchestrator.stub :system, true do
+      orchestrator.stub(:system, true) do
         capture_io do
           orchestrator.start
         end
@@ -95,9 +95,9 @@ class OrchestratorTest < Minitest::Test
       # MCP files are now in ~/.claude-swarm, not in the current directory
       session_path = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
 
-      assert session_path
-      assert_path_exists File.join(session_path, "lead.mcp.json"), "Expected lead.mcp.json to exist"
-      assert_path_exists File.join(session_path, "backend.mcp.json"), "Expected backend.mcp.json to exist"
+      assert(session_path)
+      assert_path_exists(File.join(session_path, "lead.mcp.json"), "Expected lead.mcp.json to exist")
+      assert_path_exists(File.join(session_path, "backend.mcp.json"), "Expected backend.mcp.json to exist")
     end
   end
 
@@ -107,7 +107,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     output = nil
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       output = capture_io { orchestrator.start }[0]
     end
 
@@ -127,32 +127,32 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
     # Verify command array components
-    assert_equal "claude", expected_command[0]
-    assert_includes expected_command, "--model"
-    assert_includes expected_command, "opus"
-    assert_includes expected_command, "--allowedTools"
-    assert_includes expected_command, "Read,Edit,Bash,mcp__backend"
-    assert_includes expected_command, "--append-system-prompt"
-    assert_includes expected_command, "You are the lead developer"
-    assert_includes expected_command, "--mcp-config"
+    assert_equal("claude", expected_command[0])
+    assert_includes(expected_command, "--model")
+    assert_includes(expected_command, "opus")
+    assert_includes(expected_command, "--allowedTools")
+    assert_includes(expected_command, "Read,Edit,Bash,mcp__backend")
+    assert_includes(expected_command, "--append-system-prompt")
+    assert_includes(expected_command, "You are the lead developer")
+    assert_includes(expected_command, "--mcp-config")
 
     # Find the MCP config path in the array
     mcp_index = expected_command.index("--mcp-config")
 
-    assert mcp_index
+    assert(mcp_index)
     mcp_path = expected_command[mcp_index + 1]
 
-    assert_match %r{/lead\.mcp\.json$}, mcp_path
+    assert_match(%r{/lead\.mcp\.json$}, mcp_path)
   end
 
   def test_build_main_command_without_tools
@@ -171,18 +171,18 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
     # When no tools are specified and vibe is false, neither flag should be present
-    refute_includes expected_command, "--dangerously-skip-permissions"
-    refute_includes expected_command, "--allowedTools"
+    refute_includes(expected_command, "--dangerously-skip-permissions")
+    refute_includes(expected_command, "--allowedTools")
   end
 
   def test_build_main_command_without_prompt
@@ -202,16 +202,16 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
-    refute_includes expected_command, "--append-system-prompt"
+    refute_includes(expected_command, "--append-system-prompt")
   end
 
   def test_special_characters_in_arguments
@@ -235,21 +235,21 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
     # Verify arguments are passed correctly without manual escaping
-    assert_includes expected_command, "--append-system-prompt"
+    assert_includes(expected_command, "--append-system-prompt")
     prompt_index = expected_command.index("--append-system-prompt")
 
-    assert_equal "You're the 'lead' developer!", expected_command[prompt_index + 1]
-    assert_includes expected_command, "Bash(rm -rf *)"
+    assert_equal("You're the 'lead' developer!", expected_command[prompt_index + 1])
+    assert_includes(expected_command, "Bash(rm -rf *)")
   end
 
   def test_debug_mode_shows_command
@@ -258,7 +258,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, debug: true)
 
     output = nil
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       output = capture_io { orchestrator.start }[0]
     end
 
@@ -281,7 +281,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     output = nil
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       output = capture_io { orchestrator.start }[0]
     end
 
@@ -309,10 +309,10 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
@@ -320,8 +320,8 @@ class OrchestratorTest < Minitest::Test
 
     # Since we use Dir.chdir now, the path isn't part of the command
     # Just verify the command was captured
-    assert expected_command
-    assert_equal "claude", expected_command[0]
+    assert(expected_command)
+    assert_equal("claude", expected_command[0])
   end
 
   def test_mcp_config_path_resolution
@@ -330,10 +330,10 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
@@ -342,11 +342,11 @@ class OrchestratorTest < Minitest::Test
     # Find MCP config path from command array
     mcp_index = expected_command.index("--mcp-config")
 
-    assert mcp_index
+    assert(mcp_index)
 
     mcp_path = expected_command[mcp_index + 1]
 
-    assert mcp_path.end_with?("/lead.mcp.json")
+    assert(mcp_path.end_with?("/lead.mcp.json"))
     # The file will be created when the generator runs, so we can't check it exists yet
   end
 
@@ -356,20 +356,20 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Execute test task")
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
     # Verify prompt is included in command
-    assert_includes expected_command, "-p"
+    assert_includes(expected_command, "-p")
     p_index = expected_command.index("-p")
 
-    assert_equal "Execute test task", expected_command[p_index + 1]
+    assert_equal("Execute test task", expected_command[p_index + 1])
   end
 
   def test_build_main_command_with_prompt_requiring_escaping
@@ -378,20 +378,20 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Fix the 'bug' in module X")
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
     # Verify prompt with quotes is passed correctly
-    assert_includes expected_command, "-p"
+    assert_includes(expected_command, "-p")
     p_index = expected_command.index("-p")
 
-    assert_equal "Fix the 'bug' in module X", expected_command[p_index + 1]
+    assert_equal("Fix the 'bug' in module X", expected_command[p_index + 1])
   end
 
   def test_output_suppression_with_prompt
@@ -400,7 +400,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Test prompt")
 
     output = nil
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       output = capture_io { orchestrator.start }[0]
     end
 
@@ -421,7 +421,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     output = nil
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       output = capture_io { orchestrator.start }[0]
     end
 
@@ -439,7 +439,7 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, prompt: "Debug test")
 
     output = nil
-    orchestrator.stub :system, true do
+    orchestrator.stub(:system, true) do
       output = capture_io { orchestrator.start }[0]
     end
 
@@ -453,21 +453,21 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, vibe: true, prompt: "Vibe test")
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
     end
 
     # Should include both vibe flag and prompt
-    assert_includes expected_command, "--dangerously-skip-permissions"
-    assert_includes expected_command, "-p"
+    assert_includes(expected_command, "--dangerously-skip-permissions")
+    assert_includes(expected_command, "-p")
     p_index = expected_command.index("-p")
 
-    assert_equal "Vibe test", expected_command[p_index + 1]
+    assert_equal("Vibe test", expected_command[p_index + 1])
   end
 
   def test_default_prompt_when_no_prompt_specified
@@ -476,10 +476,10 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
@@ -508,10 +508,10 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     expected_command = nil
-    orchestrator.stub :system, lambda { |*args|
+    orchestrator.stub(:system, lambda { |*args|
       expected_command = args
       true
-    } do
+    }) do
       Dir.chdir(@tmpdir) do
         capture_io { orchestrator.start }
       end
@@ -520,7 +520,7 @@ class OrchestratorTest < Minitest::Test
     # Should just have the generic prompt when instance has no custom prompt
     last_arg = expected_command.last
 
-    assert_equal "\n\nNow just say 'I am ready to start'", last_arg
+    assert_equal("\n\nNow just say 'I am ready to start'", last_arg)
   end
 
   def test_before_commands_feature_exists
@@ -539,13 +539,13 @@ class OrchestratorTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
 
     # Test that configuration reads before commands correctly
-    assert_equal ["echo 'test'"], config.before_commands
+    assert_equal(["echo 'test'"], config.before_commands)
 
     # Verify orchestrator can be created with before commands config
     generator = ClaudeSwarm::McpGenerator.new(config)
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
-    assert_instance_of ClaudeSwarm::Orchestrator, orchestrator
+    assert_instance_of(ClaudeSwarm::Orchestrator, orchestrator)
   end
 
   def test_before_commands_not_executed_on_restore
@@ -571,14 +571,14 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator, restore_session_path: restore_session_path)
 
     command_executed = false
-    orchestrator.stub :`, lambda { |_cmd|
+    orchestrator.stub(:`, lambda { |_cmd|
       command_executed = true
       "Should not see this\n"
-    } do
-      orchestrator.stub :system, true do
+    }) do
+      orchestrator.stub(:system, true) do
         output = capture_io { orchestrator.start }[0]
 
-        refute command_executed, "Before commands should not execute during session restoration"
+        refute(command_executed, "Before commands should not execute during session restoration")
         refute_match(/Executing before commands/, output)
       end
     end
@@ -601,14 +601,14 @@ class OrchestratorTest < Minitest::Test
     orchestrator = ClaudeSwarm::Orchestrator.new(config, generator)
 
     command_executed = false
-    orchestrator.stub :`, lambda { |_cmd|
+    orchestrator.stub(:`, lambda { |_cmd|
       command_executed = true
       "Should not execute\n"
-    } do
-      orchestrator.stub :system, true do
+    }) do
+      orchestrator.stub(:system, true) do
         output = capture_io { orchestrator.start }[0]
 
-        refute command_executed, "No commands should be executed with empty before array"
+        refute(command_executed, "No commands should be executed with empty before array")
         refute_match(/Executing before commands/, output)
       end
     end

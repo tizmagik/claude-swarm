@@ -19,11 +19,11 @@ class ProcessTrackerTest < Minitest::Test
 
     pid_file = File.join(@pids_dir, "12345")
 
-    assert_path_exists pid_file, "PID file should be created"
+    assert_path_exists(pid_file, "PID file should be created")
 
     content = File.read(pid_file)
 
-    assert_equal "test_process", content
+    assert_equal("test_process", content)
   end
 
   def test_track_multiple_pids
@@ -33,11 +33,11 @@ class ProcessTrackerTest < Minitest::Test
     pid_file1 = File.join(@pids_dir, "12345")
     pid_file2 = File.join(@pids_dir, "67890")
 
-    assert_path_exists pid_file1
-    assert_path_exists pid_file2
+    assert_path_exists(pid_file1)
+    assert_path_exists(pid_file2)
 
-    assert_equal "process_1", File.read(pid_file1)
-    assert_equal "process_2", File.read(pid_file2)
+    assert_equal("process_1", File.read(pid_file1))
+    assert_equal("process_2", File.read(pid_file2))
   end
 
   def test_cleanup_session_with_no_directory
@@ -48,10 +48,10 @@ class ProcessTrackerTest < Minitest::Test
   def test_cleanup_removes_pids_directory
     @tracker.track_pid(12_345, "test_process")
 
-    assert_path_exists @pids_dir
+    assert_path_exists(@pids_dir)
     @tracker.cleanup_all
 
-    refute_path_exists @pids_dir, "pids directory should be removed after cleanup"
+    refute_path_exists(@pids_dir, "pids directory should be removed after cleanup")
   end
 
   def test_cleanup_handles_nonexistent_processes
@@ -65,6 +65,6 @@ class ProcessTrackerTest < Minitest::Test
   end
 
   def test_creates_pids_directory_on_initialization
-    assert_path_exists @pids_dir, "pids directory should be created on initialization"
+    assert_path_exists(@pids_dir, "pids directory should be created on initialization")
   end
 end

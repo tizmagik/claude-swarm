@@ -39,7 +39,7 @@ module ClaudeSwarm
           puts "✓ Terminated MCP server: #{name} (PID: #{pid})"
 
           # Give it a moment to terminate gracefully
-          sleep 0.1
+          sleep(0.1)
 
           # Force kill if still running
           begin

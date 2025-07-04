@@ -61,34 +61,34 @@ class McpGeneratorArgsTest < Minitest::Test
         # Check that backend connection uses correct args format
         backend_mcp = lead_config["mcpServers"]["backend"]
 
-        assert_equal "stdio", backend_mcp["type"]
-        assert_equal "claude-swarm", backend_mcp["command"]
+        assert_equal("stdio", backend_mcp["type"])
+        assert_equal("claude-swarm", backend_mcp["command"])
 
         # Verify the args array
         args = backend_mcp["args"]
 
         # Should start with mcp-serve command
-        assert_equal "mcp-serve", args[0]
+        assert_equal("mcp-serve", args[0])
 
         # Should have pairs of flag and value
-        assert_includes args, "--name"
-        assert_includes args, "backend"
-        assert_includes args, "--directory"
-        assert_includes args, File.expand_path("./backend")
-        assert_includes args, "--model"
-        assert_includes args, "sonnet"
-        assert_includes args, "--prompt"
-        assert_includes args, "You are a backend dev"
-        assert_includes args, "--allowed-tools"
+        assert_includes(args, "--name")
+        assert_includes(args, "backend")
+        assert_includes(args, "--directory")
+        assert_includes(args, File.expand_path("./backend"))
+        assert_includes(args, "--model")
+        assert_includes(args, "sonnet")
+        assert_includes(args, "--prompt")
+        assert_includes(args, "You are a backend dev")
+        assert_includes(args, "--allowed-tools")
 
         # Tools should be after --allowed-tools flag as comma-separated
         tools_index = args.index("--allowed-tools")
 
-        assert_equal "Bash,Grep", args[tools_index + 1]
+        assert_equal("Bash,Grep", args[tools_index + 1])
 
         # Should include MCP config path
-        assert_includes args, "--mcp-config-path"
-        assert args[args.index("--mcp-config-path") + 1].end_with?("backend.mcp.json")
+        assert_includes(args, "--mcp-config-path")
+        assert(args[args.index("--mcp-config-path") + 1].end_with?("backend.mcp.json"))
       end
     end
   end
@@ -139,19 +139,19 @@ class McpGeneratorArgsTest < Minitest::Test
         args = ai_helper_mcp["args"]
 
         # Should include provider and OpenAI-specific args
-        assert_includes args, "--provider"
-        assert_includes args, "openai"
-        assert_includes args, "--temperature"
-        assert_includes args, "0.7"
-        assert_includes args, "--api-version"
-        assert_includes args, "responses"
-        assert_includes args, "--openai-token-env"
-        assert_includes args, "CUSTOM_OPENAI_KEY"
-        assert_includes args, "--base-url"
-        assert_includes args, "https://custom.openai.com/v1"
+        assert_includes(args, "--provider")
+        assert_includes(args, "openai")
+        assert_includes(args, "--temperature")
+        assert_includes(args, "0.7")
+        assert_includes(args, "--api-version")
+        assert_includes(args, "responses")
+        assert_includes(args, "--openai-token-env")
+        assert_includes(args, "CUSTOM_OPENAI_KEY")
+        assert_includes(args, "--base-url")
+        assert_includes(args, "https://custom.openai.com/v1")
 
         # Should have vibe flag for OpenAI instances
-        assert_includes args, "--vibe"
+        assert_includes(args, "--vibe")
       end
     end
   end
@@ -180,11 +180,11 @@ class McpGeneratorArgsTest < Minitest::Test
         args = backend_mcp["args"]
 
         # Should NOT include OpenAI-specific args
-        refute_includes args, "--provider"
-        refute_includes args, "--temperature"
-        refute_includes args, "--api-version"
-        refute_includes args, "--openai-token-env"
-        refute_includes args, "--base-url"
+        refute_includes(args, "--provider")
+        refute_includes(args, "--temperature")
+        refute_includes(args, "--api-version")
+        refute_includes(args, "--openai-token-env")
+        refute_includes(args, "--base-url")
       end
     end
   ensure
