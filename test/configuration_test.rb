@@ -957,6 +957,9 @@ class ConfigurationTest < Minitest::Test
             model: gpt-4o
     YAML
 
+    # Set environment variable for test
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
@@ -966,6 +969,8 @@ class ConfigurationTest < Minitest::Test
     assert_equal "OPENAI_API_KEY", assistant[:openai_token_env]
     assert_nil assistant[:base_url]
     assert assistant[:vibe], "OpenAI instances should default to vibe: true"
+  ensure
+    ENV.delete("OPENAI_API_KEY")
   end
 
   def test_openai_provider_with_custom_values
@@ -986,6 +991,9 @@ class ConfigurationTest < Minitest::Test
             vibe: false
     YAML
 
+    # Set custom environment variable for test
+    ENV["CUSTOM_OPENAI_KEY"] = "sk-custom-test-key"
+
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
@@ -995,6 +1003,8 @@ class ConfigurationTest < Minitest::Test
     assert_equal "CUSTOM_OPENAI_KEY", assistant[:openai_token_env]
     assert_equal "https://custom.openai.com/v1", assistant[:base_url]
     refute assistant[:vibe], "Should respect explicit vibe: false"
+  ensure
+    ENV.delete("CUSTOM_OPENAI_KEY")
   end
 
   def test_claude_provider_default
@@ -1116,6 +1126,9 @@ class ConfigurationTest < Minitest::Test
             temperature: 0.5
     YAML
 
+    # Set environment variable for test
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
     config = ClaudeSwarm::Configuration.new(@config_path)
 
     lead = config.instances["lead"]
@@ -1128,5 +1141,172 @@ class ConfigurationTest < Minitest::Test
     assert_equal "openai", helper[:provider]
     assert_in_delta(0.5, helper[:temperature])
     assert helper[:vibe]
+  ensure
+    ENV.delete("OPENAI_API_KEY")
+  end
+
+  def test_openai_instance_without_api_key_env_var
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: ai_assistant
+        instances:
+          ai_assistant:
+            description: "OpenAI-powered assistant"
+            provider: openai
+            model: gpt-4o
+    YAML
+
+    # Ensure the environment variable is not set
+    ENV.delete("OPENAI_API_KEY")
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+  end
+
+  def test_openai_instance_with_empty_api_key_env_var
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: ai_assistant
+        instances:
+          ai_assistant:
+            description: "OpenAI-powered assistant"
+            provider: openai
+            model: gpt-4o
+    YAML
+
+    # Set the environment variable to an empty string
+    ENV["OPENAI_API_KEY"] = ""
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+  ensure
+    ENV.delete("OPENAI_API_KEY")
+  end
+
+  def test_openai_instance_with_whitespace_api_key_env_var
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: ai_assistant
+        instances:
+          ai_assistant:
+            description: "OpenAI-powered assistant"
+            provider: openai
+            model: gpt-4o
+    YAML
+
+    # Set the environment variable to whitespace only
+    ENV["OPENAI_API_KEY"] = "   "
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+  ensure
+    ENV.delete("OPENAI_API_KEY")
+  end
+
+  def test_openai_instance_with_custom_env_var_not_set
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: ai_assistant
+        instances:
+          ai_assistant:
+            description: "OpenAI-powered assistant"
+            provider: openai
+            model: gpt-4o
+            openai_token_env: CUSTOM_OPENAI_KEY
+    YAML
+
+    # Ensure the custom environment variable is not set
+    ENV.delete("CUSTOM_OPENAI_KEY")
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Environment variable 'CUSTOM_OPENAI_KEY' is not set. OpenAI provider instances require an API key.", error.message
+  end
+
+  def test_openai_instance_with_valid_api_key_env_var
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: ai_assistant
+        instances:
+          ai_assistant:
+            description: "OpenAI-powered assistant"
+            provider: openai
+            model: gpt-4o
+    YAML
+
+    # Set a valid environment variable
+    ENV["OPENAI_API_KEY"] = "sk-test-key-123"
+
+    # Should not raise any errors
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    assistant = config.main_instance_config
+
+    assert_equal "openai", assistant[:provider]
+  ensure
+    ENV.delete("OPENAI_API_KEY")
+  end
+
+  def test_mixed_providers_only_checks_openai_env_vars
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Mixed Swarm"
+        main: claude_lead
+        instances:
+          claude_lead:
+            description: "Claude lead"
+            model: opus
+          openai_helper:
+            description: "OpenAI helper"
+            provider: openai
+            model: gpt-4o
+    YAML
+
+    # Ensure OpenAI key is not set
+    ENV.delete("OPENAI_API_KEY")
+
+    error = assert_raises(ClaudeSwarm::Error) do
+      ClaudeSwarm::Configuration.new(@config_path)
+    end
+    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+  end
+
+  def test_claude_instance_without_openai_key_works
+    write_config(<<~YAML)
+      version: 1
+      swarm:
+        name: "Test Swarm"
+        main: claude_assistant
+        instances:
+          claude_assistant:
+            description: "Claude assistant"
+            model: opus
+    YAML
+
+    # Ensure OpenAI key is not set
+    ENV.delete("OPENAI_API_KEY")
+
+    # Should not raise any errors for Claude instances
+    config = ClaudeSwarm::Configuration.new(@config_path)
+    assistant = config.main_instance_config
+
+    assert_nil assistant[:provider]
   end
 end

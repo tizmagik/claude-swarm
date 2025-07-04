@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Added
+- **OpenAI API key validation**: Configuration parser now validates that OpenAI API key environment variables are set
+  - Checks that the environment variable specified by `openai_token_env` exists and is not empty
+  - Fails fast with a clear error message if OpenAI instances are configured without API keys
+  - Prevents runtime failures by ensuring credentials are available before launching instances
+
 - **Swarm execution summary**: Display runtime duration and total cost at the end of each swarm run [@claudenm]
   - Shows total execution time in hours, minutes, and seconds format
   - Calculates and displays aggregate cost across all instances
