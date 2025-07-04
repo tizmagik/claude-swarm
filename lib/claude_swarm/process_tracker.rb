@@ -62,11 +62,13 @@ module ClaudeSwarm
       FileUtils.rm_rf(@pids_dir)
     end
 
-    def self.cleanup_session(session_path)
-      return unless Dir.exist?(File.join(session_path, PIDS_DIR))
+    class << self
+      def cleanup_session(session_path)
+        return unless Dir.exist?(File.join(session_path, PIDS_DIR))
 
-      tracker = new(session_path)
-      tracker.cleanup_all
+        tracker = new(session_path)
+        tracker.cleanup_all
+      end
     end
 
     private

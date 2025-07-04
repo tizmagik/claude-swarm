@@ -143,7 +143,7 @@ module ClaudeSwarm
           puts
         end
 
-        success = execute_before_commands(before_commands)
+        success = execute_before_commands?(before_commands)
         unless success
           puts "❌ Before commands failed. Aborting swarm launch." unless @prompt
           cleanup_processes
@@ -208,7 +208,7 @@ module ClaudeSwarm
 
     private
 
-    def execute_before_commands(commands)
+    def execute_before_commands?(commands)
       log_file = File.join(@session_path, "session.log") if @session_path
 
       commands.each_with_index do |command, index|
