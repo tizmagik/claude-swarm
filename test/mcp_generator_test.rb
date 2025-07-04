@@ -41,7 +41,7 @@ class McpGeneratorTest < Minitest::Test
     Dir.chdir(@tmpdir) do
       generator.generate_all
 
-      assert Dir.exist?(@session_path), "Expected session directory to exist"
+      assert(Dir.exist?(@session_path), "Expected session directory to exist")
     end
   end
 
@@ -84,48 +84,48 @@ class McpGeneratorTest < Minitest::Test
       mcp_config = read_mcp_config("lead")
 
       # Check mcpServers section
-      assert mcp_config.key?("mcpServers")
+      assert(mcp_config.key?("mcpServers"))
       servers = mcp_config["mcpServers"]
 
       # Check backend connection
-      assert servers.key?("backend")
+      assert(servers.key?("backend"))
       backend = servers["backend"]
 
-      assert_equal "stdio", backend["type"]
-      assert_equal "claude-swarm", backend["command"]
+      assert_equal("stdio", backend["type"])
+      assert_equal("claude-swarm", backend["command"])
 
       args = backend["args"]
 
-      assert_equal "mcp-serve", args[0]
-      assert_includes args, "--name"
-      assert_includes args, "backend"
-      assert_includes args, "--directory"
+      assert_equal("mcp-serve", args[0])
+      assert_includes(args, "--name")
+      assert_includes(args, "backend")
+      assert_includes(args, "--directory")
       # Check that the directory arg is present - it may have different path formats
       dir_index = args.index("--directory")
 
-      assert dir_index, "Should have --directory flag"
-      assert args[dir_index + 1].end_with?("backend"), "Directory should end with 'backend'"
-      assert_includes args, "--model"
-      assert_includes args, "claude-3-5-haiku-20241022"
-      assert_includes args, "--prompt"
-      assert_includes args, "Backend developer"
-      assert_includes args, "--allowed-tools"
-      assert_includes args, "Bash,Grep"
+      assert(dir_index, "Should have --directory flag")
+      assert(args[dir_index + 1].end_with?("backend"), "Directory should end with 'backend'")
+      assert_includes(args, "--model")
+      assert_includes(args, "claude-3-5-haiku-20241022")
+      assert_includes(args, "--prompt")
+      assert_includes(args, "Backend developer")
+      assert_includes(args, "--allowed-tools")
+      assert_includes(args, "Bash,Grep")
 
       # Check frontend connection
-      assert servers.key?("frontend")
+      assert(servers.key?("frontend"))
       frontend = servers["frontend"]
 
-      assert_equal "stdio", frontend["type"]
-      assert_equal "claude-swarm", frontend["command"]
+      assert_equal("stdio", frontend["type"])
+      assert_equal("claude-swarm", frontend["command"])
 
       # Check custom MCP server
-      assert servers.key?("test_server")
+      assert(servers.key?("test_server"))
       test_server = servers["test_server"]
 
-      assert_equal "stdio", test_server["type"]
-      assert_equal "test-cmd", test_server["command"]
-      assert_equal ["--flag"], test_server["args"]
+      assert_equal("stdio", test_server["type"])
+      assert_equal("test-cmd", test_server["command"])
+      assert_equal(["--flag"], test_server["args"])
     end
   end
 
@@ -154,10 +154,10 @@ class McpGeneratorTest < Minitest::Test
 
       api_server = mcp_config["mcpServers"]["api_server"]
 
-      assert_equal "sse", api_server["type"]
-      assert_equal "http://localhost:3000/events", api_server["url"]
-      assert_nil api_server["command"]
-      assert_nil api_server["args"]
+      assert_equal("sse", api_server["type"])
+      assert_equal("http://localhost:3000/events", api_server["url"])
+      assert_nil(api_server["command"])
+      assert_nil(api_server["args"])
     end
   end
 
@@ -215,7 +215,7 @@ class McpGeneratorTest < Minitest::Test
       # Check backend config has database connection
       backend_config = read_mcp_config("backend")
 
-      assert backend_config["mcpServers"].key?("database")
+      assert(backend_config["mcpServers"].key?("database"))
 
       # Check database config has no MCP servers
       database_config = read_mcp_config("database")
@@ -251,12 +251,12 @@ class McpGeneratorTest < Minitest::Test
 
       mcp_path_index = worker_args.index("--mcp-config-path")
 
-      assert mcp_path_index, "Should include --mcp-config-path flag"
+      assert(mcp_path_index, "Should include --mcp-config-path flag")
 
       mcp_path = worker_args[mcp_path_index + 1]
 
-      assert mcp_path.end_with?("worker.mcp.json")
-      assert_path_exists mcp_path
+      assert(mcp_path.end_with?("worker.mcp.json"))
+      assert_path_exists(mcp_path)
     end
   end
 
@@ -287,7 +287,7 @@ class McpGeneratorTest < Minitest::Test
       server = mcp_config["mcpServers"]["complex_server"]
       expected_args = ["--port", "3000", "--verbose", "--config", "/path/to/config.json"]
 
-      assert_equal expected_args, server["args"]
+      assert_equal(expected_args, server["args"])
     end
   end
 
@@ -341,34 +341,34 @@ class McpGeneratorTest < Minitest::Test
       # Check lead config has instance_id
       lead_config = read_mcp_config("lead")
 
-      assert lead_config.key?("instance_id")
-      assert lead_config.key?("instance_name")
-      assert_equal "lead", lead_config["instance_name"]
+      assert(lead_config.key?("instance_id"))
+      assert(lead_config.key?("instance_name"))
+      assert_equal("lead", lead_config["instance_name"])
       assert_match(/^lead_[a-f0-9]{8}$/, lead_config["instance_id"])
 
       # Check backend config has instance_id
       backend_config = read_mcp_config("backend")
 
-      assert backend_config.key?("instance_id")
-      assert backend_config.key?("instance_name")
-      assert_equal "backend", backend_config["instance_name"]
+      assert(backend_config.key?("instance_id"))
+      assert(backend_config.key?("instance_name"))
+      assert_equal("backend", backend_config["instance_name"])
       assert_match(/^backend_[a-f0-9]{8}$/, backend_config["instance_id"])
 
       # Check that connection includes calling_instance_id
       backend_connection = lead_config["mcpServers"]["backend"]
 
-      assert_includes backend_connection["args"], "--calling-instance-id"
+      assert_includes(backend_connection["args"], "--calling-instance-id")
 
       calling_id_index = backend_connection["args"].index("--calling-instance-id") + 1
 
-      assert_equal lead_config["instance_id"], backend_connection["args"][calling_id_index]
+      assert_equal(lead_config["instance_id"], backend_connection["args"][calling_id_index])
 
       # Check that connection includes instance_id for the target instance
-      assert_includes backend_connection["args"], "--instance-id"
+      assert_includes(backend_connection["args"], "--instance-id")
 
       instance_id_index = backend_connection["args"].index("--instance-id") + 1
 
-      assert_equal backend_config["instance_id"], backend_connection["args"][instance_id_index]
+      assert_equal(backend_config["instance_id"], backend_connection["args"][instance_id_index])
     end
   end
 
@@ -402,7 +402,7 @@ class McpGeneratorTest < Minitest::Test
       frontend_config = read_mcp_config("frontend")
 
       # Both should have unique instance IDs
-      refute_equal lead_config["instance_id"], frontend_config["instance_id"]
+      refute_equal(lead_config["instance_id"], frontend_config["instance_id"])
 
       # Check that shared service gets different calling_instance_ids from each caller
       lead_shared_connection = lead_config["mcpServers"]["shared"]
@@ -411,8 +411,8 @@ class McpGeneratorTest < Minitest::Test
       lead_calling_id_index = lead_shared_connection["args"].index("--calling-instance-id") + 1
       frontend_calling_id_index = frontend_shared_connection["args"].index("--calling-instance-id") + 1
 
-      assert_equal lead_config["instance_id"], lead_shared_connection["args"][lead_calling_id_index]
-      assert_equal frontend_config["instance_id"], frontend_shared_connection["args"][frontend_calling_id_index]
+      assert_equal(lead_config["instance_id"], lead_shared_connection["args"][lead_calling_id_index])
+      assert_equal(frontend_config["instance_id"], frontend_shared_connection["args"][frontend_calling_id_index])
     end
   end
 
@@ -442,13 +442,13 @@ class McpGeneratorTest < Minitest::Test
       # Check that OpenAI instance has claude_tools MCP server
       config_json = read_mcp_config("openai_assistant")
 
-      assert config_json["mcpServers"].key?("claude_tools"), "OpenAI instance should have claude_tools MCP server"
+      assert(config_json["mcpServers"].key?("claude_tools"), "OpenAI instance should have claude_tools MCP server")
 
       claude_tools_config = config_json["mcpServers"]["claude_tools"]
 
-      assert_equal "stdio", claude_tools_config["type"]
-      assert_equal "claude", claude_tools_config["command"]
-      assert_equal %w[mcp serve], claude_tools_config["args"]
+      assert_equal("stdio", claude_tools_config["type"])
+      assert_equal("claude", claude_tools_config["command"])
+      assert_equal(["mcp", "serve"], claude_tools_config["args"])
     end
   ensure
     ENV.delete("OPENAI_API_KEY")
@@ -476,7 +476,7 @@ class McpGeneratorTest < Minitest::Test
       # Check that Claude instance does NOT have claude_tools MCP server
       config_json = read_mcp_config("claude_assistant")
 
-      refute config_json["mcpServers"].key?("claude_tools"), "Claude instance should NOT have claude_tools MCP server"
+      refute(config_json["mcpServers"].key?("claude_tools"), "Claude instance should NOT have claude_tools MCP server")
     end
   end
 

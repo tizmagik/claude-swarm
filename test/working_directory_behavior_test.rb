@@ -53,9 +53,9 @@ class WorkingDirectoryBehaviorTest < Minitest::Test
 
       # Verify all directories are resolved relative to launch directory (@project_dir)
       # not relative to config file directory (@config_dir)
-      assert_equal File.realpath(@project_dir), File.realpath(config.instances["lead"][:directory])
-      assert_equal File.realpath(@backend_dir), File.realpath(config.instances["backend"][:directory])
-      assert_equal File.realpath(@frontend_dir), File.realpath(config.instances["frontend"][:directory])
+      assert_equal(File.realpath(@project_dir), File.realpath(config.instances["lead"][:directory]))
+      assert_equal(File.realpath(@backend_dir), File.realpath(config.instances["backend"][:directory]))
+      assert_equal(File.realpath(@frontend_dir), File.realpath(config.instances["frontend"][:directory]))
     end
   end
 
@@ -71,11 +71,15 @@ class WorkingDirectoryBehaviorTest < Minitest::Test
       config = ClaudeSwarm::Configuration.new(@config_path, base_dir: Dir.pwd)
 
       # Verify directories are resolved relative to current directory, not config location
-      assert_equal File.realpath(other_launch_dir), File.realpath(config.instances["lead"][:directory])
-      assert_equal File.realpath(File.join(other_launch_dir, "backend")),
-                   File.realpath(config.instances["backend"][:directory])
-      assert_equal File.realpath(File.join(other_launch_dir, "frontend")),
-                   File.realpath(config.instances["frontend"][:directory])
+      assert_equal(File.realpath(other_launch_dir), File.realpath(config.instances["lead"][:directory]))
+      assert_equal(
+        File.realpath(File.join(other_launch_dir, "backend")),
+        File.realpath(config.instances["backend"][:directory]),
+      )
+      assert_equal(
+        File.realpath(File.join(other_launch_dir, "frontend")),
+        File.realpath(config.instances["frontend"][:directory]),
+      )
     end
   end
 
@@ -101,8 +105,8 @@ class WorkingDirectoryBehaviorTest < Minitest::Test
     Dir.chdir(@test_root) do
       config = ClaudeSwarm::Configuration.new(@config_path, base_dir: Dir.pwd)
 
-      assert_equal File.realpath(@project_dir), File.realpath(config.instances["lead"][:directory])
-      assert_equal File.realpath(@backend_dir), File.realpath(config.instances["backend"][:directory])
+      assert_equal(File.realpath(@project_dir), File.realpath(config.instances["lead"][:directory]))
+      assert_equal(File.realpath(@backend_dir), File.realpath(config.instances["backend"][:directory]))
     end
   end
 end

@@ -45,7 +45,7 @@ module ClaudeSwarm
 
       # Build parameters
       parameters = {
-        model: @model
+        model: @model,
       }
 
       # On first call, use string input (can include system prompt)
@@ -53,10 +53,10 @@ module ClaudeSwarm
       if conversation_array.empty?
         # Initial call - string input
         parameters[:input] = if depth.zero? && @system_prompt
-                               "#{@system_prompt}\n\n#{input}"
-                             else
-                               input
-                             end
+          "#{@system_prompt}\n\n#{input}"
+        else
+          input
+        end
       else
         # Follow-up call with conversation array (function calls + outputs)
         parameters[:input] = conversation_array
@@ -80,7 +80,7 @@ module ClaudeSwarm
             "type" => "function",
             "name" => tool.name,
             "description" => tool.description,
-            "parameters" => tool.schema || {}
+            "parameters" => tool.schema || {},
           }
         end
         @executor.info("Available tools for responses API: #{parameters[:tools].map { |t| t["name"] }.join(", ")}")
@@ -91,11 +91,11 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-                               type: "openai_request",
-                               api: "responses",
-                               depth: depth,
-                               parameters: parameters
-                             })
+        type: "openai_request",
+        api: "responses",
+        depth: depth,
+        parameters: parameters,
+      })
 
       # Make the API call without streaming
       begin
@@ -116,15 +116,15 @@ module ClaudeSwarm
 
         # Log error to session JSON
         append_to_session_json({
-                                 type: "openai_error",
-                                 api: "responses",
-                                 error: {
-                                   class: e.class.to_s,
-                                   message: e.message,
-                                   response_body: e.respond_to?(:response) ? e.response[:body] : nil,
-                                   backtrace: e.backtrace.first(5)
-                                 }
-                               })
+          type: "openai_error",
+          api: "responses",
+          error: {
+            class: e.class.to_s,
+            message: e.message,
+            response_body: e.respond_to?(:response) ? e.response[:body] : nil,
+            backtrace: e.backtrace.first(5),
+          },
+        })
 
         return "Error calling OpenAI responses API: #{e.message}"
       end
@@ -134,11 +134,11 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-                               type: "openai_response",
-                               api: "responses",
-                               depth: depth,
-                               response: response
-                             })
+        type: "openai_response",
+        api: "responses",
+        depth: depth,
+        response: response,
+      })
 
       # Extract response details
       response_id = response["id"]
@@ -197,10 +197,10 @@ module ClaudeSwarm
 
       # Append to session JSON
       append_to_session_json({
-                               type: "tool_calls",
-                               api: "responses",
-                               tool_calls: function_calls
-                             })
+        type: "tool_calls",
+        api: "responses",
+        tool_calls: function_calls,
+      })
 
       # Build conversation array with function outputs only
       # The API already knows about the function calls from the previous response
@@ -231,18 +231,18 @@ module ClaudeSwarm
 
           # Append to session JSON
           append_to_session_json({
-                                   type: "tool_execution",
-                                   api: "responses",
-                                   tool_name: tool_name,
-                                   arguments: tool_args,
-                                   result: result.to_s
-                                 })
+            type: "tool_execution",
+            api: "responses",
+            tool_name: tool_name,
+            arguments: tool_args,
+            result: result.to_s,
+          })
 
           # Add function output to conversation
           conversation << {
             type: "function_call_output",
             call_id: call_id,
-            output: result.to_json # Must be JSON string
+            output: result.to_json, # Must be JSON string
           }
         rescue StandardError => e
           @executor.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")
@@ -250,22 +250,22 @@ module ClaudeSwarm
 
           # Append error to session JSON
           append_to_session_json({
-                                   type: "tool_error",
-                                   api: "responses",
-                                   tool_name: tool_name,
-                                   arguments: tool_args_str,
-                                   error: {
-                                     class: e.class.to_s,
-                                     message: e.message,
-                                     backtrace: e.backtrace.first(5)
-                                   }
-                                 })
+            type: "tool_error",
+            api: "responses",
+            tool_name: tool_name,
+            arguments: tool_args_str,
+            error: {
+              class: e.class.to_s,
+              message: e.message,
+              backtrace: e.backtrace.first(5),
+            },
+          })
 
           # Add error output to conversation
           conversation << {
             type: "function_call_output",
             call_id: call_id,
-            output: { error: e.message }.to_json
+            output: { error: e.message }.to_json,
           }
         end
       end
@@ -302,7 +302,7 @@ module ClaudeSwarm
           conversation << {
             type: "function_call_output",
             call_id: call_id,
-            output: result.to_json # Must be JSON string
+            output: result.to_json, # Must be JSON string
           }
         rescue StandardError => e
           @executor.error("Responses API - Tool execution failed for #{tool_name}: #{e.message}")
@@ -311,7 +311,7 @@ module ClaudeSwarm
           conversation << {
             type: "function_call_output",
             call_id: call_id,
-            output: { error: e.message }.to_json
+            output: { error: e.message }.to_json,
           }
         end
       end

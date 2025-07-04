@@ -12,7 +12,7 @@ module ClaudeSwarm
     RUN_DIR = File.expand_path("~/.claude-swarm/run")
 
     def initialize(configuration, mcp_generator, vibe: false, prompt: nil, stream_logs: false, debug: false,
-                   restore_session_path: nil, worktree: nil)
+      restore_session_path: nil, worktree: nil)
       @config = configuration
       @generator = mcp_generator
       @vibe = vibe
@@ -24,7 +24,7 @@ module ClaudeSwarm
       # Store worktree option for later use
       @worktree_option = worktree
       @needs_worktree_manager = worktree.is_a?(String) || worktree == "" ||
-                                configuration.instances.values.any? { |inst| !inst[:worktree].nil? }
+        configuration.instances.values.any? { |inst| !inst[:worktree].nil? }
       # Store modified instances after worktree setup
       @modified_instances = nil
       # Track start time for runtime calculation
@@ -149,7 +149,7 @@ module ClaudeSwarm
           cleanup_processes
           cleanup_run_symlink
           cleanup_worktrees
-          exit 1
+          exit(1)
         end
 
         unless @prompt
@@ -224,7 +224,7 @@ module ClaudeSwarm
           puts "Debug: Executing command #{index + 1}/#{commands.size}: #{command}" if @debug && !@prompt
 
           # Use system with output capture
-          output = `#{command} 2>&1`
+          output = %x(#{command} 2>&1)
           success = $CHILD_STATUS.success?
 
           # Log the output
@@ -278,7 +278,7 @@ module ClaudeSwarm
         "timestamp" => Time.now.utc.iso8601,
         "start_time" => @start_time.utc.iso8601,
         "swarm_name" => @config.swarm_name,
-        "claude_swarm_version" => VERSION
+        "claude_swarm_version" => VERSION,
       }
 
       # Add worktree info if applicable
@@ -289,7 +289,7 @@ module ClaudeSwarm
     end
 
     def setup_signal_handlers
-      %w[INT TERM QUIT].each do |signal|
+      ["INT", "TERM", "QUIT"].each do |signal|
         Signal.trap(signal) do
           puts "\n🛑 Received #{signal} signal, cleaning up..."
           display_summary
@@ -415,7 +415,7 @@ module ClaudeSwarm
         session_log_path = File.join(ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil), "session.log")
 
         # Wait for log file to be created
-        sleep 0.1 until File.exist?(session_log_path)
+        sleep(0.1) until File.exist?(session_log_path)
 
         # Open file and seek to end
         File.open(session_log_path, "r") do |file|
@@ -424,10 +424,10 @@ module ClaudeSwarm
           loop do
             changes = file.read
             if changes
-              print changes
+              print(changes)
               $stdout.flush
             else
-              sleep 0.1
+              sleep(0.1)
             end
           end
         end
@@ -450,7 +450,7 @@ module ClaudeSwarm
       parts = [
         "claude",
         "--model",
-        instance[:model]
+        instance[:model],
       ]
 
       # Add resume flag if restoring session

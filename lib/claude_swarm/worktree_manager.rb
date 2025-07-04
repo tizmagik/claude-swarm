@@ -17,10 +17,10 @@ module ClaudeSwarm
       @session_id = session_id
       # Generate a name based on session ID if no option given, empty string, or default "worktree" from Thor
       @shared_worktree_name = if cli_worktree_option.nil? || cli_worktree_option.empty? || cli_worktree_option == "worktree"
-                                generate_worktree_name
-                              else
-                                cli_worktree_option
-                              end
+        generate_worktree_name
+      else
+        cli_worktree_option
+      end
       @created_worktrees = {} # Maps "repo_root:worktree_name" to worktree_path
       @instance_worktree_configs = {} # Stores per-instance worktree settings
     end
@@ -101,10 +101,10 @@ module ClaudeSwarm
 
       # Return the equivalent path in the worktree
       result = if relative_path == "."
-                 worktree_path
-               else
-                 File.join(worktree_path, relative_path)
-               end
+        worktree_path
+      else
+        File.join(worktree_path, relative_path)
+      end
 
       puts "Debug [map_to_worktree_path]: Result: #{result}" if ENV["CLAUDE_SWARM_DEBUG"]
 
@@ -177,7 +177,7 @@ module ClaudeSwarm
         enabled: true,
         shared_name: @shared_worktree_name,
         created_paths: @created_worktrees.dup,
-        instance_configs: @instance_worktree_configs.dup
+        instance_configs: @instance_worktree_configs.dup,
       }
     end
 
@@ -419,17 +419,17 @@ module ClaudeSwarm
     def find_original_repo_for_worktree(worktree_path)
       # Get the git directory for this worktree
       _, git_dir_status = Open3.capture2e("git", "-C", worktree_path, "rev-parse", "--git-dir")
-      return nil unless git_dir_status.success?
+      return unless git_dir_status.success?
 
       # Read the gitdir file to find the main repository
       # Worktree .git files contain: gitdir: /path/to/main/repo/.git/worktrees/worktree-name
       if File.file?(File.join(worktree_path, ".git"))
         gitdir_content = File.read(File.join(worktree_path, ".git")).strip
         if gitdir_content =~ /^gitdir: (.+)$/
-          git_path = $1
+          git_path = ::Regexp.last_match(1)
           # Extract the main repo path from the worktree git path
           # Format: /path/to/repo/.git/worktrees/worktree-name
-          return $1 if git_path =~ %r{^(.+)/\.git/worktrees/[^/]+$}
+          return ::Regexp.last_match(1) if git_path =~ %r{^(.+)/\.git/worktrees/[^/]+$}
         end
       end
 
@@ -438,7 +438,7 @@ module ClaudeSwarm
 
     def find_base_branch(repo_path)
       # Try to find the base branch - check for main, master, or the default branch
-      %w[main master].each do |branch|
+      ["main", "master"].each do |branch|
         _, status = Open3.capture2e("git", "-C", repo_path, "rev-parse", "--verify", "refs/heads/#{branch}")
         return branch if status.success?
       end

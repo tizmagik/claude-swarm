@@ -46,7 +46,7 @@ class CleanupIntegrationTest < Minitest::Test
     end
 
     # Give it time to start
-    sleep 1
+    sleep(1)
 
     # Send SIGTERM to the process
     begin
@@ -63,7 +63,7 @@ class CleanupIntegrationTest < Minitest::Test
     # Check that no MCP processes are left running
     # This is more of a manual verification - in real use, we'd check
     # that the session directory has no PID file
-    assert true, "Process cleanup completed without hanging"
+    assert(true, "Process cleanup completed without hanging")
   rescue Timeout::Error
     begin
       Process.kill("KILL", pid)
@@ -71,6 +71,6 @@ class CleanupIntegrationTest < Minitest::Test
       nil
     end
 
-    flunk "Process did not exit cleanly within timeout"
+    flunk("Process did not exit cleanly within timeout")
   end
 end

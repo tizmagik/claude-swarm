@@ -12,7 +12,7 @@ module ClaudeSwarm
         session_path = find_session_path(session_id)
         unless session_path
           puts "Session not found: #{session_id}"
-          exit 1
+          exit(1)
         end
 
         # Load config to get main instance name
@@ -26,10 +26,10 @@ module ClaudeSwarm
         # Calculate total cost (excluding main if not available)
         total_cost = instances.values.sum { |i| i[:cost] }
         cost_display = if instances[main_instance_name] && instances[main_instance_name][:has_cost_data]
-                         format("$%.4f", total_cost)
-                       else
-                         "#{format("$%.4f", total_cost)} (excluding main instance)"
-                       end
+          format("$%.4f", total_cost)
+        else
+          "#{format("$%.4f", total_cost)} (excluding main instance)"
+        end
 
         # Display session info
         puts "Session: #{session_id}"
@@ -81,7 +81,7 @@ module ClaudeSwarm
 
       def get_runtime_info(session_path)
         metadata_file = File.join(session_path, "session_metadata.json")
-        return nil unless File.exist?(metadata_file)
+        return unless File.exist?(metadata_file)
 
         metadata = JSON.parse(File.read(metadata_file))
 
@@ -123,10 +123,10 @@ module ClaudeSwarm
 
         # Display cost - show n/a for main instance without cost data
         cost_display = if instance[:name] == main_instance_name && !instance[:has_cost_data]
-                         "n/a (interactive)"
-                       else
-                         format("$%.4f", instance[:cost])
-                       end
+          "n/a (interactive)"
+        else
+          format("$%.4f", instance[:cost])
+        end
 
         puts "#{indent}   Cost: #{cost_display} | Calls: #{instance[:calls]}"
 

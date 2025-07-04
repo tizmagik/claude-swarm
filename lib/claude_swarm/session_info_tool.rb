@@ -15,7 +15,7 @@ module ClaudeSwarm
       {
         has_session: executor.has_session?,
         session_id: executor.session_id,
-        working_directory: executor.working_directory
+        working_directory: executor.working_directory,
       }
     end
   end

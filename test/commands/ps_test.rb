@@ -30,14 +30,14 @@ module ClaudeSwarm
       def test_execute_with_no_sessions
         output = capture_io { Commands::Ps.new.execute }.first
 
-        assert_equal "No active sessions\n", output
+        assert_equal("No active sessions\n", output)
       end
 
       def test_execute_with_no_run_directory
         FileUtils.rm_rf(@run_dir)
         output = capture_io { Commands::Ps.new.execute }.first
 
-        assert_equal "No active sessions\n", output
+        assert_equal("No active sessions\n", output)
       end
 
       def test_execute_with_active_session
@@ -48,10 +48,10 @@ module ClaudeSwarm
             "main" => "leader",
             "instances" => {
               "leader" => {
-                "directory" => "."
-              }
-            }
-          }
+                "directory" => ".",
+              },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
 
@@ -59,7 +59,7 @@ module ClaudeSwarm
         json_log = [
           { "event" => { "type" => "result", "total_cost_usd" => 0.1234 } },
           { "event" => { "type" => "result", "total_cost_usd" => 0.2345 } },
-          { "event" => { "type" => "other" } }
+          { "event" => { "type" => "other" } },
         ].map(&:to_json).join("\n")
         File.write(File.join(@test_session_dir, "session.log.json"), json_log)
 
@@ -68,11 +68,11 @@ module ClaudeSwarm
 
         output = capture_io { Commands::Ps.new.execute }.first
 
-        assert_includes output, "SESSION_ID"
-        assert_includes output, "SWARM_NAME"
-        assert_includes output, "TOTAL_COST"
-        assert_includes output, "UPTIME"
-        assert_includes output, "DIRECTORY"
+        assert_includes(output, "SESSION_ID")
+        assert_includes(output, "SWARM_NAME")
+        assert_includes(output, "TOTAL_COST")
+        assert_includes(output, "UPTIME")
+        assert_includes(output, "DIRECTORY")
         assert_match(/test-session-123/, output)
         assert_match(/Test Swarm/, output)
         assert_match(/\$0\.3579/, output)
@@ -86,7 +86,7 @@ module ClaudeSwarm
 
         output = capture_io { Commands::Ps.new.execute }.first
 
-        assert_equal "No active sessions\n", output
+        assert_equal("No active sessions\n", output)
       end
 
       def test_execute_with_missing_config
@@ -96,7 +96,7 @@ module ClaudeSwarm
 
         output = capture_io { Commands::Ps.new.execute }.first
 
-        assert_equal "No active sessions\n", output
+        assert_equal("No active sessions\n", output)
       end
 
       def test_execute_with_no_json_log
@@ -106,9 +106,9 @@ module ClaudeSwarm
             "name" => "Test Swarm",
             "main" => "leader",
             "instances" => {
-              "leader" => { "directory" => "." }
-            }
-          }
+              "leader" => { "directory" => "." },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
         File.symlink(@test_session_dir, File.join(@run_dir, "test-session-123"))
@@ -123,17 +123,17 @@ module ClaudeSwarm
       def test_format_duration
         ps = Commands::Ps.new
 
-        assert_equal "45s", ps.send(:format_duration, 45)
-        assert_equal "2m", ps.send(:format_duration, 120)
-        assert_equal "1h", ps.send(:format_duration, 3600)
-        assert_equal "2d", ps.send(:format_duration, 172_800)
+        assert_equal("45s", ps.send(:format_duration, 45))
+        assert_equal("2m", ps.send(:format_duration, 120))
+        assert_equal("1h", ps.send(:format_duration, 3600))
+        assert_equal("2d", ps.send(:format_duration, 172_800))
       end
 
       def test_truncate
         ps = Commands::Ps.new
 
-        assert_equal "short", ps.send(:truncate, "short", 10)
-        assert_equal "very long ..", ps.send(:truncate, "very long string", 12)
+        assert_equal("short", ps.send(:truncate, "short", 10))
+        assert_equal("very long ..", ps.send(:truncate, "very long string", 12))
       end
 
       def test_execute_with_array_directory_format
@@ -144,10 +144,10 @@ module ClaudeSwarm
             "main" => "leader",
             "instances" => {
               "leader" => {
-                "directory" => ["/path/to/main", "/path/to/other"]
-              }
-            }
-          }
+                "directory" => ["/path/to/main", "/path/to/other"],
+              },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
         File.write(File.join(@test_session_dir, "session.log.json"), "")
@@ -172,8 +172,8 @@ module ClaudeSwarm
             "swarm" => {
               "name" => "Swarm #{i + 1}",
               "main" => "leader",
-              "instances" => { "leader" => { "directory" => "." } }
-            }
+              "instances" => { "leader" => { "directory" => "." } },
+            },
           }
           File.write(File.join(dir, "config.yml"), config.to_yaml)
           File.write(File.join(dir, "session.log.json"), "")
@@ -192,8 +192,8 @@ module ClaudeSwarm
         data_lines = lines.select { |line| line.match(/session-\d/) }
 
         # Session 2 should appear first (newer)
-        assert data_lines[0].include?("session-2") && data_lines[0].include?("Swarm 2")
-        assert data_lines[1].include?("session-1") && data_lines[1].include?("Swarm 1")
+        assert(data_lines[0].include?("session-2") && data_lines[0].include?("Swarm 2"))
+        assert(data_lines[1].include?("session-1") && data_lines[1].include?("Swarm 1"))
       end
 
       def test_execute_with_expanded_paths
@@ -207,10 +207,10 @@ module ClaudeSwarm
             "main" => "leader",
             "instances" => {
               "leader" => {
-                "directory" => "."
-              }
-            }
-          }
+                "directory" => ".",
+              },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
         File.write(File.join(@test_session_dir, "session.log.json"), "")
@@ -219,7 +219,7 @@ module ClaudeSwarm
         output = capture_io { Commands::Ps.new.execute }.first
 
         # Should show expanded path, not "."
-        assert_match start_dir, output
+        assert_match(start_dir, output)
         refute_match(/DIRECTORY\s+\.$/, output)
       end
 
@@ -234,10 +234,10 @@ module ClaudeSwarm
             "main" => "leader",
             "instances" => {
               "leader" => {
-                "directory" => "."
-              }
-            }
-          }
+                "directory" => ".",
+              },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
         File.write(File.join(@test_session_dir, "session.log.json"), "")
@@ -248,9 +248,9 @@ module ClaudeSwarm
             "enabled" => true,
             "shared_name" => "feature-branch",
             "created_paths" => {
-              "#{start_dir}:feature-branch" => "#{start_dir}/.worktrees/feature-branch"
-            }
-          }
+              "#{start_dir}:feature-branch" => "#{start_dir}/.worktrees/feature-branch",
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "session_metadata.json"), JSON.pretty_generate(metadata))
 
@@ -258,11 +258,11 @@ module ClaudeSwarm
 
         # Mock find_git_root to return the start_dir as if it's a git repo
         ps_instance = Commands::Ps.new
-        ps_instance.stub :find_git_root, start_dir do
+        ps_instance.stub(:find_git_root, start_dir) do
           output = capture_io { ps_instance.execute }.first
 
           # Should show worktree path
-          assert_match "#{start_dir}/.worktrees/feature-branch", output
+          assert_match("#{start_dir}/.worktrees/feature-branch", output)
           refute_match(/DIRECTORY\s+#{Regexp.escape(start_dir)}$/, output)
         end
       end
@@ -278,10 +278,10 @@ module ClaudeSwarm
             "main" => "leader",
             "instances" => {
               "leader" => {
-                "directory" => ["./app1", "./app2"]
-              }
-            }
-          }
+                "directory" => ["./app1", "./app2"],
+              },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
         File.write(File.join(@test_session_dir, "session.log.json"), "")
@@ -293,9 +293,9 @@ module ClaudeSwarm
             "shared_name" => "feature-x",
             "created_paths" => {
               "#{start_dir}/app1:feature-x" => "#{start_dir}/app1/.worktrees/feature-x",
-              "#{start_dir}/app2:feature-x" => "#{start_dir}/app2/.worktrees/feature-x"
-            }
-          }
+              "#{start_dir}/app2:feature-x" => "#{start_dir}/app2/.worktrees/feature-x",
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "session_metadata.json"), JSON.pretty_generate(metadata))
 
@@ -315,7 +315,7 @@ module ClaudeSwarm
         output = capture_io { ps_instance.execute }.first
 
         # Should show both worktree paths
-        assert_match "#{start_dir}/app1/.worktrees/feature-x, #{start_dir}/app2/.worktrees/feature-x", output
+        assert_match("#{start_dir}/app1/.worktrees/feature-x, #{start_dir}/app2/.worktrees/feature-x", output)
       end
 
       def test_execute_without_worktree_metadata
@@ -329,10 +329,10 @@ module ClaudeSwarm
             "main" => "leader",
             "instances" => {
               "leader" => {
-                "directory" => "./src"
-              }
-            }
-          }
+                "directory" => "./src",
+              },
+            },
+          },
         }
         File.write(File.join(@test_session_dir, "config.yml"), config.to_yaml)
         File.write(File.join(@test_session_dir, "session.log.json"), "")
@@ -344,7 +344,7 @@ module ClaudeSwarm
         output = capture_io { Commands::Ps.new.execute }.first
 
         # Should show expanded path without worktree
-        assert_match "#{start_dir}/src", output
+        assert_match("#{start_dir}/src", output)
       end
     end
   end

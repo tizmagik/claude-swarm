@@ -30,8 +30,8 @@ class ConfigurationVibeTest < Minitest::Test
     File.write(@config_path, config_content)
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert config.instances["leader"][:vibe]
-    refute config.instances["worker"][:vibe]
+    assert(config.instances["leader"][:vibe])
+    refute(config.instances["worker"][:vibe])
   end
 
   def test_all_instances_default_vibe_false
@@ -50,8 +50,8 @@ class ConfigurationVibeTest < Minitest::Test
     File.write(@config_path, config_content)
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    refute config.instances["leader"][:vibe]
-    refute config.instances["worker"][:vibe]
+    refute(config.instances["leader"][:vibe])
+    refute(config.instances["worker"][:vibe])
   end
 
   def test_mixed_vibe_settings
@@ -74,8 +74,8 @@ class ConfigurationVibeTest < Minitest::Test
     File.write(@config_path, config_content)
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    refute config.instances["leader"][:vibe]
-    assert config.instances["worker1"][:vibe]
-    refute config.instances["worker2"][:vibe]
+    refute(config.instances["leader"][:vibe])
+    assert(config.instances["worker1"][:vibe])
+    refute(config.instances["worker2"][:vibe])
   end
 end

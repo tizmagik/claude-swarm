@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require "json"
-require "set" # rubocop:disable Lint/RedundantRequireStatement
+require "set"
 
 module ClaudeSwarm
   module SessionCostCalculator
-    module_function
+    extend self
 
     # Calculate total cost from session log file
     # Returns a hash with:
@@ -29,7 +29,7 @@ module ClaudeSwarm
 
       {
         total_cost: total_cost,
-        instances_with_cost: instances_with_cost
+        instances_with_cost: instances_with_cost,
       }
     end
 
@@ -59,7 +59,7 @@ module ClaudeSwarm
           calls: 0,
           called_by: Set.new,
           calls_to: Set.new,
-          has_cost_data: false
+          has_cost_data: false,
         }
 
         # Track relationships
@@ -73,7 +73,7 @@ module ClaudeSwarm
             calls: 0,
             called_by: Set.new,
             calls_to: Set.new,
-            has_cost_data: false
+            has_cost_data: false,
           }
           instances[calling_instance][:calls_to] << instance_name
         end

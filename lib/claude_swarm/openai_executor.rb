@@ -14,10 +14,10 @@ module ClaudeSwarm
     attr_reader :session_id, :last_response, :working_directory, :logger, :session_path
 
     def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false,
-                   instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil,
-                   claude_session_id: nil, additional_directories: [],
-                   temperature: 0.3, api_version: "chat_completion", openai_token_env: "OPENAI_API_KEY",
-                   base_url: nil)
+      instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil,
+      claude_session_id: nil, additional_directories: [],
+      temperature: 0.3, api_version: "chat_completion", openai_token_env: "OPENAI_API_KEY",
+      base_url: nil)
       @working_directory = working_directory
       @additional_directories = additional_directories
       @model = model
@@ -54,7 +54,7 @@ module ClaudeSwarm
         logger: self,
         instance_name: @instance_name,
         model: @model,
-        temperature: @temperature
+        temperature: @temperature,
       )
 
       @responses_handler = OpenAIResponses.new(
@@ -64,7 +64,7 @@ module ClaudeSwarm
         logger: self,
         instance_name: @instance_name,
         model: @model,
-        temperature: @temperature
+        temperature: @temperature,
       )
     end
 
@@ -77,10 +77,10 @@ module ClaudeSwarm
 
       # Execute based on API version
       result = if @api_version == "responses"
-                 @responses_handler.execute(prompt, options)
-               else
-                 @chat_completion_handler.execute(prompt, options)
-               end
+        @responses_handler.execute(prompt, options)
+      else
+        @chat_completion_handler.execute(prompt, options)
+      end
 
       # Calculate duration
       duration_ms = ((Time.now - start_time) * 1000).round
@@ -91,7 +91,7 @@ module ClaudeSwarm
         "result" => result,
         "duration_ms" => duration_ms,
         "total_cost" => calculate_cost(result),
-        "session_id" => @session_id
+        "session_id" => @session_id,
       }
 
       log_response(response)
@@ -146,7 +146,7 @@ module ClaudeSwarm
     def setup_openai_client(token_env)
       config = {
         access_token: ENV.fetch(token_env),
-        log_errors: true
+        log_errors: true,
       }
       config[:uri_base] = @base_url if @base_url
 
@@ -174,7 +174,7 @@ module ClaudeSwarm
 
             mcp_configs << MCPClient.stdio_config(
               command: command_array,
-              name: name
+              name: name,
             )
           when "sse"
             @logger.warn("SSE MCP servers not yet supported for OpenAI instances: #{name}")
@@ -185,7 +185,7 @@ module ClaudeSwarm
         if mcp_configs.any?
           @mcp_client = MCPClient.create_client(
             mcp_server_configs: mcp_configs,
-            logger: @logger
+            logger: @logger,
           )
 
           # List available tools from all MCP servers
@@ -248,7 +248,7 @@ module ClaudeSwarm
         to_instance: @instance_name,
         to_instance_id: @instance_id,
         prompt: prompt,
-        timestamp: Time.now.iso8601
+        timestamp: Time.now.iso8601,
       }
 
       append_to_session_json(event)
@@ -260,7 +260,7 @@ module ClaudeSwarm
       instance_info = @instance_name
       instance_info += " (#{@instance_id})" if @instance_id
       @logger.info(
-        "(#{response["total_cost"]} - #{response["duration_ms"]}ms) #{instance_info} -> #{caller_info}: \n---\n#{response["result"]}\n---"
+        "(#{response["total_cost"]} - #{response["duration_ms"]}ms) #{instance_info} -> #{caller_info}: \n---\n#{response["result"]}\n---",
       )
     end
 
@@ -286,7 +286,7 @@ module ClaudeSwarm
           calling_instance: @calling_instance,
           calling_instance_id: @calling_instance_id,
           timestamp: Time.now.iso8601,
-          event: event
+          event: event,
         }
 
         # Write as single line JSON (JSONL format)

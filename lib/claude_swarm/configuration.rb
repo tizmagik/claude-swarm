@@ -87,13 +87,13 @@ module ClaudeSwarm
       provider = config["provider"]
 
       # Validate provider value if specified
-      if provider && !%w[claude openai].include?(provider)
+      if provider && !["claude", "openai"].include?(provider)
         raise Error, "Instance '#{name}' has invalid provider '#{provider}'. Must be 'claude' or 'openai'"
       end
 
       # Validate OpenAI-specific fields only when provider is "openai"
       if provider != "openai"
-        openai_fields = %w[temperature api_version openai_token_env base_url]
+        openai_fields = ["temperature", "api_version", "openai_token_env", "base_url"]
         invalid_fields = openai_fields & config.keys
         unless invalid_fields.empty?
           raise Error, "Instance '#{name}' has OpenAI-specific fields #{invalid_fields.join(", ")} but provider is not 'openai'"
@@ -101,7 +101,7 @@ module ClaudeSwarm
       end
 
       # Validate api_version if specified
-      if config["api_version"] && !%w[chat_completion responses].include?(config["api_version"])
+      if config["api_version"] && !["chat_completion", "responses"].include?(config["api_version"])
         raise Error, "Instance '#{name}' has invalid api_version '#{config["api_version"]}'. Must be 'chat_completion' or 'responses'"
       end
 
@@ -130,7 +130,7 @@ module ClaudeSwarm
         description: config["description"],
         vibe: config["vibe"],
         worktree: parse_worktree_value(config["worktree"]),
-        provider: provider # nil means Claude (default)
+        provider: provider, # nil means Claude (default)
       }
 
       # Add OpenAI-specific fields only when provider is "openai"
@@ -234,7 +234,7 @@ module ClaudeSwarm
     end
 
     def parse_worktree_value(value)
-      return nil if value.nil? # Omitted means follow CLI behavior
+      return if value.nil? # Omitted means follow CLI behavior
       return value if value.is_a?(TrueClass) || value.is_a?(FalseClass)
       return value.to_s if value.is_a?(String) && !value.empty?
 

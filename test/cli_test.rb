@@ -27,7 +27,7 @@ class CLITest < Minitest::Test
   end
 
   def test_exit_on_failure
-    assert_predicate ClaudeSwarm::CLI, :exit_on_failure?
+    assert_predicate(ClaudeSwarm::CLI, :exit_on_failure?)
   end
 
   def test_version_command
@@ -37,7 +37,7 @@ class CLITest < Minitest::Test
   end
 
   def test_default_task_is_start
-    assert_equal "start", ClaudeSwarm::CLI.default_task
+    assert_equal("start", ClaudeSwarm::CLI.default_task)
   end
 
   def test_start_with_missing_config_file
@@ -87,9 +87,9 @@ class CLITest < Minitest::Test
 
     # Mock the orchestrator to prevent actual execution
     orchestrator_mock = Minitest::Mock.new
-    orchestrator_mock.expect :start, nil
+    orchestrator_mock.expect(:start, nil)
 
-    ClaudeSwarm::Orchestrator.stub :new, orchestrator_mock do
+    ClaudeSwarm::Orchestrator.stub(:new, orchestrator_mock) do
       capture_cli_output { @cli.start("valid.yml") }
     end
 
@@ -111,9 +111,9 @@ class CLITest < Minitest::Test
     @cli.options = { config: "custom.yml" }
 
     orchestrator_mock = Minitest::Mock.new
-    orchestrator_mock.expect :start, nil
+    orchestrator_mock.expect(:start, nil)
 
-    ClaudeSwarm::Orchestrator.stub :new, orchestrator_mock do
+    ClaudeSwarm::Orchestrator.stub(:new, orchestrator_mock) do
       capture_cli_output { @cli.start }
     end
 
@@ -135,17 +135,17 @@ class CLITest < Minitest::Test
     @cli.options = { prompt: "Test prompt for non-interactive mode" }
 
     orchestrator_mock = Minitest::Mock.new
-    orchestrator_mock.expect :start, nil
+    orchestrator_mock.expect(:start, nil)
 
     generator_mock = Minitest::Mock.new
 
     # Verify that prompt is passed to orchestrator
-    ClaudeSwarm::McpGenerator.stub :new, generator_mock do
-      ClaudeSwarm::Orchestrator.stub :new, lambda { |_config, _generator, **options|
-        assert_equal "Test prompt for non-interactive mode", options[:prompt]
-        assert_nil options[:vibe]
+    ClaudeSwarm::McpGenerator.stub(:new, generator_mock) do
+      ClaudeSwarm::Orchestrator.stub(:new, lambda { |_config, _generator, **options|
+        assert_equal("Test prompt for non-interactive mode", options[:prompt])
+        assert_nil(options[:vibe])
         orchestrator_mock
-      } do
+      }) do
         output, = capture_cli_output { @cli.start("valid.yml") }
         # Verify that startup message is suppressed when prompt is provided
         refute_match(/Starting Claude Swarm/, output)
@@ -170,9 +170,9 @@ class CLITest < Minitest::Test
     @cli.options = {}
 
     orchestrator_mock = Minitest::Mock.new
-    orchestrator_mock.expect :start, nil
+    orchestrator_mock.expect(:start, nil)
 
-    ClaudeSwarm::Orchestrator.stub :new, orchestrator_mock do
+    ClaudeSwarm::Orchestrator.stub(:new, orchestrator_mock) do
       output, = capture_cli_output { @cli.start("valid.yml") }
       # Verify that startup message is shown when prompt is not provided
       assert_match(/Starting Claude Swarm from valid\.yml\.\.\./, output)
@@ -187,14 +187,14 @@ class CLITest < Minitest::Test
       directory: "/test/dir",
       model: "opus",
       prompt: "Test prompt",
-      allowed_tools: %w[Read Edit],
+      allowed_tools: ["Read", "Edit"],
       mcp_config_path: "/path/to/mcp.json",
       debug: false,
-      calling_instance: "parent_instance"
+      calling_instance: "parent_instance",
     }
 
     server_mock = Minitest::Mock.new
-    server_mock.expect :start, nil
+    server_mock.expect(:start, nil)
 
     expected_config = {
       name: "test_instance",
@@ -203,7 +203,7 @@ class CLITest < Minitest::Test
       model: "opus",
       prompt: "Test prompt",
       description: nil,
-      allowed_tools: %w[Read Edit],
+      allowed_tools: ["Read", "Edit"],
       disallowed_tools: [],
       connections: [],
       mcp_config_path: "/path/to/mcp.json",
@@ -214,14 +214,14 @@ class CLITest < Minitest::Test
       temperature: nil,
       api_version: nil,
       openai_token_env: nil,
-      base_url: nil
+      base_url: nil,
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
-      assert_equal expected_config, config
-      assert_equal "parent_instance", calling_instance
+    ClaudeSwarm::ClaudeMcpServer.stub(:new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
+      assert_equal(expected_config, config)
+      assert_equal("parent_instance", calling_instance)
       server_mock
-    } do
+    }) do
       @cli.mcp_serve
     end
 
@@ -233,11 +233,11 @@ class CLITest < Minitest::Test
       name: "minimal",
       directory: ".",
       model: "sonnet",
-      calling_instance: "test_caller"
+      calling_instance: "test_caller",
     }
 
     server_mock = Minitest::Mock.new
-    server_mock.expect :start, nil
+    server_mock.expect(:start, nil)
 
     expected_config = {
       name: "minimal",
@@ -257,14 +257,14 @@ class CLITest < Minitest::Test
       temperature: nil,
       api_version: nil,
       openai_token_env: nil,
-      base_url: nil
+      base_url: nil,
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
-      assert_equal expected_config, config
-      assert_equal "test_caller", calling_instance
+    ClaudeSwarm::ClaudeMcpServer.stub(:new, lambda { |config, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
+      assert_equal(expected_config, config)
+      assert_equal("test_caller", calling_instance)
       server_mock
-    } do
+    }) do
       @cli.mcp_serve
     end
 
@@ -277,12 +277,12 @@ class CLITest < Minitest::Test
       directory: ".",
       model: "sonnet",
       debug: false,
-      calling_instance: "test_caller"
+      calling_instance: "test_caller",
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
+    ClaudeSwarm::ClaudeMcpServer.stub(:new, lambda { |_, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
       raise StandardError, "Test error"
-    } do
+    }) do
       out, = capture_cli_output do
         assert_raises(SystemExit) { @cli.mcp_serve }
       end
@@ -298,12 +298,12 @@ class CLITest < Minitest::Test
       directory: ".",
       model: "sonnet",
       debug: true,
-      calling_instance: "test_caller"
+      calling_instance: "test_caller",
     }
 
-    ClaudeSwarm::ClaudeMcpServer.stub :new, lambda { |_, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
+    ClaudeSwarm::ClaudeMcpServer.stub(:new, lambda { |_, calling_instance:, calling_instance_id: nil| # rubocop:disable Lint/UnusedBlockArgument
       raise StandardError, "Test error"
-    } do
+    }) do
       out, = capture_cli_output do
         assert_raises(SystemExit) { @cli.mcp_serve }
       end
@@ -327,9 +327,9 @@ class CLITest < Minitest::Test
 
     @cli.options = { config: "valid.yml", verbose: false }
 
-    ClaudeSwarm::Configuration.stub :new, lambda { |_, _|
+    ClaudeSwarm::Configuration.stub(:new, lambda { |_, _|
       raise StandardError, "Unexpected test error"
-    } do
+    }) do
       out, = capture_cli_output do
         assert_raises(SystemExit) { @cli.start }
       end
@@ -353,9 +353,9 @@ class CLITest < Minitest::Test
 
     @cli.options = { config: "valid.yml", verbose: true }
 
-    ClaudeSwarm::Configuration.stub :new, lambda { |_, _|
+    ClaudeSwarm::Configuration.stub(:new, lambda { |_, _|
       raise StandardError, "Unexpected test error"
-    } do
+    }) do
       out, = capture_cli_output do
         assert_raises(SystemExit) { @cli.start }
       end
@@ -367,24 +367,24 @@ class CLITest < Minitest::Test
 
   def test_cli_help_messages
     # Skip these tests as they depend on the executable being in the PATH
-    skip "Skipping executable tests"
+    skip("Skipping executable tests")
   end
 
   def test_start_help
     # Skip these tests as they depend on the executable being in the PATH
-    skip "Skipping executable tests"
+    skip("Skipping executable tests")
   end
 
   def test_mcp_serve_help
     # Skip these tests as they depend on the executable being in the PATH
-    skip "Skipping executable tests"
+    skip("Skipping executable tests")
   end
 
   def test_generate_without_claude_installed
     # Mock system call to simulate Claude not being installed (command -v fails)
-    @cli.stub :system, lambda { |cmd|
+    @cli.stub(:system, lambda { |cmd|
       !cmd.include?("command -v claude")
-    } do
+    }) do
       out, = capture_cli_output do
         assert_raises(SystemExit) { @cli.generate }
       end
@@ -396,15 +396,15 @@ class CLITest < Minitest::Test
 
   def test_generate_with_claude_installed
     # Mock system call to simulate Claude being installed (command -v succeeds)
-    @cli.stub :system, lambda { |cmd|
+    @cli.stub(:system, lambda { |cmd|
       cmd.include?("command -v claude") || false
-    } do
+    }) do
       # Read the actual template file before stubbing
       actual_template_path = File.expand_path("../lib/claude_swarm/templates/generation_prompt.md.erb", __dir__)
       template_content = File.read(actual_template_path)
       # Mock File operations for README and template
-      File.stub :exist?, ->(path) { path.include?("README.md") || path.include?("generation_prompt.md.erb") } do
-        File.stub :read, lambda { |path|
+      File.stub(:exist?, ->(path) { path.include?("README.md") || path.include?("generation_prompt.md.erb") }) do
+        File.stub(:read, lambda { |path|
           if path.include?("README.md")
             "Mock README content"
           elsif path.include?("generation_prompt.md.erb")
@@ -412,24 +412,24 @@ class CLITest < Minitest::Test
           else
             ""
           end
-        } do
+        }) do
           # Stub exec to prevent actual execution and capture the command
           exec_called = false
           exec_args = nil
 
-          @cli.stub :exec, lambda { |*args|
+          @cli.stub(:exec, lambda { |*args|
             exec_called = true
             exec_args = args
             # Prevent actual exec
             nil
-          } do
+          }) do
             @cli.options = { model: "sonnet" }
             @cli.generate
 
-            assert exec_called, "exec should have been called"
-            assert_equal "claude", exec_args[0]
-            assert_equal "--model", exec_args[1]
-            assert_equal "sonnet", exec_args[2]
+            assert(exec_called, "exec should have been called")
+            assert_equal("claude", exec_args[0])
+            assert_equal("--model", exec_args[1])
+            assert_equal("sonnet", exec_args[2])
             # Test that the prompt includes README content
             assert_match(%r{<full_readme>.*Mock README content.*</full_readme>}m, exec_args[3])
           end
@@ -439,13 +439,13 @@ class CLITest < Minitest::Test
   end
 
   def test_generate_without_output_file_includes_naming_instructions
-    @cli.stub :system, true do
+    @cli.stub(:system, true) do
       exec_args = nil
 
-      @cli.stub :exec, lambda { |*args|
+      @cli.stub(:exec, lambda { |*args|
         exec_args = args
         nil
-      } do
+      }) do
         @cli.options = { model: "sonnet" }
         @cli.generate
 
@@ -458,13 +458,13 @@ class CLITest < Minitest::Test
   end
 
   def test_generate_with_custom_output_file
-    @cli.stub :system, true do
+    @cli.stub(:system, true) do
       exec_args = nil
 
-      @cli.stub :exec, lambda { |*args|
+      @cli.stub(:exec, lambda { |*args|
         exec_args = args
         nil
-      } do
+      }) do
         @cli.options = { output: "my-custom-config.yml", model: "sonnet" }
         @cli.generate
 
@@ -475,17 +475,17 @@ class CLITest < Minitest::Test
   end
 
   def test_generate_with_custom_model
-    @cli.stub :system, true do
+    @cli.stub(:system, true) do
       exec_args = nil
 
-      @cli.stub :exec, lambda { |*args|
+      @cli.stub(:exec, lambda { |*args|
         exec_args = args
         nil
-      } do
+      }) do
         @cli.options = { output: "claude-swarm.yml", model: "opus" }
         @cli.generate
 
-        assert_equal "opus", exec_args[2]
+        assert_equal("opus", exec_args[2])
       end
     end
   end
@@ -498,8 +498,8 @@ class CLITest < Minitest::Test
     actual_template_path = File.expand_path("../lib/claude_swarm/templates/generation_prompt.md.erb", __dir__)
     template_content = File.read(actual_template_path)
 
-    File.stub :exist?, ->(path) { path.include?("README.md") || path.include?("generation_prompt.md.erb") } do
-      File.stub :read, lambda { |path|
+    File.stub(:exist?, ->(path) { path.include?("README.md") || path.include?("generation_prompt.md.erb") }) do
+      File.stub(:read, lambda { |path|
         if path.include?("README.md")
           readme_content
         elsif path.include?("generation_prompt.md.erb")
@@ -507,14 +507,14 @@ class CLITest < Minitest::Test
         else
           ""
         end
-      } do
-        @cli.stub :system, true do
+      }) do
+        @cli.stub(:system, true) do
           exec_args = nil
 
-          @cli.stub :exec, lambda { |*args|
+          @cli.stub(:exec, lambda { |*args|
             exec_args = args
             nil
-          } do
+          }) do
             @cli.options = { model: "sonnet" }
             @cli.generate
 
@@ -531,8 +531,8 @@ class CLITest < Minitest::Test
     prompt = @cli.send(:build_generation_prompt, readme_content, "output.yml")
 
     # Test that a prompt is generated
-    assert_kind_of String, prompt
-    assert_operator prompt.length, :>, 100
+    assert_kind_of(String, prompt)
+    assert_operator(prompt.length, :>, 100)
 
     # Test that output file is mentioned
     assert_match(/output\.yml/, prompt)
@@ -546,8 +546,8 @@ class CLITest < Minitest::Test
     prompt = @cli.send(:build_generation_prompt, readme_content, nil)
 
     # Test that a prompt is generated
-    assert_kind_of String, prompt
-    assert_operator prompt.length, :>, 100
+    assert_kind_of(String, prompt)
+    assert_operator(prompt.length, :>, 100)
 
     # Test that it includes file naming instructions when no output specified
     assert_match(/name the file based on the swarm's function/, prompt)

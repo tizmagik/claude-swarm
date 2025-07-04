@@ -32,13 +32,13 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_equal "Test Swarm", config.swarm_name
-    assert_equal "lead", config.main_instance
-    assert_equal ["lead"], config.instance_names
-    assert_equal File.expand_path(".", @tmpdir), config.main_instance_config[:directory]
-    assert_equal "sonnet", config.main_instance_config[:model]
-    assert_empty config.main_instance_config[:connections]
-    assert_empty config.main_instance_config[:allowed_tools]
+    assert_equal("Test Swarm", config.swarm_name)
+    assert_equal("lead", config.main_instance)
+    assert_equal(["lead"], config.instance_names)
+    assert_equal(File.expand_path(".", @tmpdir), config.main_instance_config[:directory])
+    assert_equal("sonnet", config.main_instance_config[:model])
+    assert_empty(config.main_instance_config[:connections])
+    assert_empty(config.main_instance_config[:allowed_tools])
   end
 
   def test_full_configuration
@@ -84,35 +84,35 @@ class ConfigurationTest < Minitest::Test
     # Test main instance
     lead = config.main_instance_config
 
-    assert_equal File.expand_path("src", @tmpdir), lead[:directory]
-    assert_equal "opus", lead[:model]
-    assert_equal %w[backend frontend], lead[:connections]
-    assert_equal %w[Read Edit Bash], lead[:allowed_tools]
-    assert_equal "You are the lead developer", lead[:prompt]
+    assert_equal(File.expand_path("src", @tmpdir), lead[:directory])
+    assert_equal("opus", lead[:model])
+    assert_equal(["backend", "frontend"], lead[:connections])
+    assert_equal(["Read", "Edit", "Bash"], lead[:allowed_tools])
+    assert_equal("You are the lead developer", lead[:prompt])
 
     # Test MCP servers
-    assert_equal 2, lead[:mcps].length
+    assert_equal(2, lead[:mcps].length)
     stdio_mcp = lead[:mcps][0]
 
-    assert_equal "test_server", stdio_mcp["name"]
-    assert_equal "stdio", stdio_mcp["type"]
-    assert_equal "test-server", stdio_mcp["command"]
-    assert_equal ["--verbose"], stdio_mcp["args"]
+    assert_equal("test_server", stdio_mcp["name"])
+    assert_equal("stdio", stdio_mcp["type"])
+    assert_equal("test-server", stdio_mcp["command"])
+    assert_equal(["--verbose"], stdio_mcp["args"])
 
     sse_mcp = lead[:mcps][1]
 
-    assert_equal "api_server", sse_mcp["name"]
-    assert_equal "sse", sse_mcp["type"]
-    assert_equal "http://localhost:3000", sse_mcp["url"]
+    assert_equal("api_server", sse_mcp["name"])
+    assert_equal("sse", sse_mcp["type"])
+    assert_equal("http://localhost:3000", sse_mcp["url"])
 
     # Test backend instance
     backend = config.instances["backend"]
 
-    assert_equal %w[Bash Grep], backend[:allowed_tools]
+    assert_equal(["Bash", "Grep"], backend[:allowed_tools])
 
     # Test connections
-    assert_equal %w[backend frontend], config.connections_for("lead")
-    assert_empty config.connections_for("backend")
+    assert_equal(["backend", "frontend"], config.connections_for("lead"))
+    assert_empty(config.connections_for("backend"))
   end
 
   def test_missing_config_file
@@ -145,7 +145,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Missing 'version' field in configuration", error.message
+    assert_equal("Missing 'version' field in configuration", error.message)
   end
 
   def test_unsupported_version
@@ -163,7 +163,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Unsupported version: 2. Only version 1 is supported", error.message
+    assert_equal("Unsupported version: 2. Only version 1 is supported", error.message)
   end
 
   def test_missing_swarm_field
@@ -174,7 +174,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Missing 'swarm' field in configuration", error.message
+    assert_equal("Missing 'swarm' field in configuration", error.message)
   end
 
   def test_missing_swarm_name
@@ -191,7 +191,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Missing 'name' field in swarm configuration", error.message
+    assert_equal("Missing 'name' field in swarm configuration", error.message)
   end
 
   def test_missing_instances
@@ -205,7 +205,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Missing 'instances' field in swarm configuration", error.message
+    assert_equal("Missing 'instances' field in swarm configuration", error.message)
   end
 
   def test_empty_instances
@@ -220,7 +220,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "No instances defined", error.message
+    assert_equal("No instances defined", error.message)
   end
 
   def test_missing_main_field
@@ -237,7 +237,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Missing 'main' field in swarm configuration", error.message
+    assert_equal("Missing 'main' field in swarm configuration", error.message)
   end
 
   def test_main_instance_not_found
@@ -255,7 +255,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Main instance 'nonexistent' not found in instances", error.message
+    assert_equal("Main instance 'nonexistent' not found in instances", error.message)
   end
 
   def test_invalid_connection
@@ -274,7 +274,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'lead' has connection to unknown instance 'nonexistent'", error.message
+    assert_equal("Instance 'lead' has connection to unknown instance 'nonexistent'", error.message)
   end
 
   def test_directory_does_not_exist
@@ -314,7 +314,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "MCP configuration missing 'name'", error.message
+    assert_equal("MCP configuration missing 'name'", error.message)
   end
 
   def test_mcp_stdio_missing_command
@@ -335,7 +335,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "MCP 'test' missing 'command'", error.message
+    assert_equal("MCP 'test' missing 'command'", error.message)
   end
 
   def test_mcp_sse_missing_url
@@ -356,7 +356,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "MCP 'test' missing 'url'", error.message
+    assert_equal("MCP 'test' missing 'url'", error.message)
   end
 
   def test_mcp_unknown_type
@@ -377,7 +377,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Unknown MCP type 'unknown' for 'test'", error.message
+    assert_equal("Unknown MCP type 'unknown' for 'test'", error.message)
   end
 
   def test_relative_directory_expansion
@@ -399,7 +399,7 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     expected_path = File.expand_path("lib", @tmpdir)
 
-    assert_equal expected_path, config.main_instance_config[:directory]
+    assert_equal(expected_path, config.main_instance_config[:directory])
   end
 
   def test_default_values
@@ -417,12 +417,12 @@ class ConfigurationTest < Minitest::Test
     lead = config.main_instance_config
 
     # Test defaults
-    assert_equal File.expand_path(".", @tmpdir), lead[:directory]
-    assert_equal "sonnet", lead[:model]
-    assert_empty lead[:connections]
-    assert_empty lead[:allowed_tools]
-    assert_empty lead[:mcps]
-    assert_nil lead[:prompt]
+    assert_equal(File.expand_path(".", @tmpdir), lead[:directory])
+    assert_equal("sonnet", lead[:model])
+    assert_empty(lead[:connections])
+    assert_empty(lead[:allowed_tools])
+    assert_empty(lead[:mcps])
+    assert_nil(lead[:prompt])
   end
 
   def test_missing_description
@@ -439,7 +439,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'lead' missing required 'description' field", error.message
+    assert_equal("Instance 'lead' missing required 'description' field", error.message)
   end
 
   def test_tools_must_be_array
@@ -457,7 +457,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'lead' field 'tools' must be an array, got String", error.message
+    assert_equal("Instance 'lead' field 'tools' must be an array, got String", error.message)
   end
 
   def test_allowed_tools_must_be_array
@@ -475,7 +475,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'lead' field 'allowed_tools' must be an array, got String", error.message
+    assert_equal("Instance 'lead' field 'allowed_tools' must be an array, got String", error.message)
   end
 
   def test_disallowed_tools_must_be_array
@@ -493,7 +493,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'lead' field 'disallowed_tools' must be an array, got Integer", error.message
+    assert_equal("Instance 'lead' field 'disallowed_tools' must be an array, got Integer", error.message)
   end
 
   def test_tools_as_hash_raises_error
@@ -513,7 +513,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'lead' field 'tools' must be an array, got Hash", error.message
+    assert_equal("Instance 'lead' field 'tools' must be an array, got Hash", error.message)
   end
 
   def test_valid_empty_tools_array
@@ -533,9 +533,9 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     lead = config.main_instance_config
 
-    assert_empty lead[:allowed_tools]
-    assert_empty lead[:allowed_tools]
-    assert_empty lead[:disallowed_tools]
+    assert_empty(lead[:allowed_tools])
+    assert_empty(lead[:allowed_tools])
+    assert_empty(lead[:disallowed_tools])
   end
 
   def test_valid_tools_arrays
@@ -554,8 +554,8 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     lead = config.main_instance_config
 
-    assert_equal %w[Read Edit], lead[:allowed_tools]
-    assert_equal ["Bash(rm:*)"], lead[:disallowed_tools]
+    assert_equal(["Read", "Edit"], lead[:allowed_tools])
+    assert_equal(["Bash(rm:*)"], lead[:disallowed_tools])
   end
 
   def test_circular_dependency_self_reference
@@ -573,7 +573,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Circular dependency detected: lead -> lead", error.message
+    assert_equal("Circular dependency detected: lead -> lead", error.message)
   end
 
   def test_circular_dependency_two_instances
@@ -594,7 +594,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Circular dependency detected: lead -> worker -> lead", error.message
+    assert_equal("Circular dependency detected: lead -> worker -> lead", error.message)
   end
 
   def test_circular_dependency_three_instances
@@ -618,7 +618,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Circular dependency detected: lead -> worker1 -> worker2 -> lead", error.message
+    assert_equal("Circular dependency detected: lead -> worker1 -> worker2 -> lead", error.message)
   end
 
   def test_circular_dependency_in_subtree
@@ -645,7 +645,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Circular dependency detected: worker1 -> worker2 -> worker3 -> worker1", error.message
+    assert_equal("Circular dependency detected: worker1 -> worker2 -> worker3 -> worker1", error.message)
   end
 
   def test_valid_tree_no_circular_dependency
@@ -677,10 +677,10 @@ class ConfigurationTest < Minitest::Test
     # Should not raise any errors
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_equal "Test", config.swarm_name
-    assert_equal %w[frontend backend], config.connections_for("lead")
-    assert_equal ["ui_specialist"], config.connections_for("frontend")
-    assert_equal ["database"], config.connections_for("backend")
+    assert_equal("Test", config.swarm_name)
+    assert_equal(["frontend", "backend"], config.connections_for("lead"))
+    assert_equal(["ui_specialist"], config.connections_for("frontend"))
+    assert_equal(["database"], config.connections_for("backend"))
   end
 
   def test_complex_valid_hierarchy
@@ -714,8 +714,8 @@ class ConfigurationTest < Minitest::Test
     # Should not raise any errors
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_equal "Complex Hierarchy", config.swarm_name
-    assert_equal 8, config.instances.size
+    assert_equal("Complex Hierarchy", config.swarm_name)
+    assert_equal(8, config.instances.size)
   end
 
   def test_multi_directory_support
@@ -739,9 +739,9 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     lead = config.main_instance_config
 
-    assert_equal 3, lead[:directories].size
-    assert_equal dir1, lead[:directory] # First directory for backward compatibility
-    assert_equal [dir1, dir2, dir3], lead[:directories]
+    assert_equal(3, lead[:directories].size)
+    assert_equal(dir1, lead[:directory]) # First directory for backward compatibility
+    assert_equal([dir1, dir2, dir3], lead[:directories])
   end
 
   def test_single_directory_as_string
@@ -759,9 +759,9 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     lead = config.main_instance_config
 
-    assert_equal 1, lead[:directories].size
-    assert_equal @tmpdir, lead[:directory]
-    assert_equal [@tmpdir], lead[:directories]
+    assert_equal(1, lead[:directories].size)
+    assert_equal(@tmpdir, lead[:directory])
+    assert_equal([@tmpdir], lead[:directories])
   end
 
   def test_multi_directory_validation_error
@@ -803,7 +803,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_equal ["echo 'First command'", "npm install", "docker-compose up -d"], config.before_commands
+    assert_equal(["echo 'First command'", "npm install", "docker-compose up -d"], config.before_commands)
   end
 
   def test_configuration_without_before_commands
@@ -819,7 +819,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_empty config.before_commands
+    assert_empty(config.before_commands)
   end
 
   def test_configuration_with_empty_before_commands
@@ -836,7 +836,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_empty config.before_commands
+    assert_empty(config.before_commands)
   end
 
   def test_instance_worktree_configuration_true
@@ -853,7 +853,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert config.main_instance_config[:worktree]
+    assert(config.main_instance_config[:worktree])
   end
 
   def test_instance_worktree_configuration_false
@@ -870,7 +870,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    refute config.main_instance_config[:worktree]
+    refute(config.main_instance_config[:worktree])
   end
 
   def test_instance_worktree_configuration_string
@@ -887,7 +887,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_equal "feature-branch", config.main_instance_config[:worktree]
+    assert_equal("feature-branch", config.main_instance_config[:worktree])
   end
 
   def test_instance_worktree_configuration_nil
@@ -903,7 +903,7 @@ class ConfigurationTest < Minitest::Test
 
     config = ClaudeSwarm::Configuration.new(@config_path)
 
-    assert_nil config.main_instance_config[:worktree]
+    assert_nil(config.main_instance_config[:worktree])
   end
 
   def test_instance_worktree_configuration_invalid
@@ -963,12 +963,12 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
-    assert_equal "openai", assistant[:provider]
+    assert_equal("openai", assistant[:provider])
     assert_in_delta(0.3, assistant[:temperature])
-    assert_equal "chat_completion", assistant[:api_version]
-    assert_equal "OPENAI_API_KEY", assistant[:openai_token_env]
-    assert_nil assistant[:base_url]
-    assert assistant[:vibe], "OpenAI instances should default to vibe: true"
+    assert_equal("chat_completion", assistant[:api_version])
+    assert_equal("OPENAI_API_KEY", assistant[:openai_token_env])
+    assert_nil(assistant[:base_url])
+    assert(assistant[:vibe], "OpenAI instances should default to vibe: true")
   ensure
     ENV.delete("OPENAI_API_KEY")
   end
@@ -997,12 +997,12 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
-    assert_equal "openai", assistant[:provider]
+    assert_equal("openai", assistant[:provider])
     assert_in_delta(0.7, assistant[:temperature])
-    assert_equal "responses", assistant[:api_version]
-    assert_equal "CUSTOM_OPENAI_KEY", assistant[:openai_token_env]
-    assert_equal "https://custom.openai.com/v1", assistant[:base_url]
-    refute assistant[:vibe], "Should respect explicit vibe: false"
+    assert_equal("responses", assistant[:api_version])
+    assert_equal("CUSTOM_OPENAI_KEY", assistant[:openai_token_env])
+    assert_equal("https://custom.openai.com/v1", assistant[:base_url])
+    refute(assistant[:vibe], "Should respect explicit vibe: false")
   ensure
     ENV.delete("CUSTOM_OPENAI_KEY")
   end
@@ -1022,12 +1022,12 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
-    assert_nil assistant[:provider], "Provider should be nil for Claude (default)"
-    assert_nil assistant[:temperature]
-    assert_nil assistant[:api_version]
-    assert_nil assistant[:openai_token_env]
-    assert_nil assistant[:base_url]
-    refute assistant[:vibe], "Claude instances should default to vibe: false"
+    assert_nil(assistant[:provider], "Provider should be nil for Claude (default)")
+    assert_nil(assistant[:temperature])
+    assert_nil(assistant[:api_version])
+    assert_nil(assistant[:openai_token_env])
+    assert_nil(assistant[:base_url])
+    refute(assistant[:vibe], "Claude instances should default to vibe: false")
   end
 
   def test_invalid_provider
@@ -1045,7 +1045,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'assistant' has invalid provider 'anthropic'. Must be 'claude' or 'openai'", error.message
+    assert_equal("Instance 'assistant' has invalid provider 'anthropic'. Must be 'claude' or 'openai'", error.message)
   end
 
   def test_openai_fields_without_openai_provider
@@ -1063,7 +1063,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'assistant' has OpenAI-specific fields temperature but provider is not 'openai'", error.message
+    assert_equal("Instance 'assistant' has OpenAI-specific fields temperature but provider is not 'openai'", error.message)
   end
 
   def test_multiple_openai_fields_without_provider
@@ -1105,7 +1105,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Instance 'assistant' has invalid api_version 'completions'. Must be 'chat_completion' or 'responses'", error.message
+    assert_equal("Instance 'assistant' has invalid api_version 'completions'. Must be 'chat_completion' or 'responses'", error.message)
   end
 
   def test_mixed_claude_and_openai_instances
@@ -1134,13 +1134,13 @@ class ConfigurationTest < Minitest::Test
     lead = config.instances["lead"]
     helper = config.instances["openai_helper"]
 
-    assert_nil lead[:provider]
-    assert_nil lead[:temperature]
-    refute lead[:vibe]
+    assert_nil(lead[:provider])
+    assert_nil(lead[:temperature])
+    refute(lead[:vibe])
 
-    assert_equal "openai", helper[:provider]
+    assert_equal("openai", helper[:provider])
     assert_in_delta(0.5, helper[:temperature])
-    assert helper[:vibe]
+    assert(helper[:vibe])
   ensure
     ENV.delete("OPENAI_API_KEY")
   end
@@ -1164,7 +1164,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+    assert_equal("Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message)
   end
 
   def test_openai_instance_with_empty_api_key_env_var
@@ -1186,7 +1186,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+    assert_equal("Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message)
   ensure
     ENV.delete("OPENAI_API_KEY")
   end
@@ -1210,7 +1210,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+    assert_equal("Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message)
   ensure
     ENV.delete("OPENAI_API_KEY")
   end
@@ -1235,7 +1235,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Environment variable 'CUSTOM_OPENAI_KEY' is not set. OpenAI provider instances require an API key.", error.message
+    assert_equal("Environment variable 'CUSTOM_OPENAI_KEY' is not set. OpenAI provider instances require an API key.", error.message)
   end
 
   def test_openai_instance_with_valid_api_key_env_var
@@ -1258,7 +1258,7 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
-    assert_equal "openai", assistant[:provider]
+    assert_equal("openai", assistant[:provider])
   ensure
     ENV.delete("OPENAI_API_KEY")
   end
@@ -1285,7 +1285,7 @@ class ConfigurationTest < Minitest::Test
     error = assert_raises(ClaudeSwarm::Error) do
       ClaudeSwarm::Configuration.new(@config_path)
     end
-    assert_equal "Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message
+    assert_equal("Environment variable 'OPENAI_API_KEY' is not set. OpenAI provider instances require an API key.", error.message)
   end
 
   def test_claude_instance_without_openai_key_works
@@ -1307,6 +1307,6 @@ class ConfigurationTest < Minitest::Test
     config = ClaudeSwarm::Configuration.new(@config_path)
     assistant = config.main_instance_config
 
-    assert_nil assistant[:provider]
+    assert_nil(assistant[:provider])
   end
 end

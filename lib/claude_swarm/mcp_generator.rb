@@ -62,8 +62,10 @@ module ClaudeSwarm
       instance[:connections].each do |connection_name|
         connected_instance = @config.instances[connection_name]
         mcp_servers[connection_name] = build_instance_mcp_config(
-          connection_name, connected_instance,
-          calling_instance: name, calling_instance_id: @instance_ids[name]
+          connection_name,
+          connected_instance,
+          calling_instance: name,
+          calling_instance_id: @instance_ids[name],
         )
       end
 
@@ -73,7 +75,7 @@ module ClaudeSwarm
       config = {
         "instance_id" => @instance_ids[name],
         "instance_name" => name,
-        "mcpServers" => mcp_servers
+        "mcpServers" => mcp_servers,
       }
 
       File.write(mcp_config_path(name), JSON.pretty_generate(config))
@@ -85,14 +87,14 @@ module ClaudeSwarm
         {
           "type" => "stdio",
           "command" => mcp["command"],
-          "args" => mcp["args"] || []
+          "args" => mcp["args"] || [],
         }.tap do |config|
           config["env"] = mcp["env"] if mcp["env"]
         end
       when "sse"
         {
           "type" => "sse",
-          "url" => mcp["url"]
+          "url" => mcp["url"],
         }
       end
     end
@@ -101,7 +103,7 @@ module ClaudeSwarm
       {
         "type" => "stdio",
         "command" => "claude",
-        "args" => %w[mcp serve]
+        "args" => ["mcp", "serve"],
       }
     end
 
@@ -112,9 +114,12 @@ module ClaudeSwarm
       # Build command-line arguments for Thor
       args = [
         "mcp-serve",
-        "--name", name,
-        "--directory", instance[:directory],
-        "--model", instance[:model]
+        "--name",
+        name,
+        "--directory",
+        instance[:directory],
+        "--model",
+        instance[:model],
       ]
 
       # Add directories array if we have multiple directories
@@ -163,7 +168,7 @@ module ClaudeSwarm
       {
         "type" => "stdio",
         "command" => exe_path,
-        "args" => args
+        "args" => args,
       }
     end
 

@@ -28,51 +28,53 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
   def test_orchestrator_creates_and_cleans_up_worktrees
     Dir.chdir(@repo_dir) do
       orchestrator = ClaudeSwarm::Orchestrator.new(
-        @config, @generator,
-        worktree: "test-feature"
+        @config,
+        @generator,
+        worktree: "test-feature",
       )
 
       # Start the orchestrator and capture the worktree path
-      orchestrator.stub :system, true do
+      orchestrator.stub(:system, true) do
         orchestrator.start
       end
 
       # Get the worktree info from the manager
       worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
 
-      assert worktree_manager, "Worktree manager should exist"
+      assert(worktree_manager, "Worktree manager should exist")
 
       # Check that worktree was created
       created_worktrees = worktree_manager.created_worktrees
 
-      assert_equal 1, created_worktrees.size, "One worktree should be created"
+      assert_equal(1, created_worktrees.size, "One worktree should be created")
 
       worktree_path = created_worktrees.values.first
 
-      assert worktree_path, "Worktree path should be set"
+      assert(worktree_path, "Worktree path should be set")
 
       # After execution, worktree should be cleaned up
-      refute_path_exists worktree_path, "Worktree should be cleaned up after execution"
+      refute_path_exists(worktree_path, "Worktree should be cleaned up after execution")
 
       # Verify the worktree name
-      assert_equal "test-feature", worktree_manager.worktree_name
+      assert_equal("test-feature", worktree_manager.worktree_name)
     end
   end
 
   def test_orchestrator_with_auto_generated_worktree_name
     Dir.chdir(@repo_dir) do
       orchestrator = ClaudeSwarm::Orchestrator.new(
-        @config, @generator,
-        worktree: ""
+        @config,
+        @generator,
+        worktree: "",
       )
 
       worktree_name = nil
 
-      orchestrator.stub :system, lambda { |*_args|
+      orchestrator.stub(:system, lambda { |*_args|
         # Capture the worktree name from the manager
         worktree_name = orchestrator.instance_variable_get(:@worktree_manager).worktree_name
         true
-      } do
+      }) do
         orchestrator.start
       end
 
@@ -80,7 +82,7 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
       assert_match(/^worktree-\d{8}_\d{6}$/, worktree_name)
 
       # Worktree name should have been captured
-      assert worktree_name, "Worktree name should be captured"
+      assert(worktree_name, "Worktree name should be captured")
     end
   end
 
@@ -90,7 +92,7 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
         @config, @generator
       )
 
-      orchestrator.stub :system, true do
+      orchestrator.stub(:system, true) do
         orchestrator.start
       end
 
@@ -99,24 +101,25 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
         File.directory?(f) && f != @repo_dir
       end
 
-      assert_empty worktrees, "No worktrees should be created"
+      assert_empty(worktrees, "No worktrees should be created")
 
       # Verify no worktree manager was created
-      assert_nil orchestrator.instance_variable_get(:@worktree_manager), "No worktree manager should exist"
+      assert_nil(orchestrator.instance_variable_get(:@worktree_manager), "No worktree manager should exist")
     end
   end
 
   def test_worktree_cleanup_happens
     Dir.chdir(@repo_dir) do
       orchestrator = ClaudeSwarm::Orchestrator.new(
-        @config, @generator,
-        worktree: "cleanup-test"
+        @config,
+        @generator,
+        worktree: "cleanup-test",
       )
 
       cleanup_called = false
 
       # Stub the system call and check cleanup at exit
-      orchestrator.stub :system, lambda { |*_args|
+      orchestrator.stub(:system, lambda { |*_args|
         # After start, worktree_manager should exist
         worktree_manager = orchestrator.instance_variable_get(:@worktree_manager)
         # Mock the cleanup method
@@ -124,11 +127,11 @@ class OrchestratorWorktreeIntegrationTest < Minitest::Test
           cleanup_called = true
         end
         true
-      } do
+      }) do
         orchestrator.start
       end
 
-      assert cleanup_called, "Worktree cleanup should be called"
+      assert(cleanup_called, "Worktree cleanup should be called")
     end
   end
 

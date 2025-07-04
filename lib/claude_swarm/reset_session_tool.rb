@@ -15,7 +15,7 @@ module ClaudeSwarm
 
       {
         success: true,
-        message: "Session has been reset"
+        message: "Session has been reset",
       }
     end
   end
