@@ -10,8 +10,8 @@ module ClaudeSwarm
     attr_reader :session_id, :last_response, :working_directory, :logger, :session_path
 
     def initialize(working_directory: Dir.pwd, model: nil, mcp_config: nil, vibe: false,
-                   instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil,
-                   claude_session_id: nil, additional_directories: [])
+      instance_name: nil, instance_id: nil, calling_instance: nil, calling_instance_id: nil,
+      claude_session_id: nil, additional_directories: [])
       @working_directory = working_directory
       @additional_directories = additional_directories
       @model = model
@@ -111,7 +111,7 @@ module ClaudeSwarm
         instance_id: @instance_id,
         claude_session_id: @session_id,
         status: "active",
-        updated_at: Time.now.iso8601
+        updated_at: Time.now.iso8601,
       }
 
       File.write(state_file, JSON.pretty_generate(state_data))
@@ -158,7 +158,7 @@ module ClaudeSwarm
         to_instance: @instance_name,
         to_instance_id: @instance_id,
         prompt: prompt,
-        timestamp: Time.now.iso8601
+        timestamp: Time.now.iso8601,
       }
 
       append_to_session_json(event)
@@ -170,7 +170,7 @@ module ClaudeSwarm
       instance_info = @instance_name
       instance_info += " (#{@instance_id})" if @instance_id
       @logger.info(
-        "($#{response["total_cost"]} - #{response["duration_ms"]}ms) #{instance_info} -> #{caller_info}: \n---\n#{response["result"]}\n---"
+        "($#{response["total_cost"]} - #{response["duration_ms"]}ms) #{instance_info} -> #{caller_info}: \n---\n#{response["result"]}\n---",
       )
     end
 
@@ -207,7 +207,7 @@ module ClaudeSwarm
         instance_info = @instance_name
         instance_info += " (#{@instance_id})" if @instance_id
         @logger.info(
-          "Tool call from #{instance_info} -> Tool: #{tool_call["name"]}, ID: #{tool_call["id"]}, Arguments: #{arguments}"
+          "Tool call from #{instance_info} -> Tool: #{tool_call["name"]}, ID: #{tool_call["id"]}, Arguments: #{arguments}",
         )
       end
 
@@ -238,7 +238,7 @@ module ClaudeSwarm
           calling_instance: @calling_instance,
           calling_instance_id: @calling_instance_id,
           timestamp: Time.now.iso8601,
-          event: event
+          event: event,
         }
 
         # Write as single line JSON (JSONL format)

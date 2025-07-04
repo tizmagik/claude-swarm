@@ -21,7 +21,7 @@ class OpenAIIntegrationTest < Minitest::Test
       available_tools: [],
       logger: mock_logger,
       instance_name: "test",
-      model: "gpt-4o"
+      model: "gpt-4o",
     )
 
     # Mock the chat call
@@ -29,9 +29,9 @@ class OpenAIIntegrationTest < Minitest::Test
       "choices" => [{
         "message" => {
           "role" => "assistant",
-          "content" => "Hello world!"
-        }
-      }]
+          "content" => "Hello world!",
+        },
+      }],
     }
 
     mock_openai_client.expect(:chat, mock_response) do |params|
@@ -40,7 +40,7 @@ class OpenAIIntegrationTest < Minitest::Test
 
     result = api.execute("Hello")
 
-    assert_equal "Hello world!", result
+    assert_equal("Hello world!", result)
 
     mock_openai_client.verify
   end
@@ -65,7 +65,7 @@ class OpenAIIntegrationTest < Minitest::Test
       available_tools: [],
       logger: mock_logger,
       instance_name: "test",
-      model: "o3-pro"
+      model: "o3-pro",
     )
 
     # Mock the create call
@@ -75,9 +75,9 @@ class OpenAIIntegrationTest < Minitest::Test
         "type" => "message",
         "content" => [{
           "type" => "text",
-          "text" => "Hello from responses API!"
-        }]
-      }]
+          "text" => "Hello from responses API!",
+        }],
+      }],
     }
 
     mock_responses_api.expect(:create, mock_response) do |params|
@@ -86,7 +86,7 @@ class OpenAIIntegrationTest < Minitest::Test
 
     result = api.execute("Hello")
 
-    assert_equal "Hello from responses API!", result
+    assert_equal("Hello from responses API!", result)
 
     mock_openai_client.verify
     mock_responses_api.verify
@@ -107,7 +107,7 @@ class OpenAIIntegrationTest < Minitest::Test
     mock_tool = Struct.new(:name, :description, :schema).new(
       "TestTool",
       "A test tool",
-      { "type" => "object", "properties" => {} }
+      { "type" => "object", "properties" => {} },
     )
 
     api = ClaudeSwarm::OpenAIChatCompletion.new(
@@ -116,19 +116,19 @@ class OpenAIIntegrationTest < Minitest::Test
       available_tools: [mock_tool],
       logger: mock_logger,
       instance_name: "test",
-      model: "gpt-4o"
+      model: "gpt-4o",
     )
 
     # Mock MCP client's to_openai_tools method (called multiple times)
     2.times do
       mock_mcp_client.expect(:to_openai_tools, [{
-                               type: "function",
-                               function: {
-                                 name: "TestTool",
-                                 description: "A test tool",
-                                 parameters: { "type" => "object", "properties" => {} }
-                               }
-                             }])
+        type: "function",
+        function: {
+          name: "TestTool",
+          description: "A test tool",
+          parameters: { "type" => "object", "properties" => {} },
+        },
+      }])
     end
 
     # First response with tool call
@@ -141,11 +141,11 @@ class OpenAIIntegrationTest < Minitest::Test
             "type" => "function",
             "function" => {
               "name" => "TestTool",
-              "arguments" => "{}"
-            }
-          }]
-        }
-      }]
+              "arguments" => "{}",
+            },
+          }],
+        },
+      }],
     }
 
     mock_openai_client.expect(:chat, first_response) do |params|
@@ -153,18 +153,22 @@ class OpenAIIntegrationTest < Minitest::Test
     end
 
     # Mock tool execution
-    mock_mcp_client.expect(:call_tool, {
-                             "content" => [{ "type" => "text", "text" => "Tool result" }]
-                           }, ["TestTool", {}])
+    mock_mcp_client.expect(
+      :call_tool,
+      {
+        "content" => [{ "type" => "text", "text" => "Tool result" }],
+      },
+      ["TestTool", {}],
+    )
 
     # Second response after tool execution
     second_response = {
       "choices" => [{
         "message" => {
           "role" => "assistant",
-          "content" => "Tool executed successfully"
-        }
-      }]
+          "content" => "Tool executed successfully",
+        },
+      }],
     }
 
     mock_openai_client.expect(:chat, second_response) do |params|
@@ -173,7 +177,7 @@ class OpenAIIntegrationTest < Minitest::Test
 
     result = api.execute("Use the test tool")
 
-    assert_equal "Tool executed successfully", result
+    assert_equal("Tool executed successfully", result)
 
     mock_openai_client.verify
     mock_mcp_client.verify
@@ -200,7 +204,7 @@ class OpenAIIntegrationTest < Minitest::Test
     mock_tool = Struct.new(:name, :description, :schema).new(
       "TestTool",
       "A test tool",
-      { "type" => "object", "properties" => {} }
+      { "type" => "object", "properties" => {} },
     )
 
     api = ClaudeSwarm::OpenAIResponses.new(
@@ -209,7 +213,7 @@ class OpenAIIntegrationTest < Minitest::Test
       available_tools: [mock_tool],
       logger: mock_logger,
       instance_name: "test",
-      model: "o3-pro"
+      model: "o3-pro",
     )
 
     # First response with function call
@@ -220,8 +224,8 @@ class OpenAIIntegrationTest < Minitest::Test
         "name" => "TestTool",
         "arguments" => "{}",
         "call_id" => "call_123",
-        "id" => "fc_123"
-      }]
+        "id" => "fc_123",
+      }],
     }
 
     mock_responses_api.expect(:create, first_response) do |params|
@@ -229,9 +233,13 @@ class OpenAIIntegrationTest < Minitest::Test
     end
 
     # Mock tool execution
-    mock_mcp_client.expect(:call_tool, {
-                             "content" => [{ "type" => "text", "text" => "Tool result" }]
-                           }, ["TestTool", {}])
+    mock_mcp_client.expect(
+      :call_tool,
+      {
+        "content" => [{ "type" => "text", "text" => "Tool result" }],
+      },
+      ["TestTool", {}],
+    )
 
     # Second response after tool execution
     second_response = {
@@ -240,10 +248,10 @@ class OpenAIIntegrationTest < Minitest::Test
         "type" => "message",
         "content" => [{
           "type" => "text",
-          "text" => "Tool executed via responses API"
-        }]
+          "text" => "Tool executed via responses API",
+        }],
       }],
-      "previous_response_id" => "resp_1"
+      "previous_response_id" => "resp_1",
     }
 
     mock_responses_api.expect(:create, second_response) do |actual_params|
@@ -254,7 +262,7 @@ class OpenAIIntegrationTest < Minitest::Test
 
     result = api.execute("Use the test tool")
 
-    assert_equal "Tool executed via responses API", result
+    assert_equal("Tool executed via responses API", result)
 
     mock_openai_client.verify
     mock_responses_api.verify

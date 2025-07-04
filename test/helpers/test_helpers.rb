@@ -23,11 +23,11 @@ module TestHelpers
     end
 
     def assert_file_exists(path, message = nil)
-      assert_path_exists path, message || "Expected file #{path} to exist"
+      assert_path_exists(path, message || "Expected file #{path} to exist")
     end
 
     def assert_directory_exists(path, message = nil)
-      assert_predicate Pathname.new(path), :directory?, message || "Expected directory #{path} to exist"
+      assert_predicate(Pathname.new(path), :directory?, message || "Expected directory #{path} to exist")
     end
 
     def read_json_file(path)
@@ -40,35 +40,35 @@ module TestHelpers
       mock = Minitest::Mock.new
 
       # Default responses
-      mock.expect :session_id, responses[:session_id] || "test-session-1"
-      mock.expect :has_session?, responses[:has_session] || true
-      mock.expect :working_directory, responses[:working_directory] || Dir.pwd
+      mock.expect(:session_id, responses[:session_id] || "test-session-1")
+      mock.expect(:has_session?, responses[:has_session] || true)
+      mock.expect(:working_directory, responses[:working_directory] || Dir.pwd)
 
-      mock.expect :execute, responses[:execute], [String, Hash] if responses[:execute]
+      mock.expect(:execute, responses[:execute], [String, Hash]) if responses[:execute]
 
-      mock.expect :reset_session, nil if responses[:reset_session]
+      mock.expect(:reset_session, nil) if responses[:reset_session]
 
       mock
     end
 
     def mock_orchestrator
       mock = Minitest::Mock.new
-      mock.expect :start, nil
+      mock.expect(:start, nil)
       mock
     end
 
     def mock_mcp_server
       mock = Minitest::Mock.new
-      mock.expect :register_tool, nil, [Class]
-      mock.expect :register_tool, nil, [Class]
-      mock.expect :register_tool, nil, [Class]
-      mock.expect :start, nil
+      mock.expect(:register_tool, nil, [Class])
+      mock.expect(:register_tool, nil, [Class])
+      mock.expect(:register_tool, nil, [Class])
+      mock.expect(:start, nil)
       mock
     end
 
     def with_mocked_exec
       captured_command = nil
-      Object.any_instance.stub :exec, ->(cmd) { captured_command = cmd } do
+      Object.any_instance.stub(:exec, ->(cmd) { captured_command = cmd }) do
         yield captured_command
       end
       captured_command
@@ -78,40 +78,49 @@ module TestHelpers
   module AssertionHelpers
     def assert_includes_all(collection, items, message = nil)
       items.each do |item|
-        assert_includes collection, item,
-                        message || "Expected #{collection.inspect} to include #{item.inspect}"
+        assert_includes(
+          collection,
+          item,
+          message || "Expected #{collection.inspect} to include #{item.inspect}",
+        )
       end
     end
 
     def assert_json_schema(json, schema)
       schema.each do |key, expected_type|
-        assert json.key?(key), "Expected JSON to have key '#{key}'"
+        assert(json.key?(key), "Expected JSON to have key '#{key}'")
 
         case expected_type
         when Class
 
-          assert_kind_of expected_type, json[key],
-                         "Expected #{key} to be #{expected_type}, got #{json[key].class}"
+          assert_kind_of(
+            expected_type,
+            json[key],
+            "Expected #{key} to be #{expected_type}, got #{json[key].class}",
+          )
         when Hash
-          assert_kind_of Hash, json[key]
+          assert_kind_of(Hash, json[key])
           assert_json_schema(json[key], expected_type)
         when Array
 
-          assert_kind_of Array, json[key]
+          assert_kind_of(Array, json[key])
         end
       end
     end
 
     def assert_command_includes(command, *parts)
       parts.each do |part|
-        assert_includes command, part,
-                        "Expected command to include '#{part}'\nCommand: #{command}"
+        assert_includes(
+          command,
+          part,
+          "Expected command to include '#{part}'\nCommand: #{command}",
+        )
       end
     end
 
     def assert_error_message(error_class, message_pattern, &)
       error = assert_raises(error_class, &)
-      assert_match message_pattern, error.message
+      assert_match(message_pattern, error.message)
       error
     end
   end
@@ -157,23 +166,23 @@ module TestHelpers
 
       mcp_config = read_json_file(path)
 
-      assert_json_schema mcp_config, {
-        "mcpServers" => Hash
-      }
+      assert_json_schema(mcp_config, {
+        "mcpServers" => Hash,
+      })
 
       mcp_config
     end
 
     def assert_mcp_server_config(server_config, expected_type)
-      assert_equal expected_type, server_config["type"]
+      assert_equal(expected_type, server_config["type"])
 
       case expected_type
       when "stdio"
-        assert server_config.key?("command")
-        assert server_config.key?("args")
+        assert(server_config.key?("command"))
+        assert(server_config.key?("args"))
       when "sse"
 
-        assert server_config.key?("url")
+        assert(server_config.key?("url"))
       end
     end
   end
@@ -195,8 +204,11 @@ module TestHelpers
 
     def assert_log_contains(log_content, *patterns)
       patterns.each do |pattern|
-        assert_match pattern, log_content,
-                     "Expected log to contain #{pattern.inspect}"
+        assert_match(
+          pattern,
+          log_content,
+          "Expected log to contain #{pattern.inspect}",
+        )
       end
     end
 
@@ -212,7 +224,7 @@ module TestHelpers
     def find_mcp_file(instance_name)
       # MCP files are now in the session path set by the orchestrator
       session_path = ENV.fetch("CLAUDE_SWARM_SESSION_PATH", nil)
-      return nil unless session_path && Dir.exist?(session_path)
+      return unless session_path && Dir.exist?(session_path)
 
       file_path = File.join(session_path, "#{instance_name}.mcp.json")
       File.exist?(file_path) ? file_path : nil

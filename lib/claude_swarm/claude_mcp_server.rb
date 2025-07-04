@@ -26,22 +26,22 @@ module ClaudeSwarm
         calling_instance: calling_instance,
         calling_instance_id: calling_instance_id,
         claude_session_id: instance_config[:claude_session_id],
-        additional_directories: instance_config[:directories][1..] || []
+        additional_directories: instance_config[:directories][1..] || [],
       }
 
       @executor = if instance_config[:provider] == "openai"
-                    OpenAIExecutor.new(
-                      **common_params,
-                      # OpenAI-specific parameters
-                      temperature: instance_config[:temperature],
-                      api_version: instance_config[:api_version],
-                      openai_token_env: instance_config[:openai_token_env],
-                      base_url: instance_config[:base_url]
-                    )
-                  else
-                    # Default Claude behavior (existing code)
-                    ClaudeCodeExecutor.new(**common_params)
-                  end
+        OpenAIExecutor.new(
+          **common_params,
+          # OpenAI-specific parameters
+          temperature: instance_config[:temperature],
+          api_version: instance_config[:api_version],
+          openai_token_env: instance_config[:openai_token_env],
+          base_url: instance_config[:base_url],
+        )
+      else
+        # Default Claude behavior (existing code)
+        ClaudeCodeExecutor.new(**common_params)
+      end
 
       # Set class variables so tools can access them
       self.class.executor = @executor
@@ -61,14 +61,14 @@ module ClaudeSwarm
 
       server = FastMcp::Server.new(
         name: @instance_config[:name],
-        version: "1.0.0"
+        version: "1.0.0",
       )
 
       # Set dynamic description for TaskTool based on instance config
       if @instance_config[:description]
-        TaskTool.description "Execute a task using Agent #{@instance_config[:name]}. #{@instance_config[:description]}"
+        TaskTool.description("Execute a task using Agent #{@instance_config[:name]}. #{@instance_config[:description]}")
       else
-        TaskTool.description "Execute a task using Agent #{@instance_config[:name]}"
+        TaskTool.description("Execute a task using Agent #{@instance_config[:name]}")
       end
 
       # Register tool classes (not instances)

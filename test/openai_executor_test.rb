@@ -28,12 +28,12 @@ class OpenAIExecutorTest < Minitest::Test
       model: "gpt-4o",
       instance_name: "test-instance",
       instance_id: "test-123",
-      openai_token_env: "TEST_OPENAI_API_KEY"
+      openai_token_env: "TEST_OPENAI_API_KEY",
     )
 
-    assert_equal @tmpdir, executor.working_directory
-    assert_nil executor.session_id
-    assert_equal @session_path, executor.session_path
+    assert_equal(@tmpdir, executor.working_directory)
+    assert_nil(executor.session_id)
+    assert_equal(@session_path, executor.session_path)
   end
 
   def test_initialization_with_custom_values
@@ -45,10 +45,10 @@ class OpenAIExecutorTest < Minitest::Test
       temperature: 0.7,
       api_version: "responses",
       openai_token_env: "TEST_OPENAI_API_KEY",
-      base_url: "https://custom.openai.com/v1"
+      base_url: "https://custom.openai.com/v1",
     )
 
-    assert_equal @tmpdir, executor.working_directory
+    assert_equal(@tmpdir, executor.working_directory)
   end
 
   def test_initialization_fails_without_api_key
@@ -59,7 +59,7 @@ class OpenAIExecutorTest < Minitest::Test
         working_directory: @tmpdir,
         model: "gpt-4o",
         instance_name: "test-instance",
-        openai_token_env: "TEST_OPENAI_API_KEY"
+        openai_token_env: "TEST_OPENAI_API_KEY",
       )
     end
   end
@@ -70,15 +70,15 @@ class OpenAIExecutorTest < Minitest::Test
       model: "gpt-4o",
       instance_name: "test-instance",
       claude_session_id: "existing-session",
-      openai_token_env: "TEST_OPENAI_API_KEY"
+      openai_token_env: "TEST_OPENAI_API_KEY",
     )
 
-    assert_predicate executor, :has_session?
+    assert_predicate(executor, :has_session?)
 
     executor.reset_session
 
-    refute_predicate executor, :has_session?
-    assert_nil executor.session_id
+    refute_predicate(executor, :has_session?)
+    assert_nil(executor.session_id)
   end
 
   def test_session_logging_setup
@@ -87,14 +87,14 @@ class OpenAIExecutorTest < Minitest::Test
       model: "gpt-4o",
       instance_name: "test-instance",
       instance_id: "test-123",
-      openai_token_env: "TEST_OPENAI_API_KEY"
+      openai_token_env: "TEST_OPENAI_API_KEY",
     )
 
     # Check that log files are created
     log_file = File.join(@session_path, "session.log")
     File.join(@session_path, "session.log.json")
 
-    assert_path_exists log_file
+    assert_path_exists(log_file)
 
     # Verify log content
     log_content = File.read(log_file)
@@ -110,9 +110,9 @@ class OpenAIExecutorTest < Minitest::Test
         "test-server" => {
           "type" => "stdio",
           "command" => "echo",
-          "args" => ["test"]
-        }
-      }
+          "args" => ["test"],
+        },
+      },
     }
     File.write(mcp_config_path, JSON.pretty_generate(mcp_config))
 
@@ -123,7 +123,7 @@ class OpenAIExecutorTest < Minitest::Test
       model: "gpt-4o",
       mcp_config: mcp_config_path,
       instance_name: "test-instance",
-      openai_token_env: "TEST_OPENAI_API_KEY"
+      openai_token_env: "TEST_OPENAI_API_KEY",
     )
 
     # The executor should attempt to load MCP config

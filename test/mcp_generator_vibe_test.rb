@@ -48,7 +48,7 @@ class McpGeneratorVibeTest < Minitest::Test
       mcp_config = read_mcp_config("leader")
 
       # Should have no MCPs when instance has vibe: true
-      assert_empty mcp_config["mcpServers"]
+      assert_empty(mcp_config["mcpServers"])
     end
   end
 
@@ -73,7 +73,7 @@ class McpGeneratorVibeTest < Minitest::Test
       mcp_config = read_mcp_config("leader")
 
       # Should have no MCPs when global vibe is true
-      assert_empty mcp_config["mcpServers"]
+      assert_empty(mcp_config["mcpServers"])
     end
   end
 
@@ -103,12 +103,12 @@ class McpGeneratorVibeTest < Minitest::Test
       # Leader should have worker MCP connection
       leader_config = read_mcp_config("leader")
 
-      assert leader_config["mcpServers"].key?("worker")
+      assert(leader_config["mcpServers"].key?("worker"))
 
       # Worker should have no MCPs
       worker_config = read_mcp_config("worker")
 
-      assert_empty worker_config["mcpServers"]
+      assert_empty(worker_config["mcpServers"])
     end
   end
 
@@ -137,7 +137,7 @@ class McpGeneratorVibeTest < Minitest::Test
       worker_mcp = leader_config["mcpServers"]["worker"]
 
       # Worker MCP should have --vibe flag
-      assert_includes worker_mcp["args"], "--vibe"
+      assert_includes(worker_mcp["args"], "--vibe")
     end
   end
 end

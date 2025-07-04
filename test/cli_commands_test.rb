@@ -27,7 +27,7 @@ module ClaudeSwarm
     def test_ps_command
       output = capture_io { @cli.ps }.first
 
-      assert_equal "No active sessions\n", output
+      assert_equal("No active sessions\n", output)
     end
 
     def test_show_command_with_invalid_session
@@ -48,10 +48,10 @@ module ClaudeSwarm
       File.symlink(@test_session_dir, File.join(@run_dir, "test-session-123"))
 
       # Mock exec to prevent actual tail execution
-      @cli.stub :exec, nil do
+      @cli.stub(:exec, nil) do
         output = capture_io { @cli.watch("test-session-123") }
         # Exec was called, so there's no output
-        assert_equal "", output.first
+        assert_equal("", output.first)
       end
     end
 
@@ -71,7 +71,7 @@ module ClaudeSwarm
       assert_match(/Cleaned 1 stale symlink/, output)
 
       # Verify symlink was removed
-      refute_path_exists File.join(@run_dir, "stale-session")
+      refute_path_exists(File.join(@run_dir, "stale-session"))
     end
 
     def test_clean_command_with_days_option
@@ -112,7 +112,7 @@ module ClaudeSwarm
       assert_match(/No cleanup needed/, output)
 
       # Verify valid symlink still exists
-      assert_path_exists File.join(@run_dir, "valid-session")
+      assert_path_exists(File.join(@run_dir, "valid-session"))
     end
   end
 end

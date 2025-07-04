@@ -16,7 +16,7 @@ class SessionStateConcurrencyTest < Minitest::Test
 
   def test_concurrent_instance_state_writes
     # Simulate concurrent writes from multiple processes
-    instances = %w[lead_abc123 frontend_def456 backend_ghi789 worker1_jkl012 worker2_mno345]
+    instances = ["lead_abc123", "frontend_def456", "backend_ghi789", "worker1_jkl012", "worker2_mno345"]
 
     threads = instances.map do |instance_id|
       Thread.new do
@@ -35,7 +35,7 @@ class SessionStateConcurrencyTest < Minitest::Test
             instance_id: instance_id,
             claude_session_id: session_id,
             status: "active",
-            updated_at: Time.now.iso8601
+            updated_at: Time.now.iso8601,
           }
 
           # Use file locking to ensure thread safety
@@ -62,22 +62,22 @@ class SessionStateConcurrencyTest < Minitest::Test
       # Verify the state file exists
       state_file = File.join(@session_path, "state", "#{instance_id}.json")
 
-      assert_path_exists state_file
+      assert_path_exists(state_file)
 
       # Verify state file is valid JSON
       state_data = JSON.parse(File.read(state_file))
 
-      assert_equal instance_name, state_data["instance_name"]
-      assert_equal instance_id, state_data["instance_id"]
-      assert state_data["claude_session_id"]
-      assert_equal "active", state_data["status"]
-      assert state_data["updated_at"]
+      assert_equal(instance_name, state_data["instance_name"])
+      assert_equal(instance_id, state_data["instance_id"])
+      assert(state_data["claude_session_id"])
+      assert_equal("active", state_data["status"])
+      assert(state_data["updated_at"])
     end
   end
 
   def test_state_directory_creation
     # Test that state directory is created if it doesn't exist
-    refute Dir.exist?(File.join(@session_path, "state"))
+    refute(Dir.exist?(File.join(@session_path, "state")))
 
     # Write a state file
     state_dir = File.join(@session_path, "state")
@@ -89,13 +89,13 @@ class SessionStateConcurrencyTest < Minitest::Test
       instance_id: "test_instance_xyz789",
       claude_session_id: "test_session_id",
       status: "active",
-      updated_at: Time.now.iso8601
+      updated_at: Time.now.iso8601,
     }
 
     File.write(state_file, JSON.pretty_generate(state_data))
 
-    assert Dir.exist?(File.join(@session_path, "state"))
-    assert_path_exists state_file
+    assert(Dir.exist?(File.join(@session_path, "state")))
+    assert_path_exists(state_file)
   end
 
   def test_invalid_state_files_are_skipped
@@ -111,7 +111,7 @@ class SessionStateConcurrencyTest < Minitest::Test
       instance_id: "valid_abc123",
       claude_session_id: "valid_session_id",
       status: "active",
-      updated_at: Time.now.iso8601
+      updated_at: Time.now.iso8601,
     }
     File.write(valid_state_file, JSON.pretty_generate(valid_state_data))
 
@@ -125,8 +125,8 @@ class SessionStateConcurrencyTest < Minitest::Test
     end
 
     # Should have loaded the valid state
-    assert_equal 1, states.size
-    assert_equal "valid_abc123", states.keys.first
-    assert_equal "valid_session_id", states["valid_abc123"]["claude_session_id"]
+    assert_equal(1, states.size)
+    assert_equal("valid_abc123", states.keys.first)
+    assert_equal("valid_session_id", states["valid_abc123"]["claude_session_id"])
   end
 end

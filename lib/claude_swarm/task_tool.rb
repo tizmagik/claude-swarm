@@ -20,7 +20,7 @@ module ClaudeSwarm
       options = {
         new_session: new_session,
         system_prompt: system_prompt || instance_config[:prompt],
-        description: description
+        description: description,
       }
 
       # Add allowed tools from instance config
