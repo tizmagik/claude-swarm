@@ -172,18 +172,20 @@ module ClaudeSwarm
           process_responses_api(nil, new_conversation, response_id, depth + 1)
         else
           # Look for text response
-          text_output = output.find { |item| item["content"] }
-          if text_output && text_output["content"].is_a?(Array)
-            text_content = text_output["content"].find { |item| item["text"] }
-            text_content ? text_content["text"] : ""
-          else
-            ""
-          end
+          extract_text_response(output)
         end
       else
         @executor.error("Unexpected output format: #{output.inspect}")
         "Error: Unexpected response format"
       end
+    end
+
+    def extract_text_response(output)
+      text_output = output.find { |item| item["content"] }
+      return "" unless text_output && text_output["content"].is_a?(Array)
+
+      text_content = text_output["content"].find { |item| item["text"] }
+      text_content ? text_content["text"] : ""
     end
 
     def build_conversation_with_outputs(function_calls)

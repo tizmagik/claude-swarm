@@ -7,8 +7,10 @@ require "erb"
 module ClaudeSwarm
   class CLI < Thor
     include SystemUtils
-    def self.exit_on_failure?
-      true
+    class << self
+      def exit_on_failure?
+        true
+      end
     end
 
     desc "start [CONFIG_FILE]", "Start a Claude Swarm from configuration file"
